@@ -1,0 +1,4 @@
+# file: D:\project\Study_1037Solo\StudySolo\backend\app\api\auth.py
+# hypothesis_version: 6.151.9
+
+['*', '/', '/login', '/logout', '/me', '/refresh', '/register', 'Token 刷新失败', 'Token 已刷新', 'access_token', 'avatar_url', 'email', 'full_name', 'id', 'lax', 'message', 'name', 'password', 'refresh_token', 'role', 'user', 'users', '已退出登录', '注册失败，请检查邮箱格式或密码强度', '注册成功，请查收验证邮件', '缺少 refresh_token', '邮箱或密码错误']

@@ -1,0 +1,4 @@
+# file: D:\project\Study_1037Solo\StudySolo\backend\app\middleware\auth.py
+# hypothesis_version: 6.151.9
+
+[401, '/api/', '/api/auth/login', '/api/auth/refresh', '/api/auth/register', '/api/health', '/docs', '/openapi.json', '/redoc', 'Authorization', 'Bearer ', 'HS256', 'Token 无效或已过期', 'access_token', 'detail', 'verify_aud']

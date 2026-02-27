@@ -1,0 +1,4 @@
+# file: D:\project\Study_1037Solo\StudySolo\backend\app\core\deps.py
+# hypothesis_version: 6.151.9
+
+['Bearer', 'HS256', 'Token 无效或已过期', 'WWW-Authenticate', 'email', 'id', 'role', 'sub', 'user', 'verify_aud']

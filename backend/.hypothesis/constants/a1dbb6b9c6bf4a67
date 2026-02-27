@@ -1,0 +1,4 @@
+# file: D:\project\Study_1037Solo\StudySolo\backend\app\api\workflow.py
+# hypothesis_version: 6.151.9
+
+['/', '/{workflow_id}', 'description', 'draft', 'edges_json', 'id', 'name', 'nodes_json', 'status', 'success', 'updated_at', 'user_id', 'workflows', '创建工作流失败', '工作流不存在', '无更新内容']

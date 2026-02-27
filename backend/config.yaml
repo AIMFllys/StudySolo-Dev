@@ -1,0 +1,152 @@
+# StudySolo AI 配置中心
+# 所有 $ENV_VAR 引用在运行时由 config_loader.py 替换为环境变量值
+
+platforms:
+  dashscope:
+    name: "阿里云百炼"
+    base_url: "$DASHSCOPE_BASE_URL"
+    api_key: "$DASHSCOPE_API_KEY"
+    models:
+      - name: "qwen3-turbo"
+        max_tokens: 4096
+        temperature: 0.7
+      - name: "qwen3-plus"
+        max_tokens: 8192
+        temperature: 0.7
+
+  deepseek:
+    name: "DeepSeek"
+    base_url: "$DEEPSEEK_BASE_URL"
+    api_key: "$DEEPSEEK_API_KEY"
+    models:
+      - name: "deepseek-r1"
+        max_tokens: 8192
+        temperature: 0.7
+      - name: "deepseek-v3"
+        max_tokens: 8192
+        temperature: 0.7
+
+  moonshot:
+    name: "月之暗面"
+    base_url: "$MOONSHOT_BASE_URL"
+    api_key: "$MOONSHOT_API_KEY"
+    models:
+      - name: "moonshot-v1-8k"
+        max_tokens: 8192
+        temperature: 0.7
+
+  volcengine:
+    name: "火山引擎"
+    base_url: "$VOLCENGINE_BASE_URL"
+    api_key: "$VOLCENGINE_API_KEY"
+    models:
+      - name: "doubao-pro-32k"
+        max_tokens: 32768
+        temperature: 0.7
+
+  zhipu:
+    name: "智谱AI"
+    base_url: "$ZHIPU_BASE_URL"
+    api_key: "$ZHIPU_API_KEY"
+    models:
+      - name: "glm-4"
+        max_tokens: 8192
+        temperature: 0.7
+
+  qiniu:
+    name: "七牛云"
+    base_url: "$QINIU_BASE_URL"
+    api_key: "$QINIU_API_KEY"
+    models:
+      - name: "qiniu-llm"
+        max_tokens: 4096
+        temperature: 0.7
+
+  siliconflow:
+    name: "硅基流动"
+    base_url: "$SILICONFLOW_BASE_URL"
+    api_key: "$SILICONFLOW_API_KEY"
+    models:
+      - name: "Qwen/Qwen2.5-72B-Instruct"
+        max_tokens: 8192
+        temperature: 0.7
+
+  youyun:
+    name: "优云智算"
+    base_url: "$YOUYUN_BASE_URL"
+    api_key: "$YOUYUN_API_KEY"
+    models:
+      - name: "youyun-llm"
+        max_tokens: 4096
+        temperature: 0.7
+
+# 节点类型到模型路由映射
+# route_chain A = 格式严格链（禁止代理聚合平台）
+# route_chain B = 深度推理链
+node_routes:
+  trigger_input:
+    route_chain: "A"
+    default_model: "qwen3-turbo"
+    platform: "dashscope"
+  ai_analyzer:
+    route_chain: "A"
+    default_model: "qwen3-turbo"
+    platform: "dashscope"
+  ai_planner:
+    route_chain: "A"
+    default_model: "qwen3-turbo"
+    platform: "dashscope"
+  outline_gen:
+    route_chain: "B"
+    default_model: "deepseek-r1"
+    platform: "deepseek"
+  content_extract:
+    route_chain: "B"
+    default_model: "deepseek-r1"
+    platform: "deepseek"
+  summary:
+    route_chain: "B"
+    default_model: "deepseek-r1"
+    platform: "deepseek"
+  flashcard:
+    route_chain: "A"
+    default_model: "qwen3-turbo"
+    platform: "dashscope"
+  chat_response:
+    route_chain: "B"
+    default_model: "deepseek-r1"
+    platform: "deepseek"
+  write_db:
+    route_chain: "A"
+    default_model: "qwen3-turbo"
+    platform: "dashscope"
+
+# 容灾降级配置
+fallback:
+  timeout_ms: 30000
+  max_retries: 3
+  # 代理聚合平台列表（链 A 禁止使用）
+  proxy_aggregator_platforms:
+    - "siliconflow"
+    - "youyun"
+    - "qiniu"
+  chains:
+    A:  # 格式严格链降级路径（禁止代理聚合平台）
+      - platform: "dashscope"
+        model: "qwen3-turbo"
+      - platform: "deepseek"
+        model: "deepseek-v3"
+      - platform: "moonshot"
+        model: "moonshot-v1-8k"
+    B:  # 深度推理链降级路径
+      - platform: "deepseek"
+        model: "deepseek-r1"
+      - platform: "dashscope"
+        model: "qwen3-plus"
+      - platform: "volcengine"
+        model: "doubao-pro-32k"
+
+# 执行引擎配置
+engine:
+  max_nodes_per_workflow: 8
+  json_validation_retries: 3

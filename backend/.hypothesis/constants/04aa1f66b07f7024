@@ -1,0 +1,4 @@
+# file: D:\project\Study_1037Solo\StudySolo\backend\app\main.py
+# hypothesis_version: 6.151.9
+
+[2038, '*', '/api', '/api/health', '0.0.0.0', 'StudySolo API', '__main__', 'app.main:app', 'ok', 'status']
