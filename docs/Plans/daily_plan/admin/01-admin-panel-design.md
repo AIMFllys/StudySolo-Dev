@@ -259,7 +259,7 @@ GET    /api/admin/audit-logs          # 操作审计日志列表
 
 | 指标 | 计算方式 | 数据源 | 刷新频率 |
 |------|---------|--------|---------|
-| **总注册用户数** | `COUNT(users)` | users 表 | 实时 |
+| **总注册用户数** | `COUNT(user_profiles)` | user_profiles 表 | 实时 |
 | **DAU（日活跃用户）** | 当日有任何 API 请求的去重 user_id | 请求日志 | 每小时 |
 | **WAU**（周活跃用户） | 7 天滚动去重 | 请求日志 | 每天 |
 | **MAU**（月活跃用户） | 30 天滚动去重 | 请求日志 | 每天 |
@@ -668,7 +668,7 @@ SELECT
   DATE(created_at) AS date,
   COUNT(*) AS signups,
   COUNT(CASE WHEN email LIKE '%.edu%' THEN 1 END) AS edu_signups
-FROM users
+FROM user_profiles
 GROUP BY DATE(created_at)
 ORDER BY date DESC;
 

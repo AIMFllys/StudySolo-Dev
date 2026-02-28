@@ -367,7 +367,7 @@ CREATE TABLE notices (
   start_time TIMESTAMPTZ DEFAULT now(),
   end_time TIMESTAMPTZ,              -- NULL=永不过期
   is_active BOOLEAN DEFAULT true,
-  created_by UUID REFERENCES users(id),
+  created_by UUID REFERENCES user_profiles(id),
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -375,7 +375,7 @@ CREATE TABLE notices (
 -- 用户通知已读状态表
 CREATE TABLE notice_reads (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
   notice_id UUID NOT NULL REFERENCES notices(id) ON DELETE CASCADE,
   is_read BOOLEAN DEFAULT true,
   read_at TIMESTAMPTZ DEFAULT now(),
@@ -386,7 +386,7 @@ CREATE TABLE notice_reads (
 -- 用户评分表
 CREATE TABLE user_ratings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
   rating_type TEXT NOT NULL CHECK (rating_type IN ('workflow_completion', 'feature_experience', 'nps', 'renewal')),
   score INTEGER NOT NULL CHECK (score >= 0 AND score <= 10),
   feedback TEXT,                      -- 文字反馈
@@ -414,7 +414,7 @@ CREATE TABLE discount_coupons (
 -- 用户优惠券领取记录
 CREATE TABLE user_coupons (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
   coupon_id UUID NOT NULL REFERENCES discount_coupons(id),
   is_used BOOLEAN DEFAULT false,
   used_at TIMESTAMPTZ,

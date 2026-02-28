@@ -653,9 +653,9 @@ CREATE INDEX idx_tier_change_user ON tier_change_log(user_id, created_at DESC);
 | **P0** | `config_loader.py` 新增 `get_tier_config()` 方法 | `backend/app/core/config_loader.py` | config.yaml |
 | **P0** | `ai_router.py` 重构为 Tier 感知路由 | `backend/app/services/ai_router.py` | config_loader |
 | **P0** | 数据库新增 `user_usage_daily` 表 | Supabase SQL | 无 |
-| **P0** | `users` 表新增 `tier` 字段 | Supabase SQL | 无 |
+| **P0** | `user_profiles` 表新增 `tier` 字段 | Supabase SQL | 无 |
 | **P1** | 用量配额检查中间件 | `backend/app/middleware/quota.py` | user_usage_daily |
-| **P1** | JWT Claim 中嵌入 `tier` 字段 | `backend/app/middleware/auth.py` | users.tier |
+| **P1** | JWT Claim 中嵌入 `tier` 字段 | `backend/app/middleware/auth.py` | user_profiles.tier |
 | **P1** | 前端 Tier 感知 UI（升级提示 + 配额显示） | `frontend/src/components/` | API 响应头 |
 | **P2** | `tier_change_log` 审计日志 | Supabase SQL | 无 |
 | **P2** | 管理后台 Tier 概览看板 | `frontend/src/app/(admin)/` | tier_change_log |

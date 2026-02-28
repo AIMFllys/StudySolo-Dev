@@ -715,7 +715,7 @@ CREATE TABLE doc_feedback (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   doc_slug TEXT NOT NULL,           -- 文档路径
   is_helpful BOOLEAN NOT NULL,     -- true=有帮助 / false=需改进
-  user_id UUID REFERENCES users(id), -- 可选（未登录用户为 NULL）
+  user_id UUID REFERENCES user_profiles(id), -- 可选（未登录用户为 NULL）
   feedback_text TEXT,               -- 可选文字反馈
   created_at TIMESTAMPTZ DEFAULT now()
 );

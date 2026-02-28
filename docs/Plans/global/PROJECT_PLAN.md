@@ -660,21 +660,22 @@ Node.js 后端 (PM2)   ~300 MB - 500 MB
 ## 十一、数据库设计（Supabase PostgreSQL）
 
 ```sql
--- 用户表
-CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+-- 用户表 (使用共享的 user_profiles)
+CREATE TABLE user_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- 通常引用 auth.users(id)
   email TEXT UNIQUE NOT NULL,
   name TEXT,
   avatar_url TEXT,
+  tier TEXT DEFAULT 'free',
   role TEXT DEFAULT 'user',
   created_at TIMESTAMPTZ DEFAULT now(),
   last_login TIMESTAMPTZ
 );
 
 -- 工作流表
-CREATE TABLE workflows (
+CREATE TABLE ss_workflows (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   description TEXT,
   nodes_json JSONB DEFAULT '[]',
@@ -686,10 +687,10 @@ CREATE TABLE workflows (
 );
 
 -- 工作流执行记录
-CREATE TABLE workflow_runs (
+CREATE TABLE ss_workflow_runs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  workflow_id UUID REFERENCES workflows(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  workflow_id UUID REFERENCES ss_workflows(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
   input TEXT,
   output JSONB,
   status TEXT DEFAULT 'running',
@@ -699,7 +700,7 @@ CREATE TABLE workflow_runs (
 );
 
 -- 提示词表
-CREATE TABLE prompts (
+CREATE TABLE ss_prompts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   category TEXT,
@@ -711,25 +712,25 @@ CREATE TABLE prompts (
   temperature FLOAT DEFAULT 0.7,
   max_tokens INTEGER DEFAULT 2048,
   is_active BOOLEAN DEFAULT true,
-  created_by UUID REFERENCES users(id),
+  created_by UUID REFERENCES user_profiles(id),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- 提示词版本历史 (支持版本回滚)
-CREATE TABLE prompt_versions (
+CREATE TABLE ss_prompt_versions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  prompt_id UUID REFERENCES prompts(id) ON DELETE CASCADE,
+  prompt_id UUID REFERENCES ss_prompts(id) ON DELETE CASCADE,
   version INTEGER NOT NULL,
   content TEXT NOT NULL,
-  changed_by UUID REFERENCES users(id),
+  changed_by UUID REFERENCES user_profiles(id),
   change_note TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- 工作流模板（共享广场）
-CREATE TABLE workflow_templates (
+CREATE TABLE ss_workflow_templates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  creator_id UUID REFERENCES users(id),
+  creator_id UUID REFERENCES user_profiles(id),
   name TEXT NOT NULL,
   description TEXT,
   category TEXT,
@@ -742,10 +743,10 @@ CREATE TABLE workflow_templates (
 );
 
 -- 归档记忆 (配合 pgvector 实现语义搜索)
-CREATE TABLE memories (
+CREATE TABLE ss_memories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  workflow_run_id UUID REFERENCES workflow_runs(id),
+  user_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
+  workflow_run_id UUID REFERENCES ss_workflow_runs(id),
   summary TEXT NOT NULL,
   tags TEXT[],
   embedding vector(1536),
@@ -753,11 +754,11 @@ CREATE TABLE memories (
 );
 
 -- 启用 RLS
-ALTER TABLE workflows ENABLE ROW LEVEL SECURITY;
-ALTER TABLE workflow_runs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE prompts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE prompt_versions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE memories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ss_workflows ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ss_workflow_runs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ss_prompts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ss_prompt_versions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ss_memories ENABLE ROW LEVEL SECURITY;
 ```
 
 ---
