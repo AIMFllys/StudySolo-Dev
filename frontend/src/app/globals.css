@@ -1,0 +1,323 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * StudySolo Design System — Deep Midnight Navy + Glass Morphism
+ * Reference: docs/design.md
+ */
+
+/* ─── Tailwind Theme Inline (Shadcn/UI integration) ─── */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: "Inter", "Noto Sans SC", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+}
+
+/* ─── StudySolo Design Tokens ─── */
+:root {
+  --radius: 0.625rem;
+
+  /* Core palette */
+  --ss-primary: #6366F1;
+  --ss-primary-dark: #4F46E5;
+  --ss-accent: #10B981;
+  --ss-background-dark: #020617;
+  --ss-surface-dark: #0F172A;
+  --ss-surface-glass: rgba(15, 23, 42, 0.6);
+  --ss-border-dark: rgba(255, 255, 255, 0.08);
+  --ss-text-main: #F8FAFC;
+  --ss-text-muted: #94A3B8;
+
+  /* Status colors */
+  --ss-success: #10B981;
+  --ss-error: #EF4444;
+  --ss-warning: #F59E0B;
+  --ss-info: #6366F1;
+
+  /* Shadows */
+  --ss-shadow-glass: 0 4px 30px rgba(0, 0, 0, 0.1);
+  --ss-shadow-glow: 0 0 15px rgba(99, 102, 241, 0.3);
+  --ss-shadow-glow-sm: 0 0 10px rgba(99, 102, 241, 0.2);
+  --ss-shadow-glow-accent: 0 0 8px rgba(16, 185, 129, 0.5);
+
+  /* Spacing */
+  --ss-spacing-1: 4px;
+  --ss-spacing-2: 8px;
+  --ss-spacing-3: 12px;
+  --ss-spacing-4: 16px;
+  --ss-spacing-5: 20px;
+  --ss-spacing-6: 24px;
+  --ss-spacing-8: 32px;
+}
+
+/* ─── Dark Theme (forced — no light mode) ─── */
+
+.dark,
+:root {
+  /* Shadcn/UI semantic tokens — mapped to StudySolo dark theme */
+  --background: #020617;
+  --foreground: #F8FAFC;
+  --card: #0F172A;
+  --card-foreground: #F8FAFC;
+  --popover: #0F172A;
+  --popover-foreground: #F8FAFC;
+  --primary: #6366F1;
+  --primary-foreground: #FFFFFF;
+  --secondary: #1E293B;
+  --secondary-foreground: #F8FAFC;
+  --muted: #1E293B;
+  --muted-foreground: #94A3B8;
+  --accent: #10B981;
+  --accent-foreground: #FFFFFF;
+  --destructive: #EF4444;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.08);
+  --ring: rgba(99, 102, 241, 0.5);
+  --chart-1: #6366F1;
+  --chart-2: #10B981;
+  --chart-3: #F59E0B;
+  --chart-4: #EF4444;
+  --chart-5: #8B5CF6;
+  --sidebar: #020617;
+  --sidebar-foreground: #F8FAFC;
+  --sidebar-primary: #6366F1;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: rgba(99, 102, 241, 0.1);
+  --sidebar-accent-foreground: #F8FAFC;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: rgba(99, 102, 241, 0.5);
+}
+
+@theme {
+  /* 2K and 4K breakpoints */
+  --breakpoint-2k: 2560px;
+  --breakpoint-4k: 3840px;
+}
+
+/* ─── Base Layer ─── */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Inter", "Noto Sans SC", sans-serif;
+  }
+}
+
+/* ─── Selection ─── */
+::selection {
+  background: rgba(99, 102, 241, 0.3);
+  color: #FFFFFF;
+}
+
+/* ─── Glass Morphism Classes ─── */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card {
+  background: linear-gradient(145deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+.glass-card:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+  background: linear-gradient(145deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}
+
+.glass-active {
+  background: linear-gradient(145deg, rgba(99, 102, 241, 0.1) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
+}
+
+/* ─── Grid Pattern Background ─── */
+.bg-grid-pattern {
+  background-size: 40px 40px;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
+/* Canvas variant — slightly brighter dots */
+.bg-grid-pattern-canvas {
+  background-size: 40px 40px;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+}
+
+/* ─── Shadow Glow ─── */
+.shadow-glow {
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+}
+.shadow-glow-sm {
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.2);
+}
+.shadow-glow-accent {
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+}
+.shadow-glass {
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* ─── Custom Scrollbar ─── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+/* Scrollbar hide utility */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none !important;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* ─── Workflow Canvas Overrides ─── */
+
+/* Canvas wrapper — override ReactFlow defaults */
+.workflow-canvas .react-flow__pane {
+  cursor: grab;
+}
+.workflow-canvas .react-flow__pane:active {
+  cursor: grabbing;
+}
+
+/* Remove default ReactFlow background — we use our own grid */
+.workflow-canvas .react-flow__background {
+  display: none;
+}
+
+/* ─── Zoom Controls — Bottom-right capsule ─── */
+.workflow-controls.react-flow__controls {
+  display: flex;
+  flex-direction: row;
+  gap: 2px;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  padding: 4px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+  bottom: 16px;
+  right: 16px;
+}
+
+.workflow-controls .react-flow__controls-button {
+  background: transparent;
+  border: none;
+  border-radius: 9999px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94A3B8;
+  transition: all 0.2s ease;
+}
+.workflow-controls .react-flow__controls-button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #F8FAFC;
+}
+.workflow-controls .react-flow__controls-button svg {
+  fill: currentColor;
+}
+
+/* ─── Edge Animations ─── */
+@keyframes edge-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+.edge-animated-pulse {
+  animation: edge-pulse 2s ease-in-out infinite;
+}
+
+/* ─── Node Border Pulse (running state) ─── */
+@keyframes border-pulse {
+  0%, 100% { border-color: rgba(99, 102, 241, 0.4); }
+  50% { border-color: rgba(99, 102, 241, 0.7); }
+}
+.animate-border-pulse {
+  animation: border-pulse 2s ease-in-out infinite;
+}
+
+/* ─── ReactFlow Edge Defaults ─── */
+.workflow-canvas .react-flow__edge-path {
+  stroke: #6366F1;
+  stroke-opacity: 0.3;
+  stroke-width: 2;
+}
+
+/* ─── ReactFlow MiniMap (hidden — replaced by controls) ─── */
+.workflow-canvas .react-flow__minimap {
+  display: none;
+}
+
+/* ─── ReactFlow Node Selection Ring ─── */
+.workflow-canvas .react-flow__node.selected > div {
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5), 0 0 20px rgba(99, 102, 241, 0.15);
+}

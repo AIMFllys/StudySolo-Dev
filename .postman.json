@@ -1,0 +1,18 @@
+{
+  "workspaceId": "9a3b2b4e-1361-4a93-9a97-b89456cd3cf9",
+  "workspaceName": "StudySolo API Testing",
+  "collectionId": "b97f077f-c7a5-481f-bdd7-8a95bbe8565d",
+  "collectionUid": "52741083-b97f077f-c7a5-481f-bdd7-8a95bbe8565d",
+  "environments": {
+    "local": {
+      "id": "674f3ae8-7e28-4409-abc6-27d71b9fc336",
+      "uid": "52741083-674f3ae8-7e28-4409-abc6-27d71b9fc336",
+      "name": "Local Development"
+    },
+    "production": {
+      "id": "74159c1f-ed12-49d2-8f9f-cc42e001d8c1",
+      "uid": "52741083-74159c1f-ed12-49d2-8f9f-cc42e001d8c1",
+      "name": "Production"
+    }
+  }
+}

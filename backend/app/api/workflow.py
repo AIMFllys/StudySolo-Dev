@@ -14,7 +14,7 @@ _META_COLS = "id,name,description,status,created_at,updated_at"
 _CONTENT_COLS = "id,name,description,nodes_json,edges_json,status,created_at,updated_at"
 
 
-@router.get("/", response_model=list[WorkflowMeta])
+@router.get("", response_model=list[WorkflowMeta])
 async def list_workflows(
     current_user: dict = Depends(get_current_user),
     db: AsyncClient = Depends(get_supabase_client),
@@ -30,25 +30,45 @@ async def list_workflows(
     return result.data or []
 
 
-@router.post("/", response_model=WorkflowMeta, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=WorkflowMeta, status_code=status.HTTP_201_CREATED)
 async def create_workflow(
     body: WorkflowCreate,
     current_user: dict = Depends(get_current_user),
     db: AsyncClient = Depends(get_supabase_client),
 ):
     """Create a new workflow for the current user."""
+    user_id = current_user["id"]
+
+    # Ensure user exists in public.users (FK target for workflows.user_id)
+    try:
+        await db.from_("users").upsert(
+            {"id": user_id, "email": current_user.get("email", "")},
+            on_conflict="id",
+        ).execute()
+    except Exception:
+        pass  # Best-effort; if users table doesn't exist yet, skip
+
     payload = {
-        "user_id": current_user["id"],
+        "user_id": user_id,
         "name": body.name,
         "description": body.description,
         "nodes_json": [],
         "edges_json": [],
         "status": "draft",
     }
-    result = await db.from_("workflows").insert(payload).select(_META_COLS).single().execute()
-    if not result.data:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="创建工作流失败")
-    return result.data
+    # Insert the workflow
+    try:
+        insert_result = await db.from_("workflows").insert(payload).execute()
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"创建工作流失败: {e}",
+        )
+    if not insert_result.data:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="创建工作流失败: 无返回数据")
+    return insert_result.data[0]
 
 
 @router.get("/{workflow_id}/content", response_model=WorkflowContent)

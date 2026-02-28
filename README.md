@@ -342,6 +342,82 @@ server {
 
 ---
 
+## 🧪 API 测试（Postman + Supabase MCP）
+
+### Postman API 测试集成
+
+项目已集成 Postman Power 用于 API 自动化测试，配置信息存储在 `.postman.json`。
+
+#### 测试环境
+
+- **工作空间**: StudySolo API Testing
+- **本地环境**: http://localhost:2038
+- **生产环境**: https://studyflow.1037solo.com
+
+#### 已配置的测试集合
+
+1. **认证接口**
+   - 用户注册 (POST /api/auth/register)
+   - 用户登录 (POST /api/auth/login)
+
+2. **AI 接口**
+   - AI 对话流式输出 (POST /api/ai/chat)
+   - 工作流生成 (POST /api/workflow/generate)
+
+3. **健康检查**
+   - 服务状态 (GET /api/health)
+
+#### 免费版使用策略 ⚠️
+
+Postman 免费版限制：
+- **Collection Run**: 25次/月
+- **API 调用**: 10000次/月
+
+**推荐使用方式**：
+
+✅ **用 Postman Power（消耗配额）**：
+- 部署前完整测试（1-2次/部署）
+- 重大功能完成后验证（2-3次/功能）
+- Bug 修复后回归测试（按需）
+- **预计每月使用：10-15 次**
+
+✅ **用 FastAPI 内置测试（免费无限）**：
+```bash
+cd backend
+pytest tests/
+```
+
+✅ **用 Newman CLI（免费无限）**：
+```bash
+# 导出 Postman 集合后本地运行
+npx newman run .postman-collection.json -e .postman-environment.json
+```
+
+#### 手动运行测试
+
+在 Postman 网页中访问：
+```
+https://go.postman.co/workspace/9a3b2b4e-1361-4a93-9a97-b89456cd3cf9
+```
+
+或通过 Kiro 运行（消耗配额）：
+```
+让 Kiro 运行 Postman 测试集合
+```
+
+### Supabase MCP 集成
+
+项目已集成 Supabase MCP，可通过 Kiro 直接操作数据库：
+
+- 查询表数据
+- 插入/更新/删除记录
+- 执行 SQL 查询
+- 管理数据库迁移
+
+**数据库项目**: StudySolo (hofcaclztjazoytmckup)
+
+---
+
 ## 📄 相关文档
 
 - [📋 PROJECT_PLAN.md](./PROJECT_PLAN.md) — 完整项目规划（架构 · 部署 · 数据库设计）

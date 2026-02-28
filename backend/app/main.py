@@ -6,7 +6,7 @@ from app.api.router import router as api_router
 from app.middleware.auth import JWTAuthMiddleware
 from app.middleware.security import add_cors_middleware
 
-app = FastAPI(title="StudySolo API")
+app = FastAPI(title="StudySolo API", redirect_slashes=False)
 
 # CORS — restricted to CORS_ORIGIN env variable
 add_cors_middleware(app)

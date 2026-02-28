@@ -1,5 +1,6 @@
 """Authentication routes: /api/auth/*"""
 
+import os
 from typing import Annotated
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
@@ -10,10 +11,11 @@ from app.models.user import UserInfo, UserLogin, UserRegister
 
 router = APIRouter()
 
-# Cookie settings
+# Cookie settings — secure=False in development so cookies work over HTTP
+_IS_DEV = os.getenv("ENVIRONMENT", "development").lower() == "development"
 _COOKIE_OPTS = dict(
     httponly=True,
-    secure=True,
+    secure=not _IS_DEV,
     samesite="lax",
     path="/",
 )
@@ -28,7 +30,9 @@ async def register(
     try:
         result = await db.auth.sign_up({"email": body.email, "password": body.password})
     except Exception as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=repr(exc))
 
     if result.user is None:
         raise HTTPException(

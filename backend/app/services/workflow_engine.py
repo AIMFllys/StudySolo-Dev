@@ -4,10 +4,11 @@ Executes workflow nodes in topological order, injecting implicit context
 into each LLM node's system prompt, and streaming results via SSE.
 """
 
+import copy
 import json
 import logging
 from collections import defaultdict, deque
-from typing import AsyncIterator
+from typing import AsyncIterator, Awaitable, Callable
 
 from app.models.ai import ImplicitContext, LLM_NODE_TYPES, NodeType, SYSTEM_PROMPTS
 from app.services.ai_router import call_llm, AIRouterError
@@ -78,6 +79,32 @@ def _get_all_downstream_helper(node_id: str, downstream: dict[str, set[str]]) ->
     return result
 
 
+# ── Merge outputs helper ─────────────────────────────────────────────────────
+
+def _merge_outputs(
+    nodes: list[dict],
+    node_map: dict[str, dict],
+    accumulated_outputs: dict[str, str],
+    failed_nodes: set[str],
+) -> list[dict]:
+    """Merge execution outputs back into a deep copy of the original nodes.
+
+    For each node that produced output, sets ``data.output`` and ``data.status``
+    to reflect the execution result.
+    """
+    updated = copy.deepcopy(nodes)
+    for node in updated:
+        nid = node["id"]
+        data = node.setdefault("data", {})
+        if nid in accumulated_outputs:
+            data["output"] = accumulated_outputs[nid]
+            data["status"] = "done"
+        elif nid in failed_nodes:
+            data["status"] = "error"
+        # nodes that were skipped keep their original status
+    return updated
+
+
 # ── Execution engine ─────────────────────────────────────────────────────────
 
 async def execute_workflow(
@@ -85,6 +112,7 @@ async def execute_workflow(
     nodes: list[dict],
     edges: list[dict],
     implicit_context: dict | None = None,
+    save_callback: Callable[[str, list[dict]], Awaitable[None]] | None = None,
 ) -> AsyncIterator[str]:
     """Execute a workflow and yield SSE event strings.
 
@@ -186,4 +214,15 @@ async def execute_workflow(
             # Mark all downstream nodes as failed
             failed_nodes.update(_get_all_downstream(node_id))
 
+    # Save results before signalling completion
+    if save_callback:
+        try:
+            updated_nodes = _merge_outputs(nodes, node_map, accumulated_outputs, failed_nodes)
+            await save_callback(workflow_id, updated_nodes)
+        except Exception as e:
+            logger.error("Auto-save failed for workflow %s: %s", workflow_id, e)
+            yield _sse_event("save_error", {"workflow_id": workflow_id, "error": str(e)})
+
     yield _sse_event("workflow_done", {"workflow_id": workflow_id, "status": "completed"})
+
+
