@@ -298,9 +298,9 @@ Day 13（03-09 ~ 03-10）：Phase 4 — 联调 + 收尾 + 部署
 
 | 表名 | MVP 是否必须 | 说明 |
 |------|-------------|------|
-| `users` | ✅ 必须 | Supabase Auth 自动管理（user_profiles 需手动建） |
-| `workflows` | ✅ 必须 | 工作流元数据 + nodes/edges |
-| `workflow_runs` | ✅ 必须 | 执行历史记录 |
+| `auth.users` / `user_profiles` | ✅ 必须 | auth.users 由 Supabase Auth 管理（user_profiles 需手动建） |
+| `ss_workflows` | ✅ 必须 | 工作流元数据 + nodes/edges |
+| `ss_workflow_runs` | ✅ 必须 | 执行历史记录 |
 | `prompts` | ❌ P1 | 提示词管理（MVP 硬编码即可） |
 | `prompt_versions` | ❌ P1 | — |
 | `workflow_templates` | ❌ P1 | 模板广场 |

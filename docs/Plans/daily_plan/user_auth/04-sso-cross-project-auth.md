@@ -362,11 +362,11 @@ app/(auth)/forgot-password/page.tsx # 忘记密码（滑动拼图 + 验证码）
 
 ```sql
 -- StudySolo 专用表
-CREATE POLICY "users_own_workflows" ON workflows
+CREATE POLICY "users_own_workflows" ON ss_workflows
     FOR ALL USING (auth.uid() = user_id);
 
 -- Platform 专用表
-CREATE POLICY "users_own_projects" ON platform_projects
+CREATE POLICY "users_own_projects" ON pt_projects
     FOR ALL USING (auth.uid() = user_id);
 ```
 
@@ -378,8 +378,8 @@ RETURNS jsonb LANGUAGE plpgsql AS $$
 DECLARE claims jsonb; user_tier text;
 BEGIN
   claims := event->'claims';
-  SELECT COALESCE(raw_user_meta_data->>'tier', 'free')
-  INTO user_tier FROM auth.users WHERE id = (event->>'user_id')::uuid;
+  SELECT COALESCE(tier, 'free')
+  INTO user_tier FROM user_profiles WHERE id = (event->>'user_id')::uuid;
   claims := jsonb_set(claims, '{user_tier}', to_jsonb(user_tier));
   event := jsonb_set(event, '{claims}', claims);
   RETURN event;

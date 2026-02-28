@@ -78,7 +78,7 @@ StudySolo 的核心用户画像就是**在校学生**（大学生、研究生）
     │
     ├─ 后端校验验证码
     ├─ 创建 student_verifications 记录（status: 'approved'）
-    ├─ 更新 users.is_student_verified = true
+    ├─ 更新 user_profiles.is_student_verified = true
     ├─ 设置有效期（预计毕业年份 or 1年）
     │
     ▼
@@ -317,7 +317,7 @@ STUDENT_VERIFICATION_RULES = {
 ### 6.1 数据表（已在 vip-01 中定义）
 
 - `student_verifications` 表：存储认证记录
-- `users.is_student_verified`：快速查询状态
+- `user_profiles.is_student_verified`：快速查询状态
 
 ### 6.2 API 端点
 

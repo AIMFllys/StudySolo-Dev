@@ -324,7 +324,7 @@ StudySolo 不是一个"消耗型 AI 聊天工具"，而是一个**"学习增效�
 
 ```
 已有表（来自 PROJECT_PLAN.md §11）：
-  ├── users          (需扩展 tier 字段)
+  ├── user_profiles          (需扩展 tier 字段)
   ├── workflows      (已有)
   ├── workflow_runs   (已有)
   └── ...
@@ -343,7 +343,7 @@ StudySolo 不是一个"消耗型 AI 聊天工具"，而是一个**"学习增效�
 ```sql
 CREATE TABLE subscriptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
     
     -- 订阅信息
     tier TEXT NOT NULL CHECK (tier IN ('pro', 'pro_plus', 'ultra')),
@@ -387,7 +387,7 @@ ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
 ```sql
 CREATE TABLE addon_purchases (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
     subscription_id UUID REFERENCES subscriptions(id) ON DELETE SET NULL,
     
     -- 加购信息
@@ -421,7 +421,7 @@ ALTER TABLE addon_purchases ENABLE ROW LEVEL SECURITY;
 ```sql
 CREATE TABLE payment_records (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
     
     -- 关联
     subscription_id UUID REFERENCES subscriptions(id) ON DELETE SET NULL,
@@ -461,7 +461,7 @@ ALTER TABLE payment_records ENABLE ROW LEVEL SECURITY;
 ```sql
 CREATE TABLE student_verifications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
     
     -- 认证信息
     school_name TEXT NOT NULL,
@@ -491,17 +491,17 @@ CREATE INDEX idx_student_user ON student_verifications(user_id);
 ALTER TABLE student_verifications ENABLE ROW LEVEL SECURITY;
 ```
 
-### 8.6 users 表扩展（汇总）
+### 8.6 user_profiles 表扩展（汇总）
 
 ```sql
--- 在 PROJECT_PLAN.md §11 的 users 表基础上新增
-ALTER TABLE users ADD COLUMN tier TEXT DEFAULT 'free' 
+-- 在现有的共享表 user_profiles 基础上新增
+ALTER TABLE user_profiles ADD COLUMN tier TEXT DEFAULT 'free' 
     CHECK (tier IN ('free', 'pro', 'pro_plus', 'ultra'));
-ALTER TABLE users ADD COLUMN tier_expires_at TIMESTAMPTZ;
-ALTER TABLE users ADD COLUMN is_student_verified BOOLEAN DEFAULT false;
-ALTER TABLE users ADD COLUMN student_verified_at TIMESTAMPTZ;
-ALTER TABLE users ADD COLUMN storage_used_bytes BIGINT DEFAULT 0;
-ALTER TABLE users ADD COLUMN preferred_currency TEXT DEFAULT 'CNY' 
+ALTER TABLE user_profiles ADD COLUMN tier_expires_at TIMESTAMPTZ;
+ALTER TABLE user_profiles ADD COLUMN is_student_verified BOOLEAN DEFAULT false;
+ALTER TABLE user_profiles ADD COLUMN student_verified_at TIMESTAMPTZ;
+ALTER TABLE user_profiles ADD COLUMN storage_used_bytes BIGINT DEFAULT 0;
+ALTER TABLE user_profiles ADD COLUMN preferred_currency TEXT DEFAULT 'CNY' 
     CHECK (preferred_currency IN ('CNY', 'USD'));
 ```
 
@@ -603,7 +603,7 @@ ALTER TABLE users ADD COLUMN preferred_currency TEXT DEFAULT 'CNY'
 | 优先级 | 任务 | 涉及文件/服务 | 备注 |
 |:---|:---|:---|:---|
 | **P0** | 数据库建表（subscriptions, addon_purchases, payment_records） | Supabase SQL | 会员核心 |
-| **P0** | users 表扩展 tier 字段 | Supabase SQL | 路由依赖 |
+| **P0** | user_profiles 表扩展 tier 字段 | Supabase SQL | 路由依赖 |
 | **P0** | 后端订阅 CRUD API | `backend/app/api/subscription.py` | 与支付集成 |
 | **P1** | 前端定价页 (/pricing) | `frontend/src/app/pricing/` | 转化关键页 |
 | **P1** | 前端会员中心 (/settings/membership) | `frontend/src/app/(dashboard)/settings/` | 用户自助管理 |

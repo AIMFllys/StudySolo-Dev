@@ -533,15 +533,15 @@ headers = {
 
 ## 六、数据库 Schema 扩展
 
-### 6.1 users 表扩展
+### 6.1 user_profiles 表扩展
 
 ```sql
--- 在现有 users 表中新增用户等级和配额字段
-ALTER TABLE users ADD COLUMN tier TEXT DEFAULT 'free' 
+-- 在现有的共享业务表 user_profiles 中新增用户等级和配额字段
+ALTER TABLE user_profiles ADD COLUMN tier TEXT DEFAULT 'free' 
     CHECK (tier IN ('free', 'pro', 'pro_plus', 'ultra'));
-ALTER TABLE users ADD COLUMN tier_expires_at TIMESTAMPTZ;
-ALTER TABLE users ADD COLUMN is_student_verified BOOLEAN DEFAULT false;
-ALTER TABLE users ADD COLUMN student_verified_at TIMESTAMPTZ;
+ALTER TABLE user_profiles ADD COLUMN tier_expires_at TIMESTAMPTZ;
+ALTER TABLE user_profiles ADD COLUMN is_student_verified BOOLEAN DEFAULT false;
+ALTER TABLE user_profiles ADD COLUMN student_verified_at TIMESTAMPTZ;
 ```
 
 ### 6.2 新建 user_usage_daily 表
@@ -550,7 +550,7 @@ ALTER TABLE users ADD COLUMN student_verified_at TIMESTAMPTZ;
 -- 用户每日用量统计
 CREATE TABLE user_usage_daily (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
     usage_date DATE NOT NULL DEFAULT CURRENT_DATE,
     
     -- 执行次数
@@ -592,7 +592,7 @@ CREATE POLICY "users_own_usage" ON user_usage_daily
 -- 用户等级变更日志（审计用）
 CREATE TABLE tier_change_log (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
     from_tier TEXT NOT NULL,
     to_tier TEXT NOT NULL,
     reason TEXT,  -- 'subscription', 'expired', 'admin_override', 'student_verified'
