@@ -19,7 +19,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ workflows }: SidebarProps) {
-  const { pathname, settingsActive, isWorkflowActive, logoutAndRedirect } =
+  const { pathname, settingsActive, knowledgeActive, isWorkflowActive, logoutAndRedirect } =
     useSidebarNavigation();
   const { contextMenu, handleContextMenu, closeContextMenu } =
     useWorkflowContextMenu();
@@ -86,12 +86,36 @@ export default function Sidebar({ workflows }: SidebarProps) {
 
         <div className="space-y-0.5 border-t border-border p-2">
           <Link
+            href="/knowledge"
+            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors ${knowledgeActive
+              ? 'bg-white/5 text-foreground'
+              : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
+              }`}
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 18 18"
+              fill="none"
+              className="shrink-0"
+            >
+              <path
+                d="M2.25 3.75h4.5a1.5 1.5 0 011.5 1.5V15a1.125 1.125 0 00-1.125-1.125h-4.5A.375.375 0 012.25 13.5V3.75zM15.75 3.75h-4.5a1.5 1.5 0 00-1.5 1.5V15a1.125 1.125 0 011.125-1.125h4.5a.375.375 0 00.375-.375V3.75z"
+                stroke="currentColor"
+                strokeWidth="1.3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <span className="hidden text-sm lg:block">知识库</span>
+          </Link>
+
+          <Link
             href="/settings"
-            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors ${
-              settingsActive
-                ? 'bg-white/5 text-foreground'
-                : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
-            }`}
+            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors ${settingsActive
+              ? 'bg-white/5 text-foreground'
+              : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
+              }`}
           >
             <svg
               width="18"

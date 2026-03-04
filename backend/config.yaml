@@ -120,6 +120,27 @@ node_routes:
     route_chain: "A"
     default_model: "qwen3-turbo"
     platform: "dashscope"
+  # ── P1 新增节点 ──
+  merge_polish:
+    route_chain: "B"
+    default_model: "deepseek-r1"
+    platform: "deepseek"
+  compare:
+    route_chain: "B"
+    default_model: "deepseek-r1"
+    platform: "deepseek"
+  quiz_gen:
+    route_chain: "A"
+    default_model: "qwen3-turbo"
+    platform: "dashscope"
+  mind_map:
+    route_chain: "A"
+    default_model: "qwen3-turbo"
+    platform: "dashscope"
+  knowledge_base:
+    route_chain: "A"
+    default_model: "qwen3-turbo"
+    platform: "dashscope"
 
 # 容灾降级配置
 fallback:
@@ -148,5 +169,5 @@ fallback:
 
 # 执行引擎配置
 engine:
-  max_nodes_per_workflow: 8
+  max_nodes_per_workflow: 12
   json_validation_retries: 3

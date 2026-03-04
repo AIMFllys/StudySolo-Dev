@@ -16,6 +16,7 @@ from app.api.auth import router as auth_router
 from app.api.workflow import router as workflow_router
 from app.api.ai import router as ai_router
 from app.api.nodes import router as nodes_router
+from app.api.knowledge import router as knowledge_router
 
 router = APIRouter()
 
@@ -23,6 +24,7 @@ router.include_router(auth_router, prefix="/auth", tags=["auth"])
 router.include_router(workflow_router, prefix="/workflow", tags=["workflow"])
 router.include_router(ai_router, prefix="/ai", tags=["ai"])
 router.include_router(nodes_router, prefix="/nodes", tags=["nodes"])
+router.include_router(knowledge_router, prefix="/knowledge", tags=["knowledge"])
 router.include_router(admin_auth_router, prefix="/admin", tags=["admin-auth"])
 router.include_router(admin_dashboard_router, prefix="/admin", tags=["admin-dashboard"])
 router.include_router(admin_users_router, prefix="/admin", tags=["admin-users"])

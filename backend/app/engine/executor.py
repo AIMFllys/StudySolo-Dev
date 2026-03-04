@@ -150,6 +150,7 @@ async def execute_workflow(
             user_content=node_data.get("label", ""),
             upstream_outputs=upstream_outputs,
             implicit_context=implicit_context,
+            node_config=node_data.get("config"),
         )
 
         # 6. Execute and stream

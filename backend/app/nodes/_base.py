@@ -24,6 +24,7 @@ class NodeInput(BaseModel):
     user_content: str = ""
     upstream_outputs: dict[str, str] = Field(default_factory=dict)
     implicit_context: dict[str, Any] | None = None
+    node_config: dict[str, Any] | None = None  # 节点配置参数（如 quiz_gen: {types, count, difficulty}）
 
 
 class NodeOutput(BaseModel):

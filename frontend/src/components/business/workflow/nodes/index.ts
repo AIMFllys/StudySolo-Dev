@@ -12,6 +12,9 @@ import { FlashcardRenderer } from "./renderers/FlashcardRenderer";
 import { OutlineRenderer } from "./renderers/OutlineRenderer";
 import { JsonRenderer } from "./renderers/JsonRenderer";
 import { PassthroughRenderer } from "./renderers/PassthroughRenderer";
+import { CompareRenderer } from "./renderers/CompareRenderer";
+import { MindMapRenderer } from "./renderers/MindMapRenderer";
+import { QuizRenderer } from "./renderers/QuizRenderer";
 
 /**
  * Props passed to every node renderer.
@@ -47,6 +50,14 @@ const RENDERER_REGISTRY: Record<string, React.FC<NodeRendererProps>> = {
     // Passthrough (no output display)
     trigger_input: PassthroughRenderer,
     write_db: PassthroughRenderer,
+
+    // ── P1 新增节点渲染器 ──
+    compare: CompareRenderer,
+    mind_map: MindMapRenderer,
+    quiz_gen: QuizRenderer,
+    merge_polish: MarkdownRenderer,
+    knowledge_base: MarkdownRenderer,
+    web_search: MarkdownRenderer,
 };
 
 /**

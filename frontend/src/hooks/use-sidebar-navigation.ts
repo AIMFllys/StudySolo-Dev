@@ -4,11 +4,13 @@ import { logout } from '@/services/auth.service';
 import {
   isSettingsRouteActive,
   isWorkflowRouteActive,
+  isKnowledgeRouteActive,
 } from '@/hooks/sidebar-navigation.helpers';
 
 interface UseSidebarNavigationResult {
   pathname: string;
   settingsActive: boolean;
+  knowledgeActive: boolean;
   isWorkflowActive: (workflowId: string) => boolean;
   logoutAndRedirect: () => Promise<void>;
 }
@@ -30,6 +32,7 @@ export function useSidebarNavigation(): UseSidebarNavigationResult {
   return {
     pathname,
     settingsActive: isSettingsRouteActive(pathname),
+    knowledgeActive: isKnowledgeRouteActive(pathname),
     isWorkflowActive,
     logoutAndRedirect,
   };
