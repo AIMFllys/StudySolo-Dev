@@ -61,7 +61,7 @@ export default function LandingPage() {
   const scale = useTransform(scrollY, [0, 200], [1, 0.95]);
 
   return (
-    <main className="relative min-h-screen bg-[#020617] text-slate-50 selection:bg-indigo-500/30 overflow-x-hidden">
+    <main className="relative min-h-screen bg-background text-foreground selection:bg-primary/30 overflow-x-hidden">
       {/* ─── Dynamic Background ─── */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         {/* Animated Glow */}
@@ -83,7 +83,7 @@ export default function LandingPage() {
       </div>
 
       {/* ─── Navigation ─── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#020617]/50 backdrop-blur-xl">
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-background/50 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-6 md:px-12 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 group cursor-pointer">
             <div className="relative">
@@ -123,7 +123,7 @@ export default function LandingPage() {
         >
           {/* Badge */}
           <div className="mb-8 p-px rounded-full bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20">
-            <div className="px-5 py-1.5 rounded-full bg-[#030712] border border-white/5 flex items-center gap-2">
+            <div className="px-5 py-1.5 rounded-full bg-background border border-white/5 flex items-center gap-2">
               <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
               <span className="text-xs font-medium text-indigo-300/80 tracking-wide uppercase">AI 驱动的下一代学习工作法</span>
             </div>
