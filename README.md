@@ -3,7 +3,7 @@
 # StudySolo
 
 > **基于自然语言的 AI 学习赋能工作流平台**  
-> 🌐 [studyflow.1037solo.com](https://studyflow.1037solo.com) · 🏗️ 阿里云 ECS + 宝塔面板 · 📅 2026-03-03 · v0.2.x
+> 🌐 [studysolo.1037solo.com](https://studysolo.1037solo.com) · 🏗️ 阿里云 ECS + 宝塔面板 · 📅 2026-03-16 · v0.2.x
 
 ---
 
@@ -74,7 +74,7 @@ StudySolo 是一个 AI 驱动的学习工作流平台。用户通过自然语言
 用户浏览器
     │
     ▼
-阿里云域名 (studyflow.1037solo.com)
+阿里云域名 (studysolo.1037solo.com)
     │ DNS → ECS 公网 IP
     ▼
 阿里云 ECS【2核4G · Alibaba Cloud Linux 3 · 宝塔面板】
@@ -132,11 +132,16 @@ StudySolo/
 ├── frontend/               # Next.js 16.1 前端（pnpm 管理）
 │   ├── src/
 │   │   ├── app/            # App Router 路由页面
-│   │   │   ├── (auth)/     # 登录、注册
-│   │   │   ├── (dashboard)/ # 三栏布局 + 工作流画布
-│   │   │   └── admin-analysis/ # Admin 管理后台
-│   │   ├── components/     # UI + 工作流 + AI + Admin 组件
-│   │   │   └── business/workflow/nodes/  # ← 渲染器注册表 + 各节点渲染器
+│   │   │   ├── (auth)/     # 登录、注册、忘记/重置密码
+│   │   │   ├── (dashboard)/ # 三栏布局 + 工作流画布 + 知识库 + 设置
+│   │   │   └── (admin)/    # Admin 管理后台
+│   │   ├── components/     # UI + 布局组件
+│   │   ├── features/       # 业务域模块
+│   │   │   ├── workflow/      # 工作流编辑器（canvas/nodes/panel/toolbar + hooks）
+│   │   │   ├── admin/         # 管理后台功能（10 子模块 + shared 共享库）
+│   │   │   ├── auth/          # 认证表单与逻辑
+│   │   │   ├── knowledge/     # 知识库
+│   │   │   └── settings/      # 用户设置
 │   │   ├── hooks/          # 自定义 React Hooks
 │   │   ├── stores/         # Zustand 状态
 │   │   ├── services/       # auth.service.ts, admin.service.ts
@@ -270,11 +275,11 @@ max_requests_jitter = 50
 ```nginx
 server {
     listen 443 ssl http2;
-    server_name studyflow.1037solo.com;
+    server_name studysolo.1037solo.com;
 
     # SSL（宝塔一键 Let's Encrypt）
-    ssl_certificate     /www/server/panel/vhost/cert/studyflow.1037solo.com/fullchain.pem;
-    ssl_certificate_key /www/server/panel/vhost/cert/studyflow.1037solo.com/privkey.pem;
+    ssl_certificate     /www/server/panel/vhost/cert/studysolo.1037solo.com/fullchain.pem;
+    ssl_certificate_key /www/server/panel/vhost/cert/studysolo.1037solo.com/privkey.pem;
 
     # 前端 Next.js
     location / {
@@ -311,7 +316,7 @@ server {
 # HTTP 强制跳转 HTTPS
 server {
     listen 80;
-    server_name studyflow.1037solo.com;
+    server_name studysolo.1037solo.com;
     return 301 https://$host$request_uri;
 }
 ```
@@ -363,7 +368,7 @@ server {
 
 - **工作空间**: StudySolo API Testing
 - **本地环境**: http://localhost:2038
-- **生产环境**: https://studyflow.1037solo.com
+- **生产环境**: https://studysolo.1037solo.com
 
 #### 已配置的测试集合
 
@@ -431,11 +436,11 @@ https://go.postman.co/workspace/9a3b2b4e-1361-4a93-9a97-b89456cd3cf9
 
 ## 📄 相关文档
 
-- [📋 PROJECT_PLAN.md](./PROJECT_PLAN.md) — 完整项目规划（架构 · 部署 · 数据库设计）
-- [🗄️ 共享 Supabase 数据库规范](./docs/Plans/daily_plan/user_auth/07-shared-supabase-database-convention.md) — 跨项目数据库命名与隔离策略
+- [📝 项目架构全景](./docs/项目规范与框架流程/项目规范/项目架构全景.md) — 完整架构地图（前后端结构 · 部署 · 边界约束）
+- [📋 文档入口](./docs/README.md) — 文档导航与当前可信事实
+- [🗄️ 共享 Supabase 数据库规范](./shared/docs/conventions/database.md) — 跨项目数据库命名与隔离策略
 - [📖 节点开发指南](./backend/app/nodes/CONTRIBUTING.md) — 新增工作流节点的完整操作手册
-- [🛠 项目地图](./docs/architecture.md) — 技术栏选型、模块划分、数据流向
-- [📊 开发进度](./docs/progress.md) — 当前状态与已完成功能
+- [📊 开发进度](./docs/项目规范与框架流程/项目规范/progress.md) — 当前状态与已完成功能
 
 ---
 
