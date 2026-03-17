@@ -18,6 +18,7 @@ import { useSidebarNavigation } from '@/hooks/use-sidebar-navigation';
 import { useWorkflowContextMenu } from '@/features/workflow/hooks/use-workflow-context-menu';
 import { useWorkflowSidebarActions } from '@/features/workflow/hooks/use-workflow-sidebar-actions';
 import { usePanelStore, type SidebarPanel, LEFT_PANEL_MIN, LEFT_PANEL_MAX } from '@/stores/use-panel-store';
+import { useSettingsStore } from '@/stores/use-settings-store';
 import { SidebarContextMenu } from './sidebar/SidebarContextMenu';
 import { SidebarWorkflowItem } from './sidebar/SidebarWorkflowItem';
 import { SidebarAIPanel } from './sidebar/SidebarAIPanel';
@@ -92,6 +93,8 @@ export default function Sidebar({ workflows }: SidebarProps) {
     toggleRightPanelDock,
   } = usePanelStore();
   const isCollapsed = activeSidebarPanel === null;
+  const sidebarPosition = useSettingsStore((s) => s.sidebarPosition);
+  const isRight = sidebarPosition === 'right';
 
   function handleRename(workflowId: string) {
     const workflow = workflows.find((item) => item.id === workflowId);
@@ -132,7 +135,7 @@ export default function Sidebar({ workflows }: SidebarProps) {
 
   return (
     <>
-      <div className="flex h-full shrink-0 border-r border-border">
+      <div className={`flex h-full shrink-0 ${isRight ? 'border-l flex-row-reverse' : 'border-r flex-row'} border-border`}>
         {/* ─── Activity Bar (always visible, fixed width) ─── */}
         <div className="flex h-full w-12 shrink-0 flex-col items-center bg-background py-2">
           {/* Execution panel — pinned at absolute top when docked */}
@@ -243,7 +246,7 @@ export default function Sidebar({ workflows }: SidebarProps) {
 
             {/* Resizable handle */}
             <ResizableHandle
-              side="left"
+              side={isRight ? 'right' : 'left'}
               currentWidth={leftPanelWidth}
               onWidthChange={setLeftPanelWidth}
               minWidth={LEFT_PANEL_MIN}

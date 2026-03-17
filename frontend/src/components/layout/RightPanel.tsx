@@ -1,7 +1,15 @@
 'use client';
 
-import { PanelRightClose, PanelRightOpen, PanelLeftDashed, PanelRightDashed } from 'lucide-react';
+import {
+  PanelRightClose,
+  PanelRightOpen,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelLeftDashed,
+  PanelRightDashed,
+} from 'lucide-react';
 import { usePanelStore, RIGHT_PANEL_MIN, RIGHT_PANEL_MAX } from '@/stores/use-panel-store';
+import { useSettingsStore } from '@/stores/use-settings-store';
 import ResizableHandle from './ResizableHandle';
 import RightPanelContent from './sidebar/RightPanelContent';
 
@@ -14,6 +22,8 @@ export default function RightPanel() {
     rightPanelDockedToSidebar,
     toggleRightPanelDock,
   } = usePanelStore();
+  const sidebarPosition = useSettingsStore((s) => s.sidebarPosition);
+  const isRight = sidebarPosition === 'right';
 
   // When docked to sidebar, don't render anything on the right
   if (rightPanelDockedToSidebar) {
@@ -22,15 +32,16 @@ export default function RightPanel() {
 
   /* ─── Collapsed strip ─── */
   if (rightPanelCollapsed) {
+    const OpenIcon = isRight ? PanelLeftOpen : PanelRightOpen;
     return (
-      <aside className="hidden w-10 shrink-0 flex-col border-l border-border bg-background/95 md:flex">
+      <aside className={`hidden w-10 shrink-0 flex-col ${isRight ? 'border-r' : 'border-l'} border-border bg-background/95 md:flex`}>
         <button
           type="button"
           onClick={toggleRightPanel}
           className="flex h-10 w-full items-center justify-center text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
           title="展开面板"
         >
-          <PanelRightOpen className="h-4 w-4" />
+          <OpenIcon className="h-4 w-4" />
         </button>
       </aside>
     );
@@ -40,14 +51,14 @@ export default function RightPanel() {
   return (
     <>
       <ResizableHandle
-        side="right"
+        side={isRight ? 'left' : 'right'}
         currentWidth={rightPanelWidth}
         onWidthChange={setRightPanelWidth}
         minWidth={RIGHT_PANEL_MIN}
         maxWidth={RIGHT_PANEL_MAX}
       />
       <aside
-        className="hidden shrink-0 flex-col border-l border-border bg-background/95 backdrop-blur md:flex"
+        className={`hidden shrink-0 flex-col ${isRight ? 'border-r' : 'border-l'} border-border bg-background/95 backdrop-blur md:flex`}
         style={{ width: rightPanelWidth }}
       >
         {/* Panel header with toggle + dock */}
@@ -61,9 +72,9 @@ export default function RightPanel() {
               type="button"
               onClick={toggleRightPanelDock}
               className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
-              title="移动到左侧边栏"
+              title={isRight ? '移动到右侧边栏' : '移动到左侧边栏'}
             >
-              <PanelLeftDashed className="h-4 w-4" />
+              {isRight ? <PanelRightDashed className="h-4 w-4" /> : <PanelLeftDashed className="h-4 w-4" />}
             </button>
             {/* Collapse button */}
             <button
@@ -72,7 +83,7 @@ export default function RightPanel() {
               className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
               title="收起面板"
             >
-              <PanelRightClose className="h-4 w-4" />
+              {isRight ? <PanelLeftClose className="h-4 w-4" /> : <PanelRightClose className="h-4 w-4" />}
             </button>
           </div>
         </div>

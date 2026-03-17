@@ -4,6 +4,7 @@ import { ArrowLeft, Save, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import RightPanel from '@/components/layout/RightPanel';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
+import { useSettingsStore } from '@/stores/use-settings-store';
 
 interface WorkflowPageShellProps {
   workflowName: string;
@@ -12,6 +13,8 @@ interface WorkflowPageShellProps {
 
 export default function WorkflowPageShell({ workflowName, children }: WorkflowPageShellProps) {
   const isDirty = useWorkflowStore((s) => s.isDirty);
+  const sidebarPosition = useSettingsStore((s) => s.sidebarPosition);
+  const isRight = sidebarPosition === 'right';
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -48,7 +51,7 @@ export default function WorkflowPageShell({ workflowName, children }: WorkflowPa
       </div>
 
       {/* ─── Canvas + Right Panel ─── */}
-      <div className="flex flex-1 overflow-hidden min-h-0">
+      <div className={`flex flex-1 overflow-hidden min-h-0 ${isRight ? 'flex-row-reverse' : 'flex-row'}`}>
         <div className="relative flex-1 overflow-hidden">
           {children}
         </div>

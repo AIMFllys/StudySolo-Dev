@@ -1,5 +1,6 @@
 import Sidebar from '@/components/layout/Sidebar';
 import DashboardShell from '@/components/layout/DashboardShell';
+import DashboardContentLayout from '@/components/layout/DashboardContentLayout';
 import { fetchWorkflowListForServer } from '@/services/workflow.server.service';
 
 export default async function DashboardLayout({
@@ -12,15 +13,15 @@ export default async function DashboardLayout({
   return (
     <div className="flex h-screen flex-col overflow-hidden">
       <DashboardShell>
-        <div className="flex flex-1 overflow-hidden">
+        {/* DashboardContentLayout reads sidebarPosition client-side and applies flex direction */}
+        <DashboardContentLayout>
           <div className="hidden h-full md:flex">
             <Sidebar workflows={workflows} />
           </div>
 
           <main className="flex-1 overflow-auto pb-16 md:pb-0">{children}</main>
-        </div>
+        </DashboardContentLayout>
       </DashboardShell>
     </div>
   );
 }
-

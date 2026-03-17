@@ -46,7 +46,7 @@ function AIStepNode({ data, selected, type }: NodeProps) {
 
       <div className="flex items-start gap-3 border-b border-white/8 px-4 pb-3 pt-4">
         <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ring-1 ${typeMeta.accentClassName}`}>
-          <typeMeta.icon className="h-5 w-5" />
+          <typeMeta.icon className="h-5 w-5 text-stone-900" />
         </div>
 
         <div className="min-w-0 flex-1">
