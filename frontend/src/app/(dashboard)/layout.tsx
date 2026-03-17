@@ -1,6 +1,5 @@
-﻿import Sidebar from '@/components/layout/Sidebar';
+import Sidebar from '@/components/layout/Sidebar';
 import DashboardShell from '@/components/layout/DashboardShell';
-import RightPanel from '@/components/layout/RightPanel';
 import { fetchWorkflowListForServer } from '@/services/workflow.server.service';
 
 export default async function DashboardLayout({
@@ -18,10 +17,10 @@ export default async function DashboardLayout({
             <Sidebar workflows={workflows} />
           </div>
 
-          <main className="flex-1 overflow-auto">{children}</main>
-          <RightPanel />
+          <main className="flex-1 overflow-auto pb-16 md:pb-0">{children}</main>
         </div>
       </DashboardShell>
     </div>
   );
 }
+

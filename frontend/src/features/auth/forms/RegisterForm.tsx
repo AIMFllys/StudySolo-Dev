@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useCallback, useState } from 'react';
 import Link from 'next/link';
@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { sendVerificationCode, register } from '@/services/auth.service';
 import { useVerificationCountdown } from '@/hooks/use-verification-countdown';
 import { AuthShell, SliderCaptcha } from '@/features/auth/components';
+import { ArrowRight } from 'lucide-react';
 
 export function RegisterForm() {
   const router = useRouter();
@@ -28,12 +29,12 @@ export function RegisterForm() {
 
   async function handleSendCode() {
     if (!email) {
-      setError('请先输入邮箱地址');
+      setError('REQ: _enter.email@domain');
       return;
     }
 
     if (!captchaToken) {
-      setError('请先完成滑块验证');
+      setError('REQ: CAPTCHA_VERIFICATION_REQUIRED');
       return;
     }
 
@@ -44,7 +45,7 @@ export function RegisterForm() {
       setCodeSent(true);
       countdown.start();
     } catch (err) {
-      setError(err instanceof Error ? err.message : '验证码发送失败');
+      setError(err instanceof Error ? err.message : 'ERR_TRANSMISSION_FAILED');
     } finally {
       setSendingCode(false);
     }
@@ -55,12 +56,12 @@ export function RegisterForm() {
     setError('');
 
     if (password !== confirmPassword) {
-      setError('两次输入的密码不一致');
+      setError('ERR_PASSWORDS_DO_NOT_MATCH');
       return;
     }
 
     if (!verificationCode) {
-      setError('请输入验证码');
+      setError('REQ: VERIFICATION_CODE');
       return;
     }
 
@@ -69,7 +70,7 @@ export function RegisterForm() {
       await register(email, password, verificationCode, name);
       router.push('/login?registered=true&confirmed=true');
     } catch (err) {
-      setError(err instanceof Error ? err.message : '注册失败，请重试');
+      setError(err instanceof Error ? err.message : 'ERR_REGISTRATION_FAILED');
     } finally {
       setLoading(false);
     }
@@ -77,21 +78,22 @@ export function RegisterForm() {
 
   return (
     <AuthShell
-      title="创建账号"
-      description="开始你的 AI 学习之旅"
+      title="INITIATE_REGISTRATION"
+      description="INITIALIZE AI WORKFLOW ACCESS"
       footer={
         <>
-          已有账号？{' '}
-          <Link href="/login" className="text-primary font-medium hover:underline">
-            立即登录
+          ACCOUNT_EXISTS?{' '}
+          <Link href="/login" className="text-lime-400 hover:text-white transition-colors underline decoration-lime-400/30 underline-offset-4">
+            EXECUTE_LOGIN
           </Link>
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="register-name" className="text-sm font-medium text-white/80">
-            姓名
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5 font-mono">
+        <div className="flex flex-col gap-2">
+          <label htmlFor="register-name" className="text-[10px] text-white/60 uppercase tracking-widest flex items-center justify-between">
+            <span>[AGENT_NAME]</span>
+            <span className="text-lime-400/50">REQ</span>
           </label>
           <input
             id="register-name"
@@ -100,14 +102,15 @@ export function RegisterForm() {
             required
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder="你的名字"
-            className="h-10 rounded-lg bg-[#0F172A]/50 border border-white/[0.08] px-3 text-sm text-white placeholder:text-[#94A3B8]/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/30 transition"
+            placeholder="USER_ALIAS"
+            className="h-12 bg-black border border-white/10 px-4 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-lime-400 transition-colors rounded-none"
           />
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="register-email" className="text-sm font-medium text-white/80">
-            邮箱
+        <div className="flex flex-col gap-2">
+          <label htmlFor="register-email" className="text-[10px] text-white/60 uppercase tracking-widest flex items-center justify-between">
+            <span>[EMAIL_ADDRESS]</span>
+            <span className="text-lime-400/50">REQ</span>
           </label>
           <input
             id="register-email"
@@ -116,19 +119,26 @@ export function RegisterForm() {
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            placeholder="you@example.com"
-            className="h-10 rounded-lg bg-[#0F172A]/50 border border-white/[0.08] px-3 text-sm text-white placeholder:text-[#94A3B8]/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/30 transition"
+            placeholder="_enter.email@domain"
+            className="h-12 bg-black border border-white/10 px-4 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-lime-400 transition-colors rounded-none"
           />
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-white/80">人机验证</label>
-          <SliderCaptcha onVerified={handleCaptchaVerified} />
+        <div className="flex flex-col gap-2">
+          <label className="text-[10px] text-white/60 uppercase tracking-widest flex items-center justify-between">
+            <span>[HUMAN_VERIFICATION]</span>
+            <span className="text-lime-400/50">REQ</span>
+          </label>
+          {/* We assume SliderCaptcha itself handles its UI or can be wrapped if need be */}
+          <div className="border border-white/10 bg-black p-2 filter grayscale-[0.8] contrast-125 focus-within:filter-none transition-all">
+            <SliderCaptcha onVerified={handleCaptchaVerified} />
+          </div>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="register-code" className="text-sm font-medium text-white/80">
-            邮箱验证码
+        <div className="flex flex-col gap-2">
+          <label htmlFor="register-code" className="text-[10px] text-white/60 uppercase tracking-widest flex items-center justify-between">
+            <span>[PIN_CODE]</span>
+            <span className="text-lime-400/50">REQ</span>
           </label>
           <div className="flex gap-2">
             <input
@@ -139,23 +149,24 @@ export function RegisterForm() {
               required
               value={verificationCode}
               onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-              placeholder="6 位验证码"
-              className="flex-1 h-10 rounded-lg bg-[#0F172A]/50 border border-white/[0.08] px-3 text-sm text-white placeholder:text-[#94A3B8]/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/30 transition tracking-[4px] text-center font-mono"
+              placeholder="----"
+              className="flex-1 h-12 bg-black border border-white/10 px-4 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-lime-400 transition-colors rounded-none tracking-widest text-center"
             />
             <button
               type="button"
               onClick={handleSendCode}
               disabled={sendingCode || countdown.isActive || !captchaToken}
-              className="shrink-0 px-4 h-10 rounded-lg bg-[#1E293B] border border-white/[0.08] text-sm text-white/80 hover:bg-[#334155] hover:border-white/[0.12] disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] whitespace-nowrap"
+              className="shrink-0 px-4 h-12 bg-[#111111] border border-white/10 text-xs font-mono text-white/80 hover:border-white/30 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors uppercase tracking-wider whitespace-nowrap"
             >
-              {sendingCode ? '发送中...' : countdown.isActive ? `${countdown.secondsLeft}s` : codeSent ? '重新发送' : '发送验证码'}
+              {sendingCode ? 'TRANSMITTING...' : countdown.isActive ? `TL:${countdown.secondsLeft}s` : codeSent ? 'RESEND_SIGNAL' : 'DISPATCH_PIN'}
             </button>
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="register-password" className="text-sm font-medium text-white/80">
-            密码
+        <div className="flex flex-col gap-2">
+          <label htmlFor="register-password" className="text-[10px] text-white/60 uppercase tracking-widest flex items-center justify-between">
+            <span>[PASSWORD]</span>
+            <span className="text-lime-400/50">REQ</span>
           </label>
           <input
             id="register-password"
@@ -165,14 +176,15 @@ export function RegisterForm() {
             minLength={8}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            placeholder="至少 8 位"
-            className="h-10 rounded-lg bg-[#0F172A]/50 border border-white/[0.08] px-3 text-sm text-white placeholder:text-[#94A3B8]/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/30 transition"
+            placeholder="********"
+            className="h-12 bg-black border border-white/10 px-4 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-lime-400 transition-colors rounded-none"
           />
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="register-confirm-password" className="text-sm font-medium text-white/80">
-            确认密码
+        <div className="flex flex-col gap-2">
+          <label htmlFor="register-confirm-password" className="text-[10px] text-white/60 uppercase tracking-widest flex items-center justify-between">
+            <span>[CONFIRM_PASSWORD]</span>
+            <span className="text-lime-400/50">REQ</span>
           </label>
           <input
             id="register-confirm-password"
@@ -182,23 +194,26 @@ export function RegisterForm() {
             minLength={8}
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
-            placeholder="再次输入密码"
-            className="h-10 rounded-lg bg-[#0F172A]/50 border border-white/[0.08] px-3 text-sm text-white placeholder:text-[#94A3B8]/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/30 transition"
+            placeholder="********"
+            className="h-12 bg-black border border-white/10 px-4 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-lime-400 transition-colors rounded-none"
           />
         </div>
 
         {error ? (
-          <p className="text-sm text-red-400 bg-red-500/10 rounded-lg px-3 py-2 border border-red-500/20">
-            {error}
+          <p className="text-xs font-mono text-red-400 bg-red-400/10 p-3 border-l-2 border-red-400 leading-relaxed break-all">
+            [ERR]: {error}
           </p>
         ) : null}
 
         <button
           type="submit"
           disabled={loading}
-          className="mt-1 h-10 rounded-lg bg-primary text-white text-sm font-medium hover:bg-[#4F46E5] shadow-glow disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
+          className="group relative mt-2 h-12 bg-lime-400 text-black text-sm font-bold uppercase tracking-widest hover:bg-lime-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {loading ? '注册中...' : '创建账号'}
+          <div className="absolute inset-0 flex items-center justify-center gap-2">
+            {loading ? 'PROCESSING...' : 'EXECUTE_REGISTRATION'}
+            {!loading && <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
+          </div>
         </button>
       </form>
     </AuthShell>

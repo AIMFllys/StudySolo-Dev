@@ -1,5 +1,7 @@
-﻿import Link from 'next/link';
+import Link from 'next/link';
 import { SliderCaptcha } from '@/features/auth/components';
+import { ArrowRight, CheckSquare } from 'lucide-react';
+
 interface CountdownState {
   secondsLeft: number;
   isActive: boolean;
@@ -15,8 +17,8 @@ export function StepError({ error }: StepErrorProps) {
   }
 
   return (
-    <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-400">
-      {error}
+    <p className="border-l-2 border-red-400 bg-red-400/10 px-3 py-2 text-xs font-mono text-red-400 leading-relaxed uppercase break-all">
+      [ERR]: {error}
     </p>
   );
 }
@@ -41,10 +43,11 @@ export function EmailStep({
   onSubmit,
 }: EmailStepProps) {
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="forgot-email" className="text-sm font-medium text-white/80">
-          邮箱
+    <form onSubmit={onSubmit} className="flex flex-col gap-5 font-mono">
+      <div className="flex flex-col gap-2">
+        <label htmlFor="forgot-email" className="text-[10px] text-white/60 uppercase tracking-widest flex items-center justify-between">
+          <span>[EMAIL_ADDRESS]</span>
+          <span className="text-lime-400/50">REQ</span>
         </label>
         <input
           id="forgot-email"
@@ -53,14 +56,19 @@ export function EmailStep({
           required
           value={email}
           onChange={(event) => onEmailChange(event.target.value)}
-          placeholder="you@example.com"
-          className="h-10 rounded-lg border border-white/[0.08] bg-[#0F172A]/50 px-3 text-sm text-white placeholder:text-[#94A3B8]/60 transition focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/50"
+          placeholder="_enter.email@domain"
+          className="h-12 bg-black border border-white/10 px-4 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-lime-400 transition-colors rounded-none"
         />
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-medium text-white/80">人机验证</label>
-        <SliderCaptcha onVerified={onCaptchaVerified} />
+      <div className="flex flex-col gap-2">
+        <label className="text-[10px] text-white/60 uppercase tracking-widest flex items-center justify-between">
+          <span>[HUMAN_VERIFICATION]</span>
+          <span className="text-lime-400/50">REQ</span>
+        </label>
+        <div className="border border-white/10 bg-black p-2 filter grayscale-[0.8] contrast-125 focus-within:filter-none transition-all">
+          <SliderCaptcha onVerified={onCaptchaVerified} />
+        </div>
       </div>
 
       <StepError error={error} />
@@ -68,9 +76,12 @@ export function EmailStep({
       <button
         type="submit"
         disabled={loading || !captchaToken}
-        className="mt-1 h-10 rounded-lg bg-primary text-sm font-medium text-white shadow-glow transition-all hover:bg-[#4F46E5] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+        className="group relative mt-2 h-12 bg-lime-400 text-black text-sm font-bold uppercase tracking-widest hover:bg-lime-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
-        {loading ? '发送中...' : '发送验证码'}
+        <div className="absolute inset-0 flex items-center justify-center gap-2">
+          {loading ? 'TRANSMITTING...' : 'DISPATCH_PIN'}
+          {!loading && <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
+        </div>
       </button>
     </form>
   );
@@ -100,14 +111,15 @@ export function CodeStep({
   onResend,
 }: CodeStepProps) {
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4">
-      <div className="rounded-lg border border-primary/10 bg-primary/5 px-3 py-2 text-xs text-[#94A3B8]">
-        验证码已发送至 <span className="font-medium text-white">{email}</span>
+    <form onSubmit={onSubmit} className="flex flex-col gap-5 font-mono">
+      <div className="border-l-2 border-lime-400 bg-lime-400/10 px-4 py-3 text-[10px] uppercase text-white/60 leading-relaxed">
+        SIGNAL_DISPATCHED_TO<br/><span className="font-bold text-lime-400 text-xs break-all">{email}</span>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="forgot-code" className="text-sm font-medium text-white/80">
-          验证码
+      <div className="flex flex-col gap-2">
+        <label htmlFor="forgot-code" className="text-[10px] text-white/60 uppercase tracking-widest flex items-center justify-between">
+          <span>[PIN_CODE]</span>
+          <span className="text-lime-400/50">REQ</span>
         </label>
         <input
           id="forgot-code"
@@ -118,8 +130,8 @@ export function CodeStep({
           autoFocus
           value={verificationCode}
           onChange={(event) => onCodeChange(event.target.value)}
-          placeholder="请输入 6 位验证码"
-          className="h-12 rounded-lg border border-white/[0.08] bg-[#0F172A]/50 px-4 text-center font-mono text-lg tracking-[8px] text-white placeholder:text-sm placeholder:tracking-normal placeholder:text-[#94A3B8]/60 transition focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/50"
+          placeholder="----"
+          className="h-14 bg-black border border-white/10 px-4 text-center font-mono text-xl tracking-[12px] text-white placeholder:text-sm placeholder:tracking-normal placeholder:text-white/20 focus:outline-none focus:border-lime-400 transition-colors rounded-none"
         />
       </div>
 
@@ -128,22 +140,25 @@ export function CodeStep({
       <button
         type="submit"
         disabled={verificationCode.length !== 6}
-        className="mt-1 h-10 rounded-lg bg-primary text-sm font-medium text-white shadow-glow transition-all hover:bg-[#4F46E5] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+        className="group relative h-12 bg-lime-400 text-black text-sm font-bold uppercase tracking-widest hover:bg-lime-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors mt-2"
       >
-        下一步
+         <div className="absolute inset-0 flex items-center justify-center gap-2">
+          PROCEED_TO_NEXT_STAGE
+          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+        </div>
       </button>
 
-      <div className="flex items-center justify-between text-xs text-[#94A3B8]">
-        <button type="button" onClick={onBackToEmail} className="text-primary hover:underline">
-          更换邮箱
+      <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-white/40 mt-2">
+        <button type="button" onClick={onBackToEmail} className="hover:text-lime-400 transition-colors">
+          [MODIFY_TARGET_EMAIL]
         </button>
         <button
           type="button"
           onClick={onResend}
           disabled={countdown.isActive || loading}
-          className="text-primary hover:underline disabled:cursor-not-allowed disabled:opacity-40"
+          className="hover:text-lime-400 transition-colors disabled:cursor-not-allowed disabled:opacity-30"
         >
-          {countdown.isActive ? `${countdown.secondsLeft}s 后可重发` : '重新发送验证码'}
+          {countdown.isActive ? `[TL:${countdown.secondsLeft}s]` : '[RESEND_SIGNAL]'}
         </button>
       </div>
     </form>
@@ -170,10 +185,11 @@ export function PasswordStep({
   onSubmit,
 }: PasswordStepProps) {
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="forgot-password" className="text-sm font-medium text-white/80">
-          新密码
+    <form onSubmit={onSubmit} className="flex flex-col gap-5 font-mono">
+      <div className="flex flex-col gap-2">
+        <label htmlFor="forgot-password" className="text-[10px] text-white/60 uppercase tracking-widest flex items-center justify-between">
+          <span>[NEW_PASSKEY]</span>
+          <span className="text-lime-400/50">REQ</span>
         </label>
         <input
           id="forgot-password"
@@ -184,14 +200,15 @@ export function PasswordStep({
           autoFocus
           value={password}
           onChange={(event) => onPasswordChange(event.target.value)}
-          placeholder="至少 8 位"
-          className="h-10 rounded-lg border border-white/[0.08] bg-[#0F172A]/50 px-3 text-sm text-white placeholder:text-[#94A3B8]/60 transition focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/50"
+          placeholder="********"
+          className="h-12 bg-black border border-white/10 px-4 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-lime-400 transition-colors rounded-none"
         />
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="forgot-confirm-password" className="text-sm font-medium text-white/80">
-          确认新密码
+      <div className="flex flex-col gap-2">
+        <label htmlFor="forgot-confirm-password" className="text-[10px] text-white/60 uppercase tracking-widest flex items-center justify-between">
+          <span>[CONFIRM_PASSKEY]</span>
+          <span className="text-lime-400/50">REQ</span>
         </label>
         <input
           id="forgot-confirm-password"
@@ -201,8 +218,8 @@ export function PasswordStep({
           minLength={8}
           value={confirmPassword}
           onChange={(event) => onConfirmPasswordChange(event.target.value)}
-          placeholder="再次输入新密码"
-          className="h-10 rounded-lg border border-white/[0.08] bg-[#0F172A]/50 px-3 text-sm text-white placeholder:text-[#94A3B8]/60 transition focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/50"
+          placeholder="********"
+          className="h-12 bg-black border border-white/10 px-4 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-lime-400 transition-colors rounded-none"
         />
       </div>
 
@@ -211,9 +228,12 @@ export function PasswordStep({
       <button
         type="submit"
         disabled={loading}
-        className="mt-1 h-10 rounded-lg bg-primary text-sm font-medium text-white shadow-glow transition-all hover:bg-[#4F46E5] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+        className="group relative mt-2 h-12 bg-lime-400 text-black text-sm font-bold uppercase tracking-widest hover:bg-lime-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
-        {loading ? '重置中...' : '重置密码'}
+        <div className="absolute inset-0 flex items-center justify-center gap-2">
+          {loading ? 'EXECUTING_OVERRIDE...' : 'OVERRIDE_PASSKEY'}
+          {!loading && <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" /> }
+        </div>
       </button>
     </form>
   );
@@ -221,19 +241,23 @@ export function PasswordStep({
 
 export function ResetSuccess() {
   return (
-    <div className="rounded-lg border border-green-500/20 bg-green-500/10 px-4 py-4 text-center">
-      <div className="mb-3 flex justify-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/20">
-          <svg className="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
+    <div className="border border-lime-400/30 bg-lime-400/5 p-6 text-center font-mono relative overflow-hidden">
+      <div className="absolute top-0 left-0 w-1 h-full bg-lime-400"></div>
+      
+      <div className="mb-6 flex justify-center mt-2">
+        <div className="flex h-16 w-16 items-center justify-center bg-black border border-lime-400/50 text-lime-400">
+          <CheckSquare className="h-8 w-8" strokeWidth={1.5} />
         </div>
       </div>
-      <p className="text-sm font-medium text-green-400">密码重置成功</p>
-      <p className="mt-1 text-xs text-[#94A3B8]">请使用新密码登录账号</p>
-      <div className="mt-4">
-        <Link href="/login" className="font-medium text-primary hover:underline">
-          前往登录
+      
+      <p className="text-lg font-black text-lime-400 uppercase tracking-widest mb-2">PASSKEY_OVERRIDE_SUCCESS</p>
+      <p className="text-xs text-white/50 uppercase tracking-wide leading-relaxed">
+        NEW_CREDENTIALS_ACCEPTED.<br/>SYSTEM_READY_FOR_AUTHENTICATION.
+      </p>
+      
+      <div className="mt-8">
+        <Link href="/login" className="inline-flex h-12 items-center justify-center px-6 bg-lime-400 text-black text-xs font-bold uppercase tracking-widest hover:bg-lime-300 transition-colors">
+          EXECUTE_LOGIN_SEQUENCE
         </Link>
       </div>
     </div>

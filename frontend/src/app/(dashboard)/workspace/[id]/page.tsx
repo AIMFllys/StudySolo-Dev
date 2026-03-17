@@ -1,8 +1,7 @@
-﻿import { Suspense } from 'react';
+import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import WorkflowCanvasLoader from './WorkflowCanvasLoader';
-import RunButton from '@/features/workflow/components/toolbar/RunButton';
-import WorkflowPromptInput from '@/features/workflow/components/panel/WorkflowPromptInput';
+import WorkflowPageShell from './WorkflowPageShell';
 import { fetchWorkflowContentForServer } from '@/services/workflow.server.service';
 
 interface Props {
@@ -18,26 +17,15 @@ export default async function WorkflowPage({ params }: Props) {
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="shrink-0 border-b border-border px-4 py-2">
-        <div className="flex items-center gap-3">
-          <h1 className="truncate text-sm font-medium">{workflow.name}</h1>
-          <RunButton />
-        </div>
-      </div>
-
-      <div className="relative flex-1 overflow-hidden">
-        <Suspense fallback={<CanvasSkeleton />}>
-          <WorkflowCanvasLoader
-            workflowId={workflow.id}
-            initialNodes={workflow.nodes_json ?? []}
-            initialEdges={workflow.edges_json ?? []}
-          />
-        </Suspense>
-      </div>
-
-      <WorkflowPromptInput />
-    </div>
+    <WorkflowPageShell workflowName={workflow.name}>
+      <Suspense fallback={<CanvasSkeleton />}>
+        <WorkflowCanvasLoader
+          workflowId={workflow.id}
+          initialNodes={workflow.nodes_json ?? []}
+          initialEdges={workflow.edges_json ?? []}
+        />
+      </Suspense>
+    </WorkflowPageShell>
   );
 }
 
@@ -48,3 +36,4 @@ function CanvasSkeleton() {
     </div>
   );
 }
+

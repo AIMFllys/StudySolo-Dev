@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Zap, Search, Plus, Loader2, Settings, LogOut } from 'lucide-react';
 import { getUser, logout, type UserInfo } from '@/services/auth.service';
-import { useCreateWorkflowAction } from '@/features/workflow/hooks/use-create-workflow-action';
 
 interface NavbarProps {
   onNewWorkflow?: () => Promise<void> | void;
@@ -13,7 +12,6 @@ interface NavbarProps {
 
 export default function Navbar({ onNewWorkflow, creating = false }: NavbarProps) {
   const router = useRouter();
-  const fallbackAction = useCreateWorkflowAction();
   const [user, setUser] = useState<UserInfo | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -24,9 +22,7 @@ export default function Navbar({ onNewWorkflow, creating = false }: NavbarProps)
   async function handleNewWorkflow() {
     if (onNewWorkflow) {
       await onNewWorkflow();
-      return;
     }
-    await fallbackAction.createWorkflow();
   }
 
   async function handleLogout() {
@@ -34,7 +30,6 @@ export default function Navbar({ onNewWorkflow, creating = false }: NavbarProps)
     router.push('/login');
   }
 
-  const effectiveCreating = creating || fallbackAction.creating;
   const initials = user?.name
     ? user.name.slice(0, 2).toUpperCase()
     : user?.email?.slice(0, 2).toUpperCase() ?? '??';
@@ -64,14 +59,14 @@ export default function Navbar({ onNewWorkflow, creating = false }: NavbarProps)
       <div className="flex items-center gap-3">
         <button
           onClick={() => void handleNewWorkflow()}
-          disabled={effectiveCreating}
+          disabled={creating}
           className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-medium shadow-glow hover:opacity-90 transition-opacity disabled:opacity-50 active:scale-[0.98]"
         >
-          {effectiveCreating
+          {creating
             ? <Loader2 className="w-4 h-4 animate-spin" />
             : <Plus className="w-4 h-4" />
           }
-          <span>{effectiveCreating ? '创建中' : '新建'}</span>
+          <span>{creating ? '创建中' : '新建'}</span>
         </button>
 
         <div className="relative">

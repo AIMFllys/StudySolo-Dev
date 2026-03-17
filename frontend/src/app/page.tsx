@@ -3,212 +3,216 @@
 import Link from 'next/link';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import {
-  Sparkles,
-  Brain,
-  BookOpen,
-  Layers,
+  Cpu,
+  Microscope,
+  Database,
+  Network,
   ArrowRight,
-  Zap,
-  ChevronRight
+  TerminalSquare
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 /* ─── Feature data ─── */
 const features = [
   {
-    icon: Sparkles,
-    title: '智能大纲',
-    description: '输入目标，AI 深入分析并生成逻辑严密的结构化学习大纲。',
-    color: 'from-blue-500/20 to-indigo-500/20',
-    iconColor: 'text-blue-400'
+    icon: Network,
+    id: 'SYS.01',
+    title: '智能大纲计算',
+    description: '输入目标，AI 深入分析并生成逻辑严密的结构化学习大纲，建立基础认知拓扑。',
   },
   {
-    icon: Brain,
-    title: '知识提炼',
-    description: '锁定核心概念，从繁杂信息中提取关键路径，构建动态知识图谱。',
-    color: 'from-emerald-500/20 to-teal-500/20',
-    iconColor: 'text-emerald-400'
+    icon: Cpu,
+    id: 'SYS.02',
+    title: '知识提炼网络',
+    description: '穿透海量信息噪音，锁定核心概念并构建高维动态知识图谱。',
   },
   {
-    icon: BookOpen,
-    title: '总结归纳',
-    description: '自动化繁为简，生成多维度笔记与总结，深度重塑理解链路。',
-    color: 'from-purple-500/20 to-violet-500/20',
-    iconColor: 'text-purple-400'
+    icon: Database,
+    id: 'SYS.03',
+    title: '高维特征归纳',
+    description: '自动化繁为简，生成多层级压缩笔记与总结，实现深度内化重组。',
   },
   {
-    icon: Layers,
-    title: '闪卡生成',
-    description: '结合 Ebbinghaus 曲线，智能转换笔记为高效复习的间隔重复闪卡。',
-    color: 'from-orange-500/20 to-amber-500/20',
-    iconColor: 'text-orange-400'
+    icon: Microscope,
+    id: 'SYS.04',
+    title: '间隔重复投影',
+    description: '基于记忆遗忘曲线模型，无损转换笔记为高保真复习闪卡架构。',
   }
 ];
 
 export default function LandingPage() {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
-
   const { scrollY } = useScroll();
-  const opacity = useTransform(scrollY, [0, 200], [1, 0]);
-  const scale = useTransform(scrollY, [0, 200], [1, 0.95]);
+  const yOffset = useTransform(scrollY, [0, 500], [0, 100]);
 
   return (
-    <main className="relative min-h-screen bg-background text-foreground selection:bg-primary/30 overflow-x-hidden">
-      {/* ─── Dynamic Background ─── */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        {/* Animated Glow */}
-        <motion.div
-          animate={{
-            x: mousePosition.x - 250,
-            y: mousePosition.y - 250,
-          }}
-          transition={{ type: 'spring', damping: 30, stiffness: 50 }}
-          className="absolute w-[500px] h-[500px] rounded-full bg-indigo-500/10 blur-[100px] opacity-50"
-        />
-
-        {/* Static Background Orbs */}
-        <div className="absolute top-[-10%] left-[15%] w-[600px] h-[600px] rounded-full bg-blue-600/10 blur-[120px]" />
-        <div className="absolute bottom-[-5%] right-[10%] w-[500px] h-[500px] rounded-full bg-purple-600/10 blur-[100px]" />
-
-        {/* Grid Overlay */}
-        <div className="absolute inset-0 bg-grid-pattern opacity-40" />
+    <main className="relative min-h-screen bg-[#070707] text-white selection:bg-lime-400/30 selection:text-lime-400 overflow-x-hidden font-mono antialiased">
+      
+      {/* ─── Brutalist Grid System Overlay ─── */}
+      <div className="fixed inset-0 z-0 pointer-events-none opacity-[0.04]">
+        <div className="w-full h-full" style={{ backgroundImage: 'linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)', backgroundSize: '100px 100px' }} />
       </div>
+      
+      {/* Noise Texture */}
+      <div className="fixed inset-0 z-[1] pointer-events-none opacity-[0.03]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }} />
 
-      {/* ─── Navigation ─── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-background/50 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 group cursor-pointer">
-            <div className="relative">
-              <div className="absolute inset-0 bg-indigo-500 blur-lg opacity-40 group-hover:opacity-100 transition-opacity" />
-              <Zap className="relative w-7 h-7 text-indigo-400 fill-indigo-400/20" />
-            </div>
-            <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
-              StudySolo
+      {/* ─── Technical Navigation ─── */}
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-[#070707]/90 backdrop-blur-md">
+        <div className="flex items-center justify-between h-16 w-full">
+          {/* Brand */}
+          <div className="flex-1 flex items-center h-full border-r border-white/10 px-6 max-w-[280px]">
+            <TerminalSquare className="w-5 h-5 text-lime-400 mr-3" />
+            <span className="text-sm font-bold tracking-[0.2em] text-white uppercase">
+              STUDY/SOLO_
             </span>
           </div>
 
-          <div className="flex items-center gap-6">
+          {/* Status Bar (Fake) */}
+          <div className="hidden lg:flex flex-1 items-center h-full px-6 border-r border-white/10 text-[10px] text-white/40 tracking-widest space-x-8">
+            <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-lime-400" /> SYS: ONLINE</span>
+            <span>MEM: ALLOCATED</span>
+            <span>LATENCY: 12MS</span>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center h-full">
             <Link
               href="/login"
-              className="text-sm font-medium text-slate-400 hover:text-white transition-colors"
+              className="h-full px-8 flex items-center text-xs font-bold tracking-widest text-white/50 hover:text-white border-l border-white/10 transition-colors uppercase hover:bg-white/5"
             >
-              登录
+              Auth_
             </Link>
             <Link
               href="/register"
-              className="group relative px-5 py-1.5 overflow-hidden rounded-full bg-white text-black text-sm font-semibold transition-all hover:scale-105 active:scale-95"
+              className="h-full px-8 flex items-center text-xs font-bold tracking-widest bg-lime-400 text-black border-l border-white/10 hover:bg-white transition-colors uppercase"
             >
-              <span className="relative z-10">免费注册</span>
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-10 transition-opacity" />
+              Init_Sequence
             </Link>
           </div>
         </div>
       </nav>
 
-      {/* ─── Hero Section ─── */}
-      <section className="relative z-10 pt-44 pb-32 px-6 flex flex-col items-center text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          style={{ opacity, scale }}
-          className="flex flex-col items-center"
-        >
-          {/* Badge */}
-          <div className="mb-8 p-px rounded-full bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20">
-            <div className="px-5 py-1.5 rounded-full bg-background border border-white/5 flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-              <span className="text-xs font-medium text-indigo-300/80 tracking-wide uppercase">AI 驱动的下一代学习工作法</span>
+      {/* ─── Brutalist Hero Section ─── */}
+      <section className="relative z-10 pt-32 pb-24 border-b border-white/10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 max-w-[100vw]">
+          
+          <motion.div 
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className="col-span-1 border-r border-white/10 hidden lg:flex items-end justify-center pb-12"
+          >
+            <div className="writing-vertical text-[10px] tracking-[0.3em] text-white/20 uppercase rotate-180" style={{ writingMode: 'vertical-rl' }}>
+              V.2.0_COGNITIVE_ENGINE // AWAITING_INPUT
             </div>
-          </div>
+          </motion.div>
 
-          {/* Headline */}
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight text-white mb-8">
-            <span className="inline-block">掌控你的</span>
-            <br />
-            <span className="bg-gradient-to-b from-indigo-300 via-indigo-400 to-indigo-600 bg-clip-text text-transparent">
-              认知生产力
-            </span>
-          </h1>
-
-          {/* Subtitle */}
-          <p className="max-w-2xl text-lg md:text-xl text-slate-400/80 leading-relaxed mb-12">
-            StudySolo 重新定义了学习。从海量信息到内化知识，
-            <br className="hidden md:block" />
-            AI 助你构建一套完整且自动化的认知闭环。
-          </p>
-
-          {/* CTA Group */}
-          <div className="flex flex-col sm:flex-row items-center gap-5">
-            <Link
-              href="/login"
-              className="group w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_30px_rgba(79,70,229,0.5)] transition-all hover:-translate-y-0.5"
+          <div className="col-span-1 lg:col-span-11 px-6 lg:px-12 py-12 flex flex-col justify-center">
+            {/* Minimal metadata tag */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="flex items-center gap-4 mb-10"
             >
-              立刻开启
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <Link
-              href="#features"
-              className="w-full sm:w-auto px-8 py-4 rounded-2xl border border-white/10 text-white/80 font-semibold hover:bg-white/5 transition-colors"
+              <div className="w-2 h-2 bg-lime-400 animate-pulse" />
+              <span className="text-[10px] text-lime-400 font-bold tracking-[0.2em] uppercase bg-lime-400/10 px-3 py-1 border border-lime-400/20">
+                AI_WORKFLOW_ARCHITECTURE // ACTIVATE
+              </span>
+            </motion.div>
+
+            {/* Massive Tyrannical Typography */}
+            <motion.h1 
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="text-6xl md:text-8xl lg:text-[10rem] font-black tracking-tighter leading-[0.85] text-white mb-16 uppercase"
             >
-              查看特性
-            </Link>
+              Cognitive<br />
+              <span className="text-transparent" style={{ WebkitTextStroke: '2px rgba(255,255,255,0.8)' }}>
+                Productivity.
+              </span>
+            </motion.h1>
+
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="grid grid-cols-1 md:grid-cols-12 gap-12 mt-8 lg:w-4/5 border-t border-white/10 pt-12"
+            >
+              <div className="md:col-span-7">
+                <p className="text-sm md:text-base text-white/50 leading-relaxed font-sans">
+                  摒弃消费级 SaaS 的平淡。StudySolo 是一款为极客与重度脑力工作者打造的研究引擎。通过完全可编程的 AI 工作流网络，穿透信息噪音，重塑你的知识拓扑边界。
+                </p>
+              </div>
+              <div className="md:col-span-5 flex flex-col gap-4">
+                <Link
+                  href="/login"
+                  className="group relative flex items-center justify-between px-6 py-5 border border-white/20 bg-[#111] hover:bg-lime-400 hover:border-lime-400 hover:text-black transition-all overflow-hidden"
+                >
+                  <span className="relative z-10 text-sm font-bold tracking-[0.15em] uppercase">EXECUTE_SYSTEM</span>
+                  <ArrowRight className="relative z-10 w-5 h-5 group-hover:translate-x-2 transition-transform" />
+                  {/* Glitch hover effect background */}
+                  <div className="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-out" />
+                </Link>
+                <div className="text-[10px] text-white/30 uppercase tracking-[0.1em] text-right">
+                  ACCESS REQUIRES AUTHORIZATION // VER 2.0.4
+                </div>
+              </div>
+            </motion.div>
+
           </div>
-        </motion.div>
+        </div>
       </section>
 
-      {/* ─── Features Grid ─── */}
-      <section id="features" className="relative z-10 max-w-7xl mx-auto px-6 pb-40">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* ─── Broken Grid Features Section ─── */}
+      <section id="features" className="relative z-10 border-b border-white/10 block">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 w-full">
           {features.map((feature, idx) => (
             <motion.div
-              key={feature.title}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: idx * 0.1 }}
-              whileHover={{ y: -8, transition: { duration: 0.2 } }}
-              className="group relative p-8 rounded-3xl bg-white/[0.02] border border-white/[0.05] hover:border-indigo-500/30 transition-all cursor-default overflow-hidden"
+              key={feature.id}
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ delay: idx * 0.1, duration: 0.4 }}
+              className={`group relative p-8 lg:p-12 border-b border-r border-white/10 hover:bg-white/[0.02] hover:border-white/30 transition-all cursor-crosshair flex flex-col justify-between min-h-[360px] ${
+                idx === features.length - 1 ? 'border-r-0 lg:border-r-0' : ''
+              } ${
+                idx % 2 === 1 ? 'md:border-r-0 lg:border-r' : ''
+              }`}
             >
-              {/* Blur Background */}
-              <div className={`absolute -right-4 -top-4 w-24 h-24 rounded-full blur-[40px] opacity-0 group-hover:opacity-40 transition-opacity bg-gradient-to-br ${feature.color}`} />
-
-              {/* Icon Container */}
-              <div className={`w-14 h-14 rounded-2xl mb-8 flex items-center justify-center bg-gradient-to-br ${feature.color} border border-white/10`}>
-                <feature.icon className={`w-7 h-7 ${feature.iconColor}`} />
+              {/* Top Meta */}
+              <div className="flex items-start justify-between mb-16">
+                <span className="text-[10px] text-lime-400 font-bold tracking-[0.15em] bg-lime-400/5 px-2 py-1 border border-lime-400/20">{feature.id}</span>
+                <feature.icon className="w-6 h-6 text-white/20 group-hover:text-lime-400 group-hover:scale-110 transition-all" strokeWidth={1} />
               </div>
 
-              <h3 className="text-xl font-bold text-white mb-3">
-                {feature.title}
-              </h3>
-              <p className="text-slate-400 text-sm leading-relaxed">
-                {feature.description}
-              </p>
-
-              <div className="mt-8 flex items-center gap-2 text-xs font-bold text-indigo-400 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
-                了解更多 <ChevronRight className="w-4 h-4" />
+              {/* Bottom Content */}
+              <div>
+                <h3 className="text-xl font-bold text-white mb-4 tracking-tight uppercase">
+                  {feature.title}
+                </h3>
+                <p className="text-white/40 text-sm font-sans leading-relaxed">
+                  {feature.description}
+                </p>
               </div>
+
+              {/* Crosshair markers on corners (aesthetic only) */}
+              <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-lime-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-lime-400 opacity-0 group-hover:opacity-100 transition-opacity" />
             </motion.div>
           ))}
         </div>
       </section>
 
-      {/* ─── Simple Footer ─── */}
-      <footer className="relative z-10 py-12 border-t border-white/5 text-center">
-        <div className="flex items-center justify-center gap-2 mb-4 opacity-50">
-          <Zap className="w-4 h-4" />
-          <span className="text-sm font-bold tracking-widest uppercase">StudySolo</span>
+      {/* ─── Technical Footer ─── */}
+      <footer className="relative z-10 px-6 py-8 flex flex-col md:flex-row items-center justify-between text-[10px] text-white/30 tracking-widest uppercase font-mono">
+        <div>SYS.RENDER // {new Date().getFullYear()} © STUDYSOLO CORE</div>
+        <div className="flex gap-8 mt-4 md:mt-0">
+          <span className="hover:text-lime-400 transition-colors cursor-pointer">DOCS</span>
+          <span className="hover:text-lime-400 transition-colors cursor-pointer">API_SPECS</span>
+          <span className="hover:text-lime-400 transition-colors cursor-pointer">PROTOCOL</span>
         </div>
-        <p className="text-xs text-slate-500 font-medium">
-          © {new Date().getFullYear()} StudySolo. Crafted for the bright minds.
-        </p>
+        <div className="mt-4 md:mt-0 opacity-50">END_OF_FILE.</div>
       </footer>
     </main>
   );

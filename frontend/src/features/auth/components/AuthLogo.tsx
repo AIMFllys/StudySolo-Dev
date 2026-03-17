@@ -1,4 +1,4 @@
-import { Zap } from 'lucide-react';
+import { TerminalSquare } from 'lucide-react';
 
 interface AuthLogoProps {
   size?: 'sm' | 'lg';
@@ -7,14 +7,14 @@ interface AuthLogoProps {
 export function AuthLogo({ size = 'lg' }: AuthLogoProps) {
   const isLarge = size === 'lg';
   return (
-    <div className="flex items-center gap-3">
-      <Zap
-        className={`${isLarge ? 'w-9 h-9' : 'w-6 h-6'} text-primary fill-primary/20`}
-      />
+    <div className="flex items-center gap-2 border border-white/10 bg-black pr-4 py-1 pl-2">
+      <div className="bg-lime-400 p-1.5 flex items-center justify-center">
+        <TerminalSquare className={`${isLarge ? 'w-5 h-5' : 'w-4 h-4'} text-black`} strokeWidth={2.5} />
+      </div>
       <span
-        className={`${isLarge ? 'text-4xl' : 'text-2xl'} font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent`}
+        className={`${isLarge ? 'text-lg' : 'text-base'} font-black tracking-widest text-white uppercase`}
       >
-        StudySolo
+        STUDY<span className="text-lime-400">/</span>SOLO<span className="text-lime-400 animate-pulse">_</span>
       </span>
     </div>
   );

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useCallback, useState } from 'react';
 import Link from 'next/link';
@@ -32,11 +32,11 @@ export function ForgotPasswordFlow() {
 
   async function sendCode() {
     if (!email) {
-      setError('请输入邮箱地址');
+      setError('REQ: _enter.email@domain');
       return;
     }
     if (!captchaToken) {
-      setError('请先完成滑块验证');
+      setError('REQ: CAPTCHA_VERIFICATION_REQUIRED');
       return;
     }
 
@@ -47,7 +47,7 @@ export function ForgotPasswordFlow() {
       countdown.start();
       setStep('code');
     } catch (err) {
-      setError(err instanceof Error ? err.message : '验证码发送失败');
+      setError(err instanceof Error ? err.message : 'ERR_TRANSMISSION_FAILED');
     } finally {
       setLoading(false);
     }
@@ -64,7 +64,7 @@ export function ForgotPasswordFlow() {
       await sendVerificationCode(email, captchaToken, 'reset_password');
       countdown.start();
     } catch (err) {
-      setError(err instanceof Error ? err.message : '验证码发送失败');
+      setError(err instanceof Error ? err.message : 'ERR_TRANSMISSION_FAILED');
     } finally {
       setLoading(false);
     }
@@ -73,7 +73,7 @@ export function ForgotPasswordFlow() {
   function handleCodeSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (verificationCode.length !== 6) {
-      setError('请输入 6 位验证码');
+      setError('REQ: 6_DIGIT_PIN_REQUIRED');
       return;
     }
 
@@ -86,11 +86,11 @@ export function ForgotPasswordFlow() {
     setError('');
 
     if (password.length < 8) {
-      setError('密码至少 8 位');
+      setError('REQ: MIN_LENGTH_8_CHARS');
       return;
     }
     if (password !== confirmPassword) {
-      setError('两次输入的密码不一致');
+      setError('ERR_PASSWORDS_DO_NOT_MATCH');
       return;
     }
 
@@ -99,7 +99,7 @@ export function ForgotPasswordFlow() {
       await resetPasswordWithCode(email, verificationCode, password);
       setStep('success');
     } catch (err) {
-      setError(err instanceof Error ? err.message : '重置失败，请重试');
+      setError(err instanceof Error ? err.message : 'ERR_PASSKEY_RESET_FAILED');
     } finally {
       setLoading(false);
     }
@@ -107,11 +107,11 @@ export function ForgotPasswordFlow() {
 
   return (
     <AuthShell
-      title="找回密码"
-      description="通过邮箱验证码重置你的登录密码"
+      title="RESET_PASSKEY"
+      description="INITIATE PASSKEY OVERRIDE PROTOCOL"
       footer={
-        <Link href="/login" className="font-medium text-primary hover:underline">
-          {step === 'success' ? '前往登录' : '返回登录'}
+        <Link href="/login" className="font-bold text-lime-400 hover:text-white transition-colors underline decoration-lime-400/30 underline-offset-4 tracking-widest uppercase">
+          {step === 'success' ? 'EXECUTE_LOGIN' : 'RETURN_TO_LOGIN'}
         </Link>
       }
       showSocial={false}
