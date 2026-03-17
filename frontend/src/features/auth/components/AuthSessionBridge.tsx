@@ -49,10 +49,10 @@ export function AuthSessionBridge() {
       setIsSyncing(true);
       setProgress(10);
 
-      addLog('INIT_SESSION_SYNC...');
+      addLog('正在初始化环境...');
       await new Promise((res) => setTimeout(res, 200));
       setProgress(30);
-      addLog('CHECKING_CREDENTIALS...');
+      addLog('验证访问权限...');
 
       const restored = await syncBrowserSessionToBackend();
 
@@ -60,19 +60,19 @@ export function AuthSessionBridge() {
 
       if (!restored) {
         setProgress(100);
-        addLog('NO_SESSION_FOUND');
-        addLog('SYSTEM_READY');
+        addLog('未发现有效会话');
+        addLog('系统准备就绪');
         await new Promise((res) => setTimeout(res, 400));
         if (mounted) setIsSyncing(false);
         return;
       }
 
       setProgress(80);
-      addLog('AUTHORIZATION_GRANTED');
+      addLog('权限验证通过');
       await new Promise((res) => setTimeout(res, 200));
 
       setProgress(100);
-      addLog('ROUTING_TO_WORKSPACE...');
+      addLog('正在进入个人工作台...');
       await new Promise((res) => setTimeout(res, 300));
 
       if (mounted) {
@@ -90,48 +90,49 @@ export function AuthSessionBridge() {
     <AnimatePresence>
       {isSyncing && (
         <motion.div
-          initial={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
-          className="fixed inset-0 z-[9999] bg-[#070707] flex flex-col items-center justify-center font-mono pointer-events-none"
+           initial={{ opacity: 1 }}
+           exit={{ opacity: 0 }}
+           transition={{ duration: 0.3 }}
+           className="fixed inset-0 z-[9999] bg-[#fcfbf9] flex flex-col items-center justify-center pointer-events-none"
         >
-          {/* Blueprint Grid Background */}
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
+          {/* Subtle Grid Background */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:1.5rem_1.5rem] opacity-50 pointer-events-none" />
 
-          <div className="w-full max-w-md p-8 flex flex-col gap-6 border border-white/10 bg-black/80 relative overflow-hidden backdrop-blur-sm shadow-[0_0_30px_rgba(163,230,53,0.05)]">
-            <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-lime-400/50 to-transparent" />
+          {/* Paper Margins */}
+          <div className="fixed top-0 bottom-0 left-6 md:left-12 w-[2px] bg-red-400/20 z-0" />
+          <div className="fixed top-0 bottom-0 left-[28px] md:left-[52px] w-px bg-red-400/20 z-0" />
 
-            <div className="flex items-center justify-between text-xs tracking-widest uppercase border-b border-white/10 pb-4">
-              <span className="text-lime-400">SYS.AUTH_BRIDGE</span>
+          <div className="w-full max-w-sm p-8 flex flex-col gap-6 bg-white relative overflow-hidden backdrop-blur-sm shadow-xl rounded-xl border border-slate-200 z-10">
+            <div className="flex items-center justify-between text-sm border-b border-slate-100 pb-4">
+              <span className="text-slate-700 font-medium">身份验证同步</span>
               <div className="flex items-center gap-2">
-                <span className="text-white/40">v1.0</span>
-                <div className="w-2 h-2 bg-lime-400 animate-pulse" />
+                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 min-h-[120px] text-sm">
+            <div className="flex flex-col gap-3 min-h-[120px] text-sm font-medium">
               {logs.map((log, i) => {
                 const isSuccess =
-                  log.includes('GRANTED') ||
-                  log.includes('ROUTING') ||
-                  log.includes('READY');
-                const isError = log.includes('NO_SESSION');
+                  log.includes('通过') ||
+                  log.includes('进入') ||
+                  log.includes('就绪');
+                const isError = log.includes('未发现');
 
                 return (
                   <motion.div
                     key={i}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2 }}
                     className={`flex items-start gap-3 ${
                       isSuccess
-                        ? 'text-lime-400'
+                        ? 'text-blue-600'
                         : isError
-                        ? 'text-white/40'
-                        : 'text-white/80'
+                        ? 'text-slate-400'
+                        : 'text-slate-600'
                     }`}
                   >
-                    <span className="opacity-50 mt-[2px]">&gt;</span>
+                    <span className="opacity-40 select-none">-</span>
                     <span className="tracking-wide">{log}</span>
                   </motion.div>
                 );
@@ -140,18 +141,18 @@ export function AuthSessionBridge() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: [0, 1, 0] }}
                 transition={{ repeat: Infinity, duration: 1 }}
-                className="w-2 h-4 bg-lime-400/80 mt-1 ml-4"
+                className="w-1.5 h-4 bg-blue-400 mt-1 ml-[22px] rounded-sm"
               />
             </div>
 
             <div className="mt-4 flex flex-col gap-2">
-              <div className="flex justify-between text-[10px] text-white/40 uppercase tracking-widest">
-                <span>PROGRESS</span>
+              <div className="flex justify-between text-xs text-slate-500 tracking-wider">
+                <span>加载进度</span>
                 <span>{progress}%</span>
               </div>
-              <div className="h-[2px] w-full bg-white/10 relative overflow-hidden">
+              <div className="h-1.5 w-full bg-slate-100 rounded-full relative overflow-hidden">
                 <motion.div
-                  className="absolute inset-y-0 left-0 bg-lime-400"
+                  className="absolute inset-y-0 left-0 bg-blue-500 rounded-full"
                   initial={{ width: '0%' }}
                   animate={{ width: `${progress}%` }}
                   transition={{ duration: 0.3, ease: 'easeOut' }}

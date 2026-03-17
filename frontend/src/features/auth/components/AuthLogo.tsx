@@ -1,4 +1,4 @@
-import { TerminalSquare } from 'lucide-react';
+import { PenTool } from 'lucide-react';
 
 interface AuthLogoProps {
   size?: 'sm' | 'lg';
@@ -7,14 +7,14 @@ interface AuthLogoProps {
 export function AuthLogo({ size = 'lg' }: AuthLogoProps) {
   const isLarge = size === 'lg';
   return (
-    <div className="flex items-center gap-2 border border-white/10 bg-black pr-4 py-1 pl-2">
-      <div className="bg-lime-400 p-1.5 flex items-center justify-center">
-        <TerminalSquare className={`${isLarge ? 'w-5 h-5' : 'w-4 h-4'} text-black`} strokeWidth={2.5} />
+    <div className="flex items-center gap-2">
+      <div className={`flex items-center justify-center rounded-lg bg-blue-50 border border-blue-100 text-blue-600 ${isLarge ? 'p-2' : 'p-1.5'}`}>
+        <PenTool className={`${isLarge ? 'w-5 h-5' : 'w-4 h-4'} stroke-[2]`} />
       </div>
       <span
-        className={`${isLarge ? 'text-lg' : 'text-base'} font-black tracking-widest text-white uppercase`}
+        className={`${isLarge ? 'text-xl' : 'text-lg'} font-bold tracking-tight text-slate-900`}
       >
-        STUDY<span className="text-lime-400">/</span>SOLO<span className="text-lime-400 animate-pulse">_</span>
+        StudySolo
       </span>
     </div>
   );

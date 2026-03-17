@@ -12,7 +12,7 @@ import {
 } from '@/services/auth-credentials.service';
 import { login } from '@/services/auth.service';
 import { AuthShell } from '@/features/auth/components';
-import { ArrowRight } from 'lucide-react';
+import { LogIn } from 'lucide-react';
 
 export function LoginForm() {
   const router = useRouter();
@@ -64,15 +64,15 @@ export function LoginForm() {
         clearRememberedCredentials();
       }
 
-      toast.success('SYS.LOGIN_SUCCESS', {
-        description: 'INITIATING WORKSPACE...',
+      toast.success('登录成功', {
+        description: '欢迎回来，正在进入学习空间...',
         duration: 2500,
       });
 
       router.push(next);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'ERR.AUTH_FAILED');
+      setError(err instanceof Error ? err.message : '登录失败，请检查账号密码后重试');
     } finally {
       setLoading(false);
     }
@@ -80,22 +80,21 @@ export function LoginForm() {
 
   return (
     <AuthShell
-      title="SYSTEM_LOGIN"
-      description="AUTHENTICATE TO ACCESS WORKFLOW ENGINE"
+      title="登录账号"
+      description="欢迎使用 StudySolo，继续构建你的知识网络"
       footer={
         <>
-          NO_ACCOUNT_FOUND?{' '}
-          <Link href="/register" className="text-lime-400 hover:text-white transition-colors underline decoration-lime-400/30 underline-offset-4">
-            INITIATE_REGISTRATION
+          还没有专属空间？{' '}
+          <Link href="/register" className="text-blue-600 hover:text-blue-700 font-medium hover:underline underline-offset-4 transition-all">
+            开始你的学习笔记
           </Link>
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6 font-mono">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div className="flex flex-col gap-2">
-          <label htmlFor="login-email" className="text-[10px] text-white/60 uppercase tracking-widest flex items-center justify-between">
-            <span>[EMAIL_ADDRESS]</span>
-            <span className="text-lime-400/50">REQ</span>
+          <label htmlFor="login-email" className="text-sm font-medium text-slate-700">
+            绑定邮箱
           </label>
           <input
             id="login-email"
@@ -104,15 +103,14 @@ export function LoginForm() {
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            placeholder="_enter.email@domain"
-            className="h-12 bg-black border border-white/10 px-4 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-lime-400 transition-colors rounded-none"
+            placeholder="name@example.com"
+            className="w-full h-11 px-4 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
           />
         </div>
 
         <div className="flex flex-col gap-2">
-          <label htmlFor="login-password" className="text-[10px] text-white/60 uppercase tracking-widest flex items-center justify-between">
-            <span>[PASSWORD]</span>
-            <span className="text-lime-400/50">REQ</span>
+          <label htmlFor="login-password" className="text-sm font-medium text-slate-700">
+            访问密码
           </label>
           <input
             id="login-password"
@@ -121,56 +119,53 @@ export function LoginForm() {
             required
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            placeholder="********"
-            className="h-12 bg-black border border-white/10 px-4 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-lime-400 transition-colors rounded-none"
+            placeholder="••••••••"
+            className="w-full h-11 px-4 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
           />
         </div>
 
-        <div className="flex items-center justify-between text-xs">
-          <label className="flex items-center gap-3 cursor-pointer group">
-            <div className="relative flex items-center justify-center w-4 h-4 border border-white/20 bg-black group-hover:border-lime-400 transition-colors">
+        <div className="flex items-center justify-between mt-1">
+          <label className="flex items-center gap-2 cursor-pointer group">
+            <div className="relative flex items-center justify-center">
               <input
                 type="checkbox"
                 checked={remember}
                 onChange={(event) => setRemember(event.target.checked)}
-                className="opacity-0 absolute w-full h-full cursor-pointer"
+                className="peer w-4 h-4 border-slate-300 rounded text-blue-600 focus:ring-blue-500/20 cursor-pointer accent-blue-600"
               />
-              {remember && <div className="w-2 h-2 bg-lime-400" />}
             </div>
-            <span className="text-white/40 uppercase tracking-wider group-hover:text-white/60 transition-colors">REMEMBER_ME</span>
+            <span className="text-sm text-slate-600 select-none">记住我</span>
           </label>
-          <Link href="/forgot-password" className="text-white/40 hover:text-lime-400 transition-colors uppercase tracking-wider">
-            RESET_PASSKEY?
+          <Link href="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700 hover:underline underline-offset-4 font-medium transition-colors">
+            忘记密码？
           </Link>
         </div>
 
         {justRegistered ? (
-          <p className="text-xs font-mono text-lime-400 bg-lime-400/10 p-3 border-l-2 border-lime-400 leading-relaxed uppercase">
-            REGISTRATION_COMPLETE.<br/>PLEASE_LOGIN.
-          </p>
+          <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 p-3 rounded-lg flex items-center gap-2">
+            注册成功，请登录你的账号。
+          </div>
         ) : null}
 
         {resetSuccess ? (
-          <p className="text-xs font-mono text-lime-400 bg-lime-400/10 p-3 border-l-2 border-lime-400 leading-relaxed uppercase">
-            PASSKEY_UPDATED.<br/>PLEASE_LOGIN.
-          </p>
+          <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 p-3 rounded-lg flex items-center gap-2">
+            密码重置成功，请使用新密码登录。
+          </div>
         ) : null}
 
         {error ? (
-          <p className="text-xs font-mono text-red-400 bg-red-400/10 p-3 border-l-2 border-red-400 leading-relaxed break-all">
-            [ERR]: {error}
-          </p>
+          <div className="text-sm text-red-600 bg-red-50 border border-red-200 p-3 rounded-lg break-all">
+            {error}
+          </div>
         ) : null}
 
         <button
           type="submit"
           disabled={loading}
-          className="group relative mt-2 h-12 bg-lime-400 text-black text-sm font-bold uppercase tracking-widest hover:bg-lime-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="group relative mt-2 h-11 w-full bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-blue-600 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-sm flex items-center justify-center gap-2"
         >
-          <div className="absolute inset-0 flex items-center justify-center gap-2">
-            {loading ? 'AUTHENTICATING...' : 'EXECUTE_LOGIN'}
-            {!loading && <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
-          </div>
+          {loading ? '正在验证身份...' : '登录空间'}
+          {!loading && <LogIn className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
         </button>
       </form>
     </AuthShell>

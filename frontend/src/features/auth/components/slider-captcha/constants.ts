@@ -7,9 +7,9 @@ export const PI = Math.PI;
 export const TOLERANCE = 6;
 
 export const BG_THEMES = [
-  { colors: ['#1e3a5f', '#0f172a', '#1a1a2e'], accent: '#6366f1' },
-  { colors: ['#1a2744', '#0d1117', '#16213e'], accent: '#818cf8' },
-  { colors: ['#0f2027', '#203a43', '#2c5364'], accent: '#10b981' },
-  { colors: ['#1f1c2c', '#2d283e', '#1f1c2c'], accent: '#a78bfa' },
-  { colors: ['#141e30', '#243b55', '#141e30'], accent: '#f472b6' },
+  { colors: ['#dbeafe', '#bfdbfe', '#93c5fd'], accent: '#3b82f6' },
+  { colors: ['#e0e7ff', '#c7d2fe', '#a5b4fc'], accent: '#6366f1' },
+  { colors: ['#d1fae5', '#a7f3d0', '#6ee7b7'], accent: '#10b981' },
+  { colors: ['#fef3c7', '#fde68a', '#fcd34d'], accent: '#f59e0b' },
+  { colors: ['#fce7f3', '#fbcfe8', '#f9a8d4'], accent: '#ec4899' },
 ] as const;

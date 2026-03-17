@@ -62,8 +62,8 @@ export function useSliderCaptcha({ disabled = false, onVerified }: SliderCaptcha
     const block = blockRef.current;
     if (!canvas || !block) return;
 
-    const canvasContext = canvas.getContext('2d');
-    const blockContext = block.getContext('2d');
+    const canvasContext = canvas.getContext('2d', { willReadFrequently: true });
+    const blockContext = block.getContext('2d', { willReadFrequently: true });
     if (!canvasContext || !blockContext) return;
 
     canvas.width = WIDTH;

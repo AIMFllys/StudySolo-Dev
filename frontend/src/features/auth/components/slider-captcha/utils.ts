@@ -31,8 +31,8 @@ export function drawPath(
   context.arc(x + PIECE_RADIUS - 2, y + PIECE_LENGTH / 2, PIECE_RADIUS + 0.4, 2.76 * PI, 1.24 * PI, true);
   context.lineTo(x, y);
   context.lineWidth = 2;
-  context.fillStyle = 'rgba(255, 255, 255, 0.7)';
-  context.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+  context.fillStyle = 'rgba(0, 0, 0, 0.25)';
+  context.strokeStyle = 'rgba(255, 255, 255, 0.8)';
   context.stroke();
   context.globalCompositeOperation = 'destination-over';
   if (operation === 'fill') {
