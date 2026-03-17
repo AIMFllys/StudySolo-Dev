@@ -1,41 +1,42 @@
 'use client';
 
 import { useCallback, useMemo, useState, useRef } from 'react';
-import { GripVertical, Search, ChevronDown, ChevronRight, X, ChevronsUpDown } from 'lucide-react';
+import { GripVertical, Search, ChevronDown, ChevronRight, X, ChevronsUpDown, Zap, Bot, PenTool, Database, Shuffle, LayoutGrid } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { NODE_TYPE_META } from '@/features/workflow/constants/workflow-meta';
 import type { NodeType } from '@/types';
 import { createPortal } from 'react-dom';
 
 /** 节点分类 */
-const NODE_CATEGORIES: { id: string; label: string; emoji: string; types: NodeType[] }[] = [
+const NODE_CATEGORIES: { id: string; label: string; icon: LucideIcon; types: NodeType[] }[] = [
   {
     id: 'trigger',
     label: '输入 & 触发',
-    emoji: '⚡',
+    icon: Zap,
     types: ['trigger_input'],
   },
   {
     id: 'ai',
     label: 'AI 处理',
-    emoji: '🤖',
+    icon: Bot,
     types: ['ai_analyzer', 'ai_planner', 'content_extract', 'merge_polish'],
   },
   {
     id: 'content',
     label: '内容生成',
-    emoji: '✍️',
+    icon: PenTool,
     types: ['outline_gen', 'summary', 'flashcard', 'quiz_gen', 'mind_map', 'chat_response'],
   },
   {
     id: 'data',
     label: '数据 & 集成',
-    emoji: '🗄️',
+    icon: Database,
     types: ['knowledge_base', 'web_search', 'write_db', 'export_file'],
   },
   {
     id: 'logic',
     label: '逻辑控制',
-    emoji: '🔀',
+    icon: Shuffle,
     types: ['compare', 'logic_switch', 'loop_map'],
   },
 ];
@@ -118,8 +119,8 @@ function TagFilterBar({ selectedCategoryId, onSelect }: TagFilterBarProps) {
   const [expanded, setExpanded] = useState(false);
 
   const allTags = [
-    { id: ALL_TAG, label: '全部', emoji: '🔍' },
-    ...NODE_CATEGORIES.map((c) => ({ id: c.id, label: c.label, emoji: c.emoji })),
+    { id: ALL_TAG, label: '全部', icon: LayoutGrid },
+    ...NODE_CATEGORIES.map((c) => ({ id: c.id, label: c.label, icon: c.icon })),
   ];
 
   // Collapsed: show only first row (All tag + up to 2 categories), plus expand button
@@ -136,14 +137,15 @@ function TagFilterBar({ selectedCategoryId, onSelect }: TagFilterBarProps) {
               key={tag.id}
               type="button"
               onClick={() => onSelect(tag.id)}
-              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors ${
+              className={`relative overflow-hidden inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors border ${
                 isActive
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground'
+                  ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                  : 'bg-muted/60 text-muted-foreground border-border/50 hover:bg-muted hover:text-foreground'
               }`}
             >
-              <span>{tag.emoji}</span>
-              <span className="hidden sm:inline">{tag.id === ALL_TAG ? '全部' : tag.label.split(' ')[0]}</span>
+              <div className="tag-paper-texture absolute inset-0 z-0 pointer-events-none opacity-60" />
+              <tag.icon className={`relative z-10 w-[14px] h-[14px] ${isActive ? 'text-primary-foreground' : 'text-slate-500'}`} />
+              <span className="relative z-10 hidden sm:inline">{tag.id === ALL_TAG ? '全部' : tag.label.split(' ')[0]}</span>
             </button>
           );
         })}

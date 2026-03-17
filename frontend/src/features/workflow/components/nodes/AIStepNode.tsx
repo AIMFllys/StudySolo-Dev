@@ -32,19 +32,26 @@ function AIStepNode({ data, selected, type }: NodeProps) {
 
   return (
     <div
-      className={`${cardClass} relative w-[19rem] overflow-hidden rounded-2xl border border-white/10`}
+      className={`${cardClass} relative w-[20rem] overflow-hidden rounded-2xl border border-white/10`}
       role="article"
       aria-label={`节点: ${label}`}
     >
-      <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${fromClass} ${toClass}`} />
+      {/* ─── Notebook Grid Texture ─── */}
+      <div className="node-paper-texture absolute inset-0 z-0 pointer-events-none opacity-50 dark:opacity-60 mix-blend-overlay" />
+      
+      {/* ─── Paper Margins ─── */}
+      <div className="absolute top-0 bottom-0 left-6 w-[2px] bg-red-400/25 dark:bg-rose-400/15 z-0 pointer-events-none" />
+      <div className="absolute top-0 bottom-0 left-7 w-px bg-red-400/25 dark:bg-rose-400/15 z-0 pointer-events-none" />
+
+      <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${fromClass} ${toClass} z-20`} />
 
       <Handle
         type="target"
         position={Position.Left}
-        className="!h-3.5 !w-3.5 !-left-2 !border-[3px] !border-slate-950/70 !bg-sky-300 !shadow-[0_0_12px_rgba(125,211,252,0.8)]"
+        className="!h-3.5 !w-3.5 !-left-2 !border-[3px] !border-slate-950/70 !bg-sky-300 !shadow-[0_0_12px_rgba(125,211,252,0.8)] z-20"
       />
 
-      <div className="flex items-start gap-3 border-b border-white/8 px-4 pb-3 pt-4">
+      <div className="relative z-10 flex items-start gap-3 border-b border-white/8 px-4 pb-3 pt-4 pl-10">
         <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ring-1 ${typeMeta.accentClassName}`}>
           <typeMeta.icon className="h-5 w-5 text-stone-900" />
         </div>
@@ -70,8 +77,8 @@ function AIStepNode({ data, selected, type }: NodeProps) {
         </div>
       </div>
 
-      <div className="px-4 py-3">
-        <div className="rounded-2xl border border-white/8 bg-black/10 px-3 py-2.5">
+      <div className="relative z-10 px-4 py-3 pl-10">
+        <div className="rounded-xl border border-white/10 dark:border-white/5 bg-black/5 dark:bg-black/20 px-3 py-2.5 backdrop-blur-sm">
           <div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
             <span>输出预览</span>
             {status === 'running' ? (
@@ -97,7 +104,7 @@ function AIStepNode({ data, selected, type }: NodeProps) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between border-t border-white/8 px-4 py-2.5 text-[11px] text-muted-foreground">
+      <div className="relative z-10 flex items-center justify-between border-t border-white/8 px-4 py-2.5 pl-10 text-[11px] text-muted-foreground bg-white/5 dark:bg-black/10 backdrop-blur-sm">
         <span className="truncate">{preview}</span>
         {status === 'done' && output ? (
           <button
@@ -111,17 +118,17 @@ function AIStepNode({ data, selected, type }: NodeProps) {
       </div>
 
       {status === 'error' ? (
-        <div className="border-t border-rose-400/20 bg-rose-500/10 px-4 py-2 text-xs text-rose-200">
+        <div className="relative z-10 border-t border-rose-400/20 bg-rose-500/10 px-4 py-2 pl-10 text-xs text-rose-200">
           {error || '执行失败，请检查配置或重试当前节点'}
         </div>
       ) : null}
 
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-white/[0.035] to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-white/[0.035] to-transparent z-10" />
 
       <Handle
         type="source"
         position={Position.Right}
-        className="!h-3.5 !w-3.5 !-right-2 !border-[3px] !border-slate-950/70 !bg-violet-300 !shadow-[0_0_12px_rgba(196,181,253,0.8)]"
+        className="!h-3.5 !w-3.5 !-right-2 !border-[3px] !border-slate-950/70 !bg-violet-300 !shadow-[0_0_12px_rgba(196,181,253,0.8)] z-20"
       />
     </div>
   );

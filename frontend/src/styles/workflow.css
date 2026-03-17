@@ -209,3 +209,22 @@
   background: rgba(255, 255, 255, 0.12);
   margin: 0 2px;
 }
+
+/* ─── Node Paper Texture (Notebook School Aesthetic) ─── */
+.node-paper-texture {
+  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 1.25rem 1.25rem;
+}
+
+.light .node-paper-texture {
+  background-image: linear-gradient(to right, rgba(0, 0, 0, 0.04) 1px, transparent 1px), linear-gradient(to bottom, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+}
+
+.tag-paper-texture {
+  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 0.5rem 0.5rem;
+}
+
+.light .tag-paper-texture {
+  background-image: linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+}
