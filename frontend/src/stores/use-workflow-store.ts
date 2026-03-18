@@ -28,6 +28,13 @@ interface WorkflowStore {
   setGenerationContext: (prompt: string, implicitContext: Record<string, unknown> | null) => void;
   setCurrentWorkflow: (id: string, nodes: Node[], edges: Edge[], dirty?: boolean) => void;
   markClean: () => void;
+  
+  // History Actions
+  past: { nodes: Node[], edges: Edge[] }[];
+  future: { nodes: Node[], edges: Edge[] }[];
+  takeSnapshot: () => void;
+  undo: () => void;
+  redo: () => void;
 }
 
 function resolveSelectedNodeId(nodes: Node[], selectedNodeId: string | null) {
@@ -45,11 +52,50 @@ function resolveSelectedNodeId(nodes: Node[], selectedNodeId: string | null) {
 export const useWorkflowStore = create<WorkflowStore>((set) => ({
   nodes: [],
   edges: [],
+  past: [],
+  future: [],
   currentWorkflowId: null,
   selectedNodeId: null,
   lastPrompt: '',
   lastImplicitContext: null,
   isDirty: false,
+
+  takeSnapshot: () =>
+    set((state) => {
+      const newPast = [...state.past, { nodes: state.nodes, edges: state.edges }];
+      if (newPast.length > 50) newPast.shift();
+      return { past: newPast, future: [] };
+    }),
+
+  undo: () =>
+    set((state) => {
+      if (state.past.length === 0) return state;
+      const prev = state.past[state.past.length - 1];
+      const newPast = state.past.slice(0, state.past.length - 1);
+      return {
+        past: newPast,
+        future: [{ nodes: state.nodes, edges: state.edges }, ...state.future],
+        nodes: prev.nodes,
+        edges: prev.edges,
+        selectedNodeId: resolveSelectedNodeId(prev.nodes, state.selectedNodeId),
+        isDirty: true,
+      };
+    }),
+
+  redo: () =>
+    set((state) => {
+      if (state.future.length === 0) return state;
+      const next = state.future[0];
+      const newFuture = state.future.slice(1);
+      return {
+        past: [...state.past, { nodes: state.nodes, edges: state.edges }],
+        future: newFuture,
+        nodes: next.nodes,
+        edges: next.edges,
+        selectedNodeId: resolveSelectedNodeId(next.nodes, state.selectedNodeId),
+        isDirty: true,
+      };
+    }),
 
   setNodes: (nodes) =>
     set((state) => ({
@@ -62,8 +108,17 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
 
   onNodesChange: (changes) =>
     set((state) => {
+      const isSignificant = changes.some((c) => c.type === 'remove');
+      let newPast = state.past;
+      if (isSignificant) {
+        newPast = [...state.past, { nodes: state.nodes, edges: state.edges }];
+        if (newPast.length > 50) newPast.shift();
+      }
+      
       const nextNodes = applyNodeChanges(changes, state.nodes);
       return {
+        past: newPast,
+        future: isSignificant ? [] : state.future,
         nodes: nextNodes,
         selectedNodeId: resolveSelectedNodeId(nextNodes, state.selectedNodeId),
         isDirty: true,
@@ -71,14 +126,31 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
     }),
 
   onEdgesChange: (changes) =>
-    set((state) => ({
-      edges: applyEdgeChanges(changes, state.edges),
-      isDirty: true,
-    })),
+    set((state) => {
+      const isSignificant = changes.some((c) => c.type === 'remove');
+      let newPast = state.past;
+      if (isSignificant) {
+        newPast = [...state.past, { nodes: state.nodes, edges: state.edges }];
+        if (newPast.length > 50) newPast.shift();
+      }
+
+      return {
+        past: newPast,
+        future: isSignificant ? [] : state.future,
+        edges: applyEdgeChanges(changes, state.edges),
+        isDirty: true,
+      };
+    }),
 
   onConnect: (connection) =>
-    set((state) => ({
-      edges: addEdge(
+    set((state) => {
+      const newPast = [...state.past, { nodes: state.nodes, edges: state.edges }];
+      if (newPast.length > 50) newPast.shift();
+      
+      return {
+        past: newPast,
+        future: [],
+        edges: addEdge(
         {
           ...connection,
           id: `edge-${connection.source ?? 'unknown'}-${connection.target ?? 'unknown'}-${state.edges.length + 1}`,
@@ -88,7 +160,8 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
         state.edges
       ),
       isDirty: true,
-    })),
+      };
+    }),
 
   updateNodeData: (nodeId, data) =>
     set((state) => ({
