@@ -104,12 +104,24 @@ async def update_workflow(
     if not updates:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="无更新内容")
 
-    result = (
+    update_result = (
         await db.from_("ss_workflows")
         .update(updates)
         .eq("id", workflow_id)
         .eq("user_id", current_user["id"])
+        .execute()
+    )
+
+    # Some Supabase Python client builders do not support chaining select()
+    # after update(). Query the updated row separately for a stable response.
+    if update_result.data is not None and len(update_result.data) == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="工作流不存在")
+
+    result = (
+        await db.from_("ss_workflows")
         .select(_META_COLS)
+        .eq("id", workflow_id)
+        .eq("user_id", current_user["id"])
         .single()
         .execute()
     )

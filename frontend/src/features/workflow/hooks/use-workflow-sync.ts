@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import localforage from 'localforage';
+import { toast } from 'sonner';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
 import type { Node, Edge } from '@xyflow/react';
 
@@ -125,6 +126,10 @@ export function useWorkflowSync(): UseWorkflowSync {
       useWorkflowStore.getState().markClean();
       setSyncStatus('synced');
       setLastSyncedAt(new Date());
+      toast.success('工作流已保存', {
+        description: '刚刚已成功同步到云端',
+        duration: 2200,
+      });
     } catch {
       setSyncStatus(navigator.onLine ? 'error' : 'offline');
     }
