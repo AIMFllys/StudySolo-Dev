@@ -1,102 +1,71 @@
-﻿import Link from 'next/link';
-import { formatDate } from '@/utils/date';
 import { fetchWorkflowListForServer } from '@/services/workflow.server.service';
-
-function statusLabel(status: string) {
-  const map: Record<string, { label: string; className: string }> = {
-    draft: { label: '草稿', className: 'bg-muted text-muted-foreground' },
-    running: {
-      label: '运行中',
-      className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    },
-    completed: {
-      label: '已完成',
-      className:
-        'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-    },
-    error: {
-      label: '错误',
-      className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-    },
-  };
-
-  return map[status] ?? {
-    label: status,
-    className: 'bg-muted text-muted-foreground',
-  };
-}
+import { getUser } from '@/services/auth.service';
+import WorkflowList from './WorkflowList';
+import { Layers, Plus } from 'lucide-react';
 
 export default async function WorkspacePage() {
   const workflows = await fetchWorkflowListForServer();
+  const maxWorkflows = 10; // Default limit for free tier
+  
+  let userName = 'StudySolo 官方';
+  try {
+    const user = await getUser();
+    if (user && user.name) {
+      userName = user.name;
+    } else if (user && user.email) {
+      userName = user.email.split('@')[0]!;
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  const usageRatio = workflows.length / maxWorkflows;
+  const isWarnings = usageRatio >= 0.8;
 
   return (
-    <div className="p-6">
-      <h1 className="mb-6 text-xl font-semibold">我的工作流</h1>
+    <div className="p-8 max-w-[1400px] mx-auto flex flex-col gap-6 lg:p-10">
+      {/* 微微类纸风格 顶部区域 */}
+      <div className="relative overflow-hidden rounded-[1.5rem] bg-[#fbfaf8] border border-black/[0.06] p-7 md:p-8 shadow-[inset_0_1px_0_rgba(255,255,255,1),_0_2px_8px_rgba(0,0,0,0.02)] mb-4">
+        {/* Paper texture subtle gradient */}
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#f0eee9]/40 to-transparent pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-8">
+          
+          {/* 左侧文字与标语横向底部分组对齐 */}
+          <div className="flex items-end gap-6 relative w-fit">
+            <h1 className="text-3xl font-serif text-slate-800 tracking-wider font-medium flex items-center relative pb-1">
+              我的工作流
+              <div className="hidden sm:block absolute bottom-0 left-0 w-full h-[5px] bg-[#dce1e9]/60 mix-blend-multiply rounded-full" />
+            </h1>
+            <p className="text-[13px] text-slate-500 font-medium tracking-wide whitespace-nowrap mb-[5px]">
+              设计、管理和发布属于你的学习蓝图
+            </p>
+          </div>
 
-      {workflows.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center text-muted-foreground">
-          <svg
-            className="mb-4 opacity-30"
-            width="48"
-            height="48"
-            viewBox="0 0 48 48"
-            fill="none"
-          >
-            <rect
-              x="4"
-              y="4"
-              width="40"
-              height="40"
-              rx="8"
-              stroke="currentColor"
-              strokeWidth="2"
-            />
-            <path
-              d="M14 18h20M14 24h14"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </svg>
-          <p className="text-sm">还没有工作流</p>
-          <p className="mt-1 text-xs">点击右上角新建工作流开始</p>
+          {/* 右侧总量及新增按钮 */}
+          <div className="flex items-center gap-4 pl-4 pt-6 md:pt-0">
+            <div className="flex items-center gap-2.5 rounded-full bg-white/80 backdrop-blur-sm px-4 py-2 border border-black/5 shadow-sm">
+              <Layers className={`h-4 w-4 ${isWarnings ? 'text-amber-500' : 'text-slate-400'}`} />
+              <div className="flex items-baseline gap-1">
+                 <span className="text-sm font-semibold text-slate-700">{workflows.length}</span>
+                 <span className="text-[11px] font-medium text-slate-400">/ {maxWorkflows} 容量</span>
+              </div>
+            </div>
+            
+            <a
+              href="/workspace/new"
+              className="group flex h-9 items-center justify-center gap-2 rounded-full bg-slate-800 px-5 font-medium text-white shadow-sm ring-1 ring-black/10 transition-all hover:bg-slate-900 hover:shadow-md hover:-translate-y-[1px] active:translate-y-[0px] text-[13px]"
+            >
+              <Plus className="h-4 w-4 opacity-80 transition-transform group-hover:rotate-90" />
+              新建工作流
+            </a>
+          </div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {workflows.map((workflow) => {
-            const { label, className } = statusLabel(workflow.status);
-            return (
-              <Link
-                key={workflow.id}
-                href={`/workspace/${workflow.id}`}
-                className="group flex flex-col gap-2 rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/50 hover:shadow-sm"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <h2 className="line-clamp-2 text-sm font-medium leading-snug transition-colors group-hover:text-primary">
-                    {workflow.name}
-                  </h2>
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${className}`}
-                  >
-                    {label}
-                  </span>
-                </div>
-
-                {workflow.description ? (
-                  <p className="line-clamp-2 text-xs text-muted-foreground">
-                    {workflow.description}
-                  </p>
-                ) : null}
-
-                <div className="mt-auto flex items-center justify-between pt-3 text-xs text-muted-foreground">
-                  <span>更新于 {formatDate(workflow.updated_at, 'zh-CN')}</span>
-                  <span>创建于 {formatDate(workflow.created_at, 'zh-CN')}</span>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      )}
+      </div>
+      
+      <div className="relative z-10 w-full">
+        <WorkflowList initialWorkflows={workflows} userName={userName} />
+      </div>
     </div>
   );
 }

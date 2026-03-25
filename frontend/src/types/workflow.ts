@@ -142,6 +142,10 @@ export interface WorkflowMeta {
   status: string;
   created_at: string;
   updated_at: string;
+  is_favorite?: boolean;
+  is_published?: boolean;
+  likes_count?: number;
+  tags?: string[];
 }
 
 export interface WorkflowContent {

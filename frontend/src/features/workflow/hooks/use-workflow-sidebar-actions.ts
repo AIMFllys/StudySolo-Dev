@@ -1,4 +1,4 @@
-﻿import { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
@@ -22,21 +22,12 @@ export function useWorkflowSidebarActions(
   );
 
   const onRenameWorkflow = useCallback(
-    async (workflowId: string, currentName: string) => {
+    async (workflowId: string, nextName: string) => {
       closeContextMenu();
-
-      const nextName = window.prompt('请输入新的工作流名称', currentName);
-      if (nextName === null) {
-        return;
-      }
 
       const normalizedName = nextName.trim();
       if (!normalizedName) {
         toast.error('名称不能为空');
-        return;
-      }
-
-      if (normalizedName === currentName) {
         return;
       }
 

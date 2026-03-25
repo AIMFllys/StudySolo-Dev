@@ -20,6 +20,7 @@ from app.api.ai_chat_stream import stream_router as ai_chat_stream_router
 from app.api.nodes import router as nodes_router
 from app.api.knowledge import router as knowledge_router
 from app.api.exports import router as exports_router
+from app.api.feedback import router as feedback_router
 
 router = APIRouter()
 
@@ -31,6 +32,7 @@ router.include_router(ai_chat_stream_router, prefix="/ai", tags=["ai-chat-stream
 router.include_router(nodes_router, prefix="/nodes", tags=["nodes"])
 router.include_router(knowledge_router, prefix="/knowledge", tags=["knowledge"])
 router.include_router(exports_router, prefix="/exports", tags=["exports"])
+router.include_router(feedback_router, prefix="/feedback", tags=["feedback"])
 router.include_router(admin_auth_router, prefix="/admin", tags=["admin-auth"])
 router.include_router(admin_dashboard_router, prefix="/admin", tags=["admin-dashboard"])
 router.include_router(admin_users_router, prefix="/admin", tags=["admin-users"])

@@ -24,7 +24,7 @@ import { useWorkflowSidebarActions } from '@/features/workflow/hooks/use-workflo
 import { usePanelStore, type SidebarPanel, LEFT_PANEL_MIN, LEFT_PANEL_MAX } from '@/stores/use-panel-store';
 import { useSettingsStore } from '@/stores/use-settings-store';
 import { SidebarContextMenu } from './sidebar/SidebarContextMenu';
-import { SidebarWorkflowItem } from './sidebar/SidebarWorkflowItem';
+import { SidebarWorkflowsPanel } from './sidebar/SidebarWorkflowsPanel';
 import { SidebarAIPanel } from './sidebar/SidebarAIPanel';
 import NodeStorePanel from './sidebar/NodeStorePanel';
 import WorkflowExamplesPanel from './sidebar/WorkflowExamplesPanel';
@@ -42,6 +42,8 @@ export interface WorkflowMeta {
   name: string;
   updated_at: string;
   isRunning?: boolean;
+  is_favorite?: boolean;
+  is_published?: boolean;
 }
 
 interface SidebarProps {
@@ -106,9 +108,18 @@ export default function Sidebar({ workflows }: SidebarProps) {
   const sidebarPosition = useSettingsStore((s) => s.sidebarPosition);
   const isRight = sidebarPosition === 'right';
 
+  const [editingWorkflowId, setEditingWorkflowId] = useState<string | null>(null);
+
   function handleRename(workflowId: string) {
+    setEditingWorkflowId(workflowId);
+    closeContextMenu();
+  }
+
+  async function handleRenameSubmit(workflowId: string, nextName: string) {
+    setEditingWorkflowId(null);
     const workflow = workflows.find((item) => item.id === workflowId);
-    void onRenameWorkflow(workflowId, workflow?.name ?? '未命名工作流');
+    if (!workflow || nextName === workflow.name) return;
+    await onRenameWorkflow(workflowId, nextName);
   }
 
   function handleDelete(workflowId: string) {
@@ -221,18 +232,30 @@ export default function Sidebar({ workflows }: SidebarProps) {
                   <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground/80 font-serif">
                     {getPanelLabel(activeSidebarPanel!)}
                   </span>
+                  
+                  <div className="flex items-center gap-1">
+                    {activeSidebarPanel === 'workflows' && (
+                      <Link
+                        href="/workspace"
+                        className="flex h-7 w-7 items-center justify-center rounded-lg border-[1.5px] border-transparent text-muted-foreground transition-all hover:border-border/50 hover:bg-background/50 hover:text-primary hover:shadow-sm"
+                        title="主页"
+                      >
+                        <LayoutDashboard className="h-4 w-4 stroke-[1.5]" />
+                      </Link>
+                    )}
 
-                  {/* Undock button — only for execution panel */}
-                  {activeSidebarPanel === 'execution' && (
-                    <button
-                      type="button"
-                      onClick={toggleRightPanelDock}
-                      className="flex h-7 w-7 items-center justify-center rounded-lg border-[1.5px] border-transparent text-muted-foreground transition-all hover:border-border/50 hover:bg-background/50 hover:text-foreground hover:shadow-sm"
-                      title="移回右侧"
-                    >
-                      <PanelRightDashed className="h-4 w-4 stroke-[1.5]" />
-                    </button>
-                  )}
+                    {/* Undock button — only for execution panel */}
+                    {activeSidebarPanel === 'execution' && (
+                      <button
+                        type="button"
+                        onClick={toggleRightPanelDock}
+                        className="flex h-7 w-7 items-center justify-center rounded-lg border-[1.5px] border-transparent text-muted-foreground transition-all hover:border-border/50 hover:bg-background/50 hover:text-foreground hover:shadow-sm"
+                        title="移回右侧"
+                      >
+                        <PanelRightDashed className="h-4 w-4 stroke-[1.5]" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -240,17 +263,14 @@ export default function Sidebar({ workflows }: SidebarProps) {
               {activeSidebarPanel === 'workflows' && (
                 <div className="flex flex-1 flex-col overflow-hidden">
                   <nav className="scrollbar-hide flex-1 overflow-y-auto py-2">
-                    {workflows.length === 0 ? (
-                      <p className="px-4 py-3 text-xs text-muted-foreground">暂无工作流</p>
-                    ) : null}
-                    {workflows.map((workflow) => (
-                      <SidebarWorkflowItem
-                        key={workflow.id}
-                        workflow={workflow}
-                        active={isWorkflowActive(workflow.id)}
-                        onContextMenu={handleContextMenu}
-                      />
-                    ))}
+                    <SidebarWorkflowsPanel 
+                      workflows={workflows} 
+                      isWorkflowActive={isWorkflowActive} 
+                      handleContextMenu={handleContextMenu} 
+                      editingWorkflowId={editingWorkflowId}
+                      handleRenameSubmit={handleRenameSubmit}
+                      setEditingWorkflowId={setEditingWorkflowId}
+                    />
                   </nav>
                 </div>
               )}
@@ -282,6 +302,7 @@ export default function Sidebar({ workflows }: SidebarProps) {
         <SidebarContextMenu
           contextMenu={contextMenu}
           processingWorkflowId={processingWorkflowId}
+          workflow={workflows.find(w => w.id === contextMenu.workflowId)}
           onClose={closeContextMenu}
           onRename={handleRename}
           onDelete={handleDelete}
