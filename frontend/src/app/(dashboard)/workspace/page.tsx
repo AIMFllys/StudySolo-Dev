@@ -1,23 +1,10 @@
 import { fetchWorkflowListForServer } from '@/services/workflow.server.service';
-import { getUser } from '@/services/auth.service';
 import WorkflowList from './WorkflowList';
 import { Layers, Plus } from 'lucide-react';
 
 export default async function WorkspacePage() {
   const workflows = await fetchWorkflowListForServer();
   const maxWorkflows = 10; // Default limit for free tier
-  
-  let userName = 'StudySolo 官方';
-  try {
-    const user = await getUser();
-    if (user && user.name) {
-      userName = user.name;
-    } else if (user && user.email) {
-      userName = user.email.split('@')[0]!;
-    }
-  } catch (e) {
-    // ignore
-  }
 
   const usageRatio = workflows.length / maxWorkflows;
   const isWarnings = usageRatio >= 0.8;
@@ -64,7 +51,7 @@ export default async function WorkspacePage() {
       </div>
       
       <div className="relative z-10 w-full">
-        <WorkflowList initialWorkflows={workflows} userName={userName} />
+        <WorkflowList initialWorkflows={workflows} />
       </div>
     </div>
   );

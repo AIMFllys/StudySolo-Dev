@@ -1,34 +1,14 @@
-import { Suspense } from 'react';
-import { notFound } from 'next/navigation';
-import WorkflowCanvasLoader from './WorkflowCanvasLoader';
-import WorkflowPageShell from './WorkflowPageShell';
-import { fetchWorkflowContentForServer } from '@/services/workflow.server.service';
-import CanvasTraceLoader from '@/features/workflow/components/canvas/CanvasTraceLoader';
+import { redirect } from 'next/navigation';
 
 interface Props {
   params: Promise<{ id: string }>;
 }
 
-export default async function WorkflowPage({ params }: Props) {
+/**
+ * Legacy route — 301 redirect handled by next.config.ts,
+ * but as a safety net, this page also redirects to /c/[id].
+ */
+export default async function LegacyWorkflowPage({ params }: Props) {
   const { id } = await params;
-  const workflow = await fetchWorkflowContentForServer(id);
-
-  if (!workflow) {
-    notFound();
-  }
-
-  return (
-    <WorkflowPageShell workflowName={workflow.name}>
-      <Suspense fallback={<CanvasTraceLoader />}>
-        <WorkflowCanvasLoader
-          key={workflow.id}
-          workflowId={workflow.id}
-          initialNodes={workflow.nodes_json ?? []}
-          initialEdges={workflow.edges_json ?? []}
-        />
-      </Suspense>
-    </WorkflowPageShell>
-  );
+  redirect(`/c/${id}`);
 }
-
-

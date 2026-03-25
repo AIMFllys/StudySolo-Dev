@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import * as fc from 'fast-check';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -18,7 +18,7 @@ interface NavItem {
 
 function workflowsToNavItems(workflows: WorkflowMeta[]): NavItem[] {
   return workflows.map((workflow) => ({
-    href: `/workspace/${workflow.id}`,
+    href: `/c/${workflow.id}`,
     name: workflow.name,
     workflowId: workflow.id,
   }));
@@ -62,7 +62,7 @@ describe('integration-fixes: sidebar nav mapping', () => {
         navItems.forEach((item, index) => {
           expect(item.name).toBe(workflows[index].name);
           expect(item.workflowId).toBe(workflows[index].id);
-          expect(item.href).toBe(`/workspace/${workflows[index].id}`);
+          expect(item.href).toBe(`/c/${workflows[index].id}`);
         });
       }),
       { numRuns: 100 }

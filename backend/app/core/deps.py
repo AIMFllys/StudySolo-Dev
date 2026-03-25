@@ -103,3 +103,20 @@ async def get_current_user(
     }
 
 
+async def get_optional_user(
+    request: Request,
+    access_token: Annotated[str | None, Cookie()] = None,
+    db: AsyncClient = Depends(get_db),
+) -> dict | None:
+    """Like get_current_user, but returns None if not authenticated.
+
+    Use for public endpoints that optionally personalize for logged-in users.
+    """
+    if not access_token and not (hasattr(request.state, "user") and request.state.user):
+        return None
+    try:
+        return await get_current_user(request, access_token, db)
+    except HTTPException:
+        return None
+
+

@@ -3,7 +3,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { logout } from '@/services/auth.service';
 
 export function isWorkflowRouteActive(pathname: string, workflowId: string): boolean {
-  return pathname === `/workspace/${workflowId}`;
+  return pathname === `/c/${workflowId}`;
 }
 
 export function isSettingsRouteActive(pathname: string): boolean {

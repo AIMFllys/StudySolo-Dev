@@ -1,6 +1,6 @@
 'use client';
 
-import type { WorkflowMeta } from '../Sidebar';
+import type { WorkflowMeta } from '@/types/workflow';
 
 interface WorkflowContextMenuState {
   x: number;
@@ -44,17 +44,17 @@ export function SidebarContextMenu({
       >
         <button
           className="w-full flex items-center justify-start px-4 py-1.5 text-left font-medium transition-colors hover:bg-muted/60 text-foreground disabled:opacity-40"
-          onClick={() => { if (workflow && onToggleFavorite) onToggleFavorite(contextMenu.workflowId); else alert('此页面仅模拟收藏'); onClose(); }}
+          onClick={() => { if (onToggleFavorite) onToggleFavorite(contextMenu.workflowId); onClose(); }}
         >
-          <span className="w-5">{workflow?.is_favorite ? '★' : '☆'}</span> 
-          {workflow?.is_favorite ? '取消收藏' : '收藏'}
+          <span className="w-5">{workflow?.is_favorited ? '★' : '☆'}</span> 
+          {workflow?.is_favorited ? '取消收藏' : '收藏'}
         </button>
         <button
           className="w-full flex items-center justify-start px-4 py-1.5 text-left font-medium transition-colors hover:bg-muted/60 text-foreground disabled:opacity-40"
-          onClick={() => { if (workflow && onTogglePublish) onTogglePublish(contextMenu.workflowId); else alert('此页面仅模拟公开'); onClose(); }}
+          onClick={() => { if (onTogglePublish) onTogglePublish(contextMenu.workflowId); onClose(); }}
         >
           <span className="w-5">✓</span> 
-          {workflow?.is_published ? '取消公开' : '发布'}
+          {workflow?.is_public ? '取消公开' : '发布'}
         </button>
         <div className="my-1 h-px bg-border mx-2" />
         <button

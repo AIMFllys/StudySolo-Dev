@@ -18,6 +18,7 @@ import {
   Crown,
 } from 'lucide-react';
 import { getUser, type UserInfo } from '@/services/auth.service';
+import { toggleFavorite as apiToggleFavorite, updateWorkflow } from '@/services/workflow.service';
 import { useSidebarNavigation } from '@/hooks/use-sidebar-navigation';
 import { useWorkflowContextMenu } from '@/features/workflow/hooks/use-workflow-context-menu';
 import { useWorkflowSidebarActions } from '@/features/workflow/hooks/use-workflow-sidebar-actions';
@@ -36,15 +37,7 @@ import SettingsPanel from './sidebar/SettingsPanel';
 import RightPanelContent from './sidebar/RightPanelContent';
 import ResizableHandle from './ResizableHandle';
 import type { LucideIcon } from 'lucide-react';
-
-export interface WorkflowMeta {
-  id: string;
-  name: string;
-  updated_at: string;
-  isRunning?: boolean;
-  is_favorite?: boolean;
-  is_published?: boolean;
-}
+import type { WorkflowMeta } from '@/types/workflow';
 
 interface SidebarProps {
   workflows: WorkflowMeta[];
@@ -66,21 +59,12 @@ const LOWER_PANELS: { panel: SidebarPanel; icon: LucideIcon; label: string }[] =
 ];
 
 /** Get the panel label for the active panel */
-function getPanelLabel(panel: SidebarPanel): string {
-  const ALL: Record<SidebarPanel, string> = {
-    'workflows': '工作流',
-    'ai-chat': 'AI 对话',
-    'node-store': '节点商店',
-    'workflow-examples': '工作流样例',
-    'dashboard': '仪表盘',
-    'plugins': '插件',
-    'wallet': '钱包设置',
-    'user-panel': '用户面板',
-    'settings': '设置',
-    'execution': '执行面板',
-  };
-  return ALL[panel] ?? '';
-}
+const PANEL_LABELS: Record<SidebarPanel, string> = {
+  'workflows': '工作流', 'ai-chat': 'AI 对话', 'node-store': '节点商店',
+  'workflow-examples': '工作流样例', 'dashboard': '仪表盘', 'plugins': '插件',
+  'wallet': '钱包设置', 'user-panel': '用户面板', 'settings': '设置', 'execution': '执行面板',
+};
+const getPanelLabel = (panel: SidebarPanel) => PANEL_LABELS[panel] ?? '';
 
 export default function Sidebar({ workflows }: SidebarProps) {
   const [user, setUser] = useState<UserInfo | null>(null);
@@ -298,7 +282,7 @@ export default function Sidebar({ workflows }: SidebarProps) {
         )}
       </div>
 
-      {contextMenu ? (
+      {contextMenu && (
         <SidebarContextMenu
           contextMenu={contextMenu}
           processingWorkflowId={processingWorkflowId}
@@ -306,8 +290,10 @@ export default function Sidebar({ workflows }: SidebarProps) {
           onClose={closeContextMenu}
           onRename={handleRename}
           onDelete={handleDelete}
+          onToggleFavorite={(id) => { void apiToggleFavorite(id); closeContextMenu(); }}
+          onTogglePublish={(id) => { const wf = workflows.find(w => w.id === id); if (wf) void updateWorkflow(id, { is_public: !wf.is_public }); closeContextMenu(); }}
         />
-      ) : null}
+      )}
     </>
   );
 }

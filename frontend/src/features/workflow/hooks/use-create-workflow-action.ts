@@ -1,4 +1,4 @@
-﻿import { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
@@ -40,7 +40,7 @@ export function useCreateWorkflowAction(defaultName = '未命名工作流'): Use
       }
 
       const data = (await response.json()) as WorkflowCreateResponse;
-      router.push(`/workspace/${data.id}`);
+      router.push(`/c/${data.id}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : '创建工作流失败';
       toast.error(message);

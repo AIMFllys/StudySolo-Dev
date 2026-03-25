@@ -1,7 +1,7 @@
 'use client';
 
 import { SidebarWorkflowItem } from './SidebarWorkflowItem';
-import type { WorkflowMeta } from '../Sidebar';
+import type { WorkflowMeta } from '@/types/workflow';
 
 interface SidebarWorkflowsPanelProps {
   workflows: WorkflowMeta[];
@@ -24,9 +24,9 @@ export function SidebarWorkflowsPanel({
     return <p className="px-4 py-3 text-xs text-muted-foreground">暂无工作流</p>;
   }
   
-  const favs = workflows.filter((w, i) => w.is_favorite ?? (i === 0));
-  const pubs = workflows.filter((w, i) => !w.is_favorite && (w.is_published ?? (i === 1)));
-  const uncat = workflows.filter((w, i) => !(w.is_favorite ?? (i === 0)) && !(w.is_published ?? (i === 1)));
+  const favs = workflows.filter(w => w.is_favorited);
+  const pubs = workflows.filter(w => !w.is_favorited && w.is_public);
+  const uncat = workflows.filter(w => !w.is_favorited && !w.is_public);
 
   return (
     <>

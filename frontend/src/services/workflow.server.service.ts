@@ -1,9 +1,10 @@
 import { cookies } from 'next/headers';
 import {
+  fetchPublicWorkflow,
   fetchWorkflowContent,
   fetchWorkflowList,
 } from '@/services/workflow.service';
-import type { WorkflowContent, WorkflowMeta } from '@/types/workflow';
+import type { WorkflowContent, WorkflowMeta, WorkflowPublicView } from '@/types/workflow';
 
 async function getAccessTokenFromCookieStore() {
   const cookieStore = await cookies();
@@ -20,4 +21,11 @@ export async function fetchWorkflowContentForServer(
 ): Promise<WorkflowContent | null> {
   const token = await getAccessTokenFromCookieStore();
   return fetchWorkflowContent(workflowId, token);
+}
+
+export async function fetchPublicWorkflowForServer(
+  workflowId: string
+): Promise<WorkflowPublicView | null> {
+  const token = await getAccessTokenFromCookieStore();
+  return fetchPublicWorkflow(workflowId, token);
 }

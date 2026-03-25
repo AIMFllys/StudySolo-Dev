@@ -61,7 +61,7 @@ export function useWorkflowSidebarActions(
       setProcessingWorkflowId(workflowId);
       try {
         await deleteWorkflow(workflowId);
-        if (pathname === `/workspace/${workflowId}`) {
+        if (pathname === `/c/${workflowId}`) {
           router.push('/workspace');
         }
         router.refresh();

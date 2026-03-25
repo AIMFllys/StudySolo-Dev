@@ -24,7 +24,7 @@ export default function MobileNav({ onNewWorkflow, creating = false }: MobileNav
       href: '/workspace',
       icon: GitBranch,
       label: '工作流',
-      isActive: pathname?.startsWith('/workspace/') ?? false,
+      isActive: pathname?.startsWith('/c/') ?? false,
     },
     {
       href: '/settings',

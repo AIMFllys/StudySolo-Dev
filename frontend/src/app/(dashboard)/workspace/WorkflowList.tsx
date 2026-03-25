@@ -1,49 +1,36 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { WorkflowMeta } from '@/types/workflow';
 import { Star, Heart, FileText, Globe } from 'lucide-react';
 import { SidebarContextMenu } from '@/components/layout/sidebar/SidebarContextMenu';
+import {
+  toggleLike as apiToggleLike,
+  toggleFavorite as apiToggleFavorite,
+  updateWorkflow,
+  deleteWorkflow as apiDeleteWorkflow,
+} from '@/services/workflow.service';
 
 interface WorkflowListProps {
   initialWorkflows: WorkflowMeta[];
-  userName?: string;
 }
+
+const STATUS_MAP: Record<string, { label: string; className: string }> = {
+  draft: { label: '草稿', className: 'bg-slate-100 text-slate-600 border border-slate-200/60' },
+  running: { label: '运行中', className: 'bg-blue-50 text-blue-600 border border-blue-100' },
+  completed: { label: '已完成', className: 'bg-emerald-50 text-emerald-600 border border-emerald-100' },
+  error: { label: '错误', className: 'bg-rose-50 text-rose-600 border border-rose-100' },
+};
 
 function statusLabel(status: string) {
-  const map: Record<string, { label: string; className: string }> = {
-    draft: { label: '草稿', className: 'bg-slate-100 text-slate-600 border border-slate-200/60' },
-    running: {
-      label: '运行中',
-      className: 'bg-blue-50 text-blue-600 border border-blue-100',
-    },
-    completed: {
-      label: '已完成',
-      className: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
-    },
-    error: {
-      label: '错误',
-      className: 'bg-rose-50 text-rose-600 border border-rose-100',
-    },
-  };
-  return map[status] ?? {
-    label: status,
-    className: 'bg-slate-100 text-slate-600 border border-slate-200/60',
-  };
+  return STATUS_MAP[status] ?? { label: status, className: 'bg-slate-100 text-slate-600 border border-slate-200/60' };
 }
 
-export default function WorkflowList({ initialWorkflows, userName = 'StudySolo 官方' }: WorkflowListProps) {
-  // Use local state to mock interactions
-  const [workflows, setWorkflows] = useState<WorkflowMeta[]>(
-    initialWorkflows.map((w, i) => ({
-      ...w,
-      is_favorite: w.is_favorite ?? (i === 0),
-      is_published: w.is_published ?? (i === 1),
-      likes_count: w.likes_count ?? (i === 1 ? 128 : 0),
-    }))
-  );
-
+export default function WorkflowList({ initialWorkflows }: WorkflowListProps) {
+  const router = useRouter();
+  const [workflows, setWorkflows] = useState<WorkflowMeta[]>(initialWorkflows);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; workflowId: string } | null>(null);
 
   const handleContextMenu = (e: React.MouseEvent, workflowId: string) => {
@@ -53,43 +40,79 @@ export default function WorkflowList({ initialWorkflows, userName = 'StudySolo �
 
   const closeMenu = () => setContextMenu(null);
 
-  const toggleFavoriteHandler = (id: string) => {
-    setWorkflows(prev => prev.map(w => w.id === id ? { ...w, is_favorite: !w.is_favorite } : w));
+  const toggleFavoriteHandler = async (id: string) => {
+    // Optimistic
+    setWorkflows(prev => prev.map(w =>
+      w.id === id ? { ...w, is_favorited: !w.is_favorited, favorites_count: w.favorites_count + (w.is_favorited ? -1 : 1) } : w
+    ));
     closeMenu();
+    try {
+      const res = await apiToggleFavorite(id);
+      setWorkflows(prev => prev.map(w =>
+        w.id === id ? { ...w, is_favorited: res.toggled, favorites_count: res.count } : w
+      ));
+    } catch { /* revert on error handled by next refresh */ }
   };
 
-  const togglePublishHandler = (id: string) => {
-    setWorkflows(prev => prev.map(w => w.id === id ? { ...w, is_published: !w.is_published, likes_count: !w.is_published ? (w.likes_count || 0) : w.likes_count } : w));
-    closeMenu();
+  const toggleLikeHandler = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setWorkflows(prev => prev.map(w =>
+      w.id === id ? { ...w, is_liked: !w.is_liked, likes_count: w.likes_count + (w.is_liked ? -1 : 1) } : w
+    ));
+    try {
+      const res = await apiToggleLike(id);
+      setWorkflows(prev => prev.map(w =>
+        w.id === id ? { ...w, is_liked: res.toggled, likes_count: res.count } : w
+      ));
+    } catch { /* noop */ }
   };
 
-  const deleteWorkflowHandler = (id: string) => {
+  const togglePublishHandler = async (id: string) => {
+    const wf = workflows.find(w => w.id === id);
+    if (!wf) return;
+    const newPublic = !wf.is_public;
+    setWorkflows(prev => prev.map(w => w.id === id ? { ...w, is_public: newPublic } : w));
+    closeMenu();
+    try {
+      await updateWorkflow(id, { is_public: newPublic });
+      if (newPublic) router.push(`/s/${id}`);
+    } catch { /* noop */ }
+  };
+
+  const deleteWorkflowHandler = async (id: string) => {
     setWorkflows(prev => prev.filter(w => w.id !== id));
     closeMenu();
+    try { await apiDeleteWorkflow(id); } catch { /* noop */ }
   };
 
-  const toggleFavorite = (e: React.MouseEvent, id: string) => {
+  const onFavoriteClick = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
     e.stopPropagation();
     toggleFavoriteHandler(id);
   };
 
-  const favorites = workflows.filter(w => w.is_favorite);
-  const published = workflows.filter(w => !w.is_favorite && w.is_published);
-  const uncategorized = workflows.filter(w => !w.is_favorite && !w.is_published);
+  const favorites = workflows.filter(w => w.is_favorited);
+  const published = workflows.filter(w => !w.is_favorited && w.is_public);
+  const uncategorized = workflows.filter(w => !w.is_favorited && !w.is_public);
 
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [editingField, setEditingField] = useState<'name' | 'desc' | 'tags' | null>(null);
 
-  const handleEditSubmit = (id: string, field: 'name' | 'desc' | 'tags', newValue: string) => {
-    if (newValue.trim() || field === 'desc' || field === 'tags') {
-       if (field === 'name') {
-         setWorkflows(prev => prev.map(w => w.id === id ? { ...w, name: newValue.trim() } : w));
-       } else if (field === 'desc') {
-         setWorkflows(prev => prev.map(w => w.id === id ? { ...w, description: newValue.trim() } : w));
-       } else if (field === 'tags') {
-         setWorkflows(prev => prev.map(w => w.id === id ? { ...w, tags: newValue.split(',').map(s => s.trim()).filter(Boolean) } : w));
-       }
+  const handleEditSubmit = async (id: string, field: 'name' | 'desc' | 'tags', newValue: string) => {
+    const trimmed = newValue.trim();
+    if (!trimmed && field === 'name') return;
+
+    if (field === 'name') {
+      setWorkflows(prev => prev.map(w => w.id === id ? { ...w, name: trimmed } : w));
+      try { await updateWorkflow(id, { name: trimmed }); } catch { /* noop */ }
+    } else if (field === 'desc') {
+      setWorkflows(prev => prev.map(w => w.id === id ? { ...w, description: trimmed } : w));
+      try { await updateWorkflow(id, { description: trimmed }); } catch { /* noop */ }
+    } else if (field === 'tags') {
+      const tags = trimmed.split(',').map(s => s.trim()).filter(Boolean);
+      setWorkflows(prev => prev.map(w => w.id === id ? { ...w, tags } : w));
+      try { await updateWorkflow(id, { tags }); } catch { /* noop */ }
     }
     setEditingCardId(null);
     setEditingField(null);
@@ -113,7 +136,7 @@ export default function WorkflowList({ initialWorkflows, userName = 'StudySolo �
         onContextMenu={(e) => handleContextMenu(e, workflow.id)}
         className="group relative flex flex-col p-4 rounded-[1.25rem] border border-border/80 bg-white/60 dark:bg-card shadow-sm transition-all hover:shadow-md hover:border-black/10 dark:hover:border-white/10"
       >
-        <Link href={`/workspace/${workflow.id}`} className="absolute inset-0 z-0" />
+        <Link href={`/c/${workflow.id}`} className="absolute inset-0 z-0" />
         
         <div className="z-10 flex flex-col mb-3 space-y-1.5 pointer-events-none">
           <div className="flex items-center gap-2">
@@ -161,22 +184,26 @@ export default function WorkflowList({ initialWorkflows, userName = 'StudySolo �
         <div className="z-10 flex items-center justify-between pt-1">
           <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground font-medium pointer-events-none">
             <span className="opacity-70 font-serif">©</span>
-            <span className="max-w-[100px] truncate" title={userName}>{userName}</span> 
+            <span className="max-w-[100px] truncate" title={workflow.owner_name || ''}>{workflow.owner_name || '未知用户'}</span>
           </div>
           
           <div className="flex items-center justify-end gap-3 text-[11px] pointer-events-auto">
             <div className="flex items-center gap-3 text-[12px] text-muted-foreground/80">
-              <div className="flex items-center gap-1 cursor-default group/likes" title="点赞数">
-                <Heart className="w-3.5 h-3.5 transition-colors group-hover/likes:text-rose-400 group-hover/likes:fill-rose-400/20" />
-                <span>{workflow.likes_count || 0}</span>
-              </div>
+              <button
+                onClick={(e) => toggleLikeHandler(e, workflow.id)}
+                className={`flex items-center gap-1 transition-colors hover:scale-110 active:scale-95 duration-200 ${workflow.is_liked ? 'text-rose-500' : 'hover:text-rose-400'}`}
+                title={workflow.is_liked ? '取消点赞' : '点赞'}
+              >
+                <Heart className={`w-3.5 h-3.5 ${workflow.is_liked ? 'fill-rose-500' : ''}`} />
+                <span>{workflow.likes_count}</span>
+              </button>
               
               <button 
-                onClick={(e) => toggleFavorite(e, workflow.id)}
-                className={`flex items-center transition-colors hover:scale-110 active:scale-95 duration-200 ${workflow.is_favorite ? 'text-amber-500' : 'hover:text-amber-500'}`}
-                title={workflow.is_favorite ? "取消收藏" : "收藏工作流"}
+                onClick={(e) => onFavoriteClick(e, workflow.id)}
+                className={`flex items-center transition-colors hover:scale-110 active:scale-95 duration-200 ${workflow.is_favorited ? 'text-amber-500' : 'hover:text-amber-500'}`}
+                title={workflow.is_favorited ? '取消收藏' : '收藏工作流'}
               >
-                <Star className={`w-3.5 h-3.5 ${workflow.is_favorite ? 'fill-amber-500' : ''}`} />
+                <Star className={`w-3.5 h-3.5 ${workflow.is_favorited ? 'fill-amber-500' : ''}`} />
               </button>
             </div>
 

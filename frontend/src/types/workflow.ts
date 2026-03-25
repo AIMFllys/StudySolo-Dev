@@ -140,17 +140,51 @@ export interface WorkflowMeta {
   name: string;
   description: string | null;
   status: string;
+  tags: string[];
+  is_public: boolean;
+  is_featured: boolean;
+  is_official: boolean;
+  likes_count: number;
+  favorites_count: number;
+  owner_name: string | null;
+  is_liked: boolean;
+  is_favorited: boolean;
   created_at: string;
   updated_at: string;
-  is_favorite?: boolean;
-  is_published?: boolean;
-  likes_count?: number;
-  tags?: string[];
 }
 
 export interface WorkflowContent {
   id: string;
   name: string;
+  description: string | null;
   nodes_json: Node[];
   edges_json: Edge[];
+  annotations_json?: Record<string, unknown>[];
+  status: string;
+  tags: string[];
+  is_public: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkflowPublicView {
+  id: string;
+  name: string;
+  description: string | null;
+  nodes_json: Node[];
+  edges_json: Edge[];
+  tags: string[];
+  is_featured: boolean;
+  is_official: boolean;
+  likes_count: number;
+  favorites_count: number;
+  owner_name: string | null;
+  is_liked: boolean;
+  is_favorited: boolean;
+  created_at: string;
+}
+
+export interface InteractionToggleResponse {
+  toggled: boolean;
+  count: number;
 }

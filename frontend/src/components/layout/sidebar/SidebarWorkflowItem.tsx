@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { formatMonthDay } from '@/utils/date';
-import type { WorkflowMeta } from '../Sidebar';
+import type { WorkflowMeta } from '@/types/workflow';
 
 interface SidebarWorkflowItemProps {
   workflow: WorkflowMeta;
@@ -30,7 +30,7 @@ export function SidebarWorkflowItem({
       }`}
     >
       <Link
-        href={`/workspace/${workflow.id}`}
+        href={`/c/${workflow.id}`}
         onContextMenu={(event) => onContextMenu(event, workflow.id)}
         className="flex min-w-0 flex-1 items-center gap-2.5 outline-none"
       >

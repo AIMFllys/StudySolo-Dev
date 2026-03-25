@@ -9,6 +9,7 @@ passes the response through without buffering.
 """
 
 import logging
+import re
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -33,10 +34,17 @@ UNPROTECTED_PATHS = {
     "/api/auth/captcha-challenge",
     "/api/auth/captcha-token",
     "/api/health",
+    "/api/workflow/marketplace",
     "/docs",
     "/openapi.json",
     "/redoc",
 }
+
+# Regex patterns for dynamic public routes (no auth required, but token
+# is still extracted if present so get_optional_user can personalize)
+_SOFT_AUTH_PATTERNS = [
+    re.compile(r"^/api/workflow/[^/]+/public$"),
+]
 
 
 class JWTAuthMiddleware:
@@ -75,6 +83,20 @@ class JWTAuthMiddleware:
 
         # Skip unprotected paths
         if path in UNPROTECTED_PATHS:
+            await self.app(scope, receive, send)
+            return
+
+        # Soft-auth paths: extract token if present but don't block unauthenticated
+        if any(p.match(path) for p in _SOFT_AUTH_PATTERNS):
+            token = _extract_token(request)
+            if token:
+                try:
+                    db = await get_db()
+                    result = await db.auth.get_user(token)
+                    if result and result.user:
+                        request.state.user = result.user
+                except Exception:
+                    pass  # best-effort: anonymous fallback
             await self.app(scope, receive, send)
             return
 
