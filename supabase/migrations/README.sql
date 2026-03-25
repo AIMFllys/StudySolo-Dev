@@ -1,0 +1,46 @@
+-- ============================================================
+-- MIGRATION CONVENTIONS
+-- ============================================================
+--
+-- 📌 BASELINE SQUASH (2026-03-25)
+-- Files 00000000000001 ~ 00000000000005 represent the squashed
+-- baseline of 40 previously executed migrations. They capture the
+-- FULL current schema of the shared 1037Solo Supabase database.
+--
+-- 📌 GOING FORWARD
+-- Every DB schema change MUST follow this process:
+--   1. Create a new file: YYYYMMDDHHMMSS_descriptive_name.sql
+--   2. Write idempotent SQL (use IF NOT EXISTS, IF EXISTS, etc.)
+--   3. Test locally or on a branch before applying to production
+--   4. Apply via: supabase db push (or Dashboard SQL Editor)
+--   5. Commit the migration file to this repository
+--
+-- 📌 NAMING CONVENTIONS
+-- - Tables:  {prefix}_{entity}         (e.g., ss_workflows)
+-- - Indexes: idx_{table}_{column}      (e.g., idx_ss_workflows_user_id)
+-- - Policies: {table}_{action}_{scope} (e.g., ss_workflows_select_own)
+-- - Functions: {verb}_{noun}           (e.g., cleanup_expired_sessions)
+--
+-- 📌 PREFIXES
+-- | Prefix   | Project          | Auth Method    |
+-- |----------|------------------|----------------|
+-- | (none)   | Shared Layer     | supabase_jwt   |
+-- | ss_      | StudySolo        | supabase_jwt   |
+-- | pt_      | Platform (Chat)  | bcrypt_session |
+-- | fm_      | Forum            | bcrypt_session |
+-- | _        | System Metadata  | service_role   |
+--
+-- 📌 RLS RULES
+-- - ALL public tables MUST have RLS enabled
+-- - Use (SELECT auth.uid()) instead of auth.uid() in policies
+-- - service_role-only tables: CREATE POLICY xxx FOR ALL USING (false)
+--
+-- 📌 FILE STRUCTURE
+-- supabase/migrations/
+-- ├── 00000000000001_baseline_extensions_and_functions.sql
+-- ├── 00000000000002_baseline_shared_tables.sql
+-- ├── 00000000000003_baseline_platform_tables.sql
+-- ├── 00000000000004_baseline_forum_and_studysolo_tables.sql
+-- ├── 00000000000005_baseline_metadata_views_cron.sql
+-- ├── README.sql                          ← You are here
+-- └── 20260325090000_create_knowledge_base_tables.sql  ← First real migration
