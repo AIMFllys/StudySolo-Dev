@@ -1,2 +1,3 @@
-﻿export * from './SettingSection';
+export * from './SettingSection';
 export * from './ToggleItem';
+export * from './FeedbackChannel';

@@ -2,6 +2,7 @@
 
 import { toast } from 'sonner';
 import { PanelLeft, PanelRight } from 'lucide-react';
+import { FeedbackChannel } from '@/features/settings/components';
 import {
   useSettingsStore,
   type AccentColor,
@@ -138,7 +139,10 @@ export default function SettingsPanel() {
           <p className="mt-1.5 text-[9px] text-muted-foreground/50">切换后立即生效，无需刷新</p>
         </Section>
 
-        <p className="mt-3 text-center text-[9px] text-muted-foreground/50">
+        <div className="mt-6">
+          <FeedbackChannel />
+        </div>
+        <p className="mt-4 text-center text-[9px] text-muted-foreground/50">
           设置自动保存至浏览器本地存储
         </p>
       </div>
