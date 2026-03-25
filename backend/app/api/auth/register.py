@@ -3,11 +3,17 @@
 import logging
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from supabase import AsyncClient
 
-from app.api.auth._helpers import FRONTEND_URL
-from app.api.auth.captcha import verify_captcha_token
+from app.api.auth._helpers import (
+    FRONTEND_URL,
+    clear_rate_limit_failures,
+    is_rate_limited,
+    record_rate_limit_failure,
+    resolve_client_ip,
+)
+from app.api.auth.captcha import consume_captcha_token
 from app.core.deps import get_anon_supabase_client, get_supabase_client
 from app.models.user import ForgotPasswordRequest, SendCodeRequest, UserRegister
 from app.services.email_service import send_verification_code_to_email, verify_code
@@ -15,6 +21,8 @@ from app.services.email_service import send_verification_code_to_email, verify_c
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+_VERIFY_RATE_LIMIT_WINDOW_SECONDS = 10 * 60
+_VERIFY_RATE_LIMIT_MAX_ATTEMPTS = 8
 
 
 @router.post("/send-code")
@@ -23,7 +31,7 @@ async def send_code(
     db: AsyncClient = Depends(get_supabase_client),
 ):
     """Send a 6-digit verification code after captcha validation."""
-    if not verify_captcha_token(body.captcha_token):
+    if not await consume_captcha_token(body.captcha_token, db):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="人机验证失败，请重新滑动滑块",
@@ -61,17 +69,38 @@ async def send_code(
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register(
     body: UserRegister,
+    request: Request,
     db: AsyncClient = Depends(get_supabase_client),
     anon_db: AsyncClient = Depends(get_anon_supabase_client),
 ):
     """Create a new user via Supabase Auth."""
     del anon_db
+    client_ip = resolve_client_ip(request)
+    email_bucket = f"register:{body.email.lower()}"
+    ip_bucket = f"register-ip:{client_ip}"
+    if await is_rate_limited(
+        db, email_bucket, "register_verify_failure", _VERIFY_RATE_LIMIT_MAX_ATTEMPTS, _VERIFY_RATE_LIMIT_WINDOW_SECONDS
+    ) or await is_rate_limited(
+        db, ip_bucket, "register_verify_failure", _VERIFY_RATE_LIMIT_MAX_ATTEMPTS, _VERIFY_RATE_LIMIT_WINDOW_SECONDS
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="验证码校验过于频繁，请稍后再试",
+        )
+
     is_valid = await verify_code(body.email, body.verification_code, "register", db)
     if not is_valid:
+        await record_rate_limit_failure(
+            db, email_bucket, "register_verify_failure", _VERIFY_RATE_LIMIT_WINDOW_SECONDS
+        )
+        await record_rate_limit_failure(
+            db, ip_bucket, "register_verify_failure", _VERIFY_RATE_LIMIT_WINDOW_SECONDS
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="验证码无效或已过期，请重新获取",
         )
+    await clear_rate_limit_failures(db, "register_verify_failure", email_bucket, ip_bucket)
 
     try:
         result = await db.auth.admin.create_user(

@@ -5,12 +5,13 @@ from fastapi import FastAPI
 from app.api.router import router as api_router
 from app.middleware.admin_auth import AdminJWTMiddleware
 from app.middleware.auth import JWTAuthMiddleware
-from app.middleware.security import add_cors_middleware
+from app.middleware.security import add_cors_middleware, add_security_headers_middleware
 
 app = FastAPI(title="StudySolo API", redirect_slashes=False)
 
 # CORS — restricted to CORS_ORIGIN env variable
 add_cors_middleware(app)
+add_security_headers_middleware(app)
 
 # JWT authentication middleware for protected /api/* routes
 app.add_middleware(JWTAuthMiddleware)

@@ -3,10 +3,17 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from supabase import AsyncClient
 
-from app.api.auth._helpers import clear_auth_cookies, set_auth_cookies
+from app.api.auth._helpers import (
+    clear_auth_cookies,
+    clear_rate_limit_failures,
+    is_rate_limited,
+    record_rate_limit_failure,
+    resolve_client_ip,
+    set_auth_cookies,
+)
 from app.core.deps import (
     get_anon_supabase_client,
     get_current_user,
@@ -25,6 +32,8 @@ from app.services.email_service import send_verification_code_to_email, verify_c
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+_RESET_CODE_RATE_LIMIT_WINDOW_SECONDS = 10 * 60
+_RESET_CODE_RATE_LIMIT_MAX_ATTEMPTS = 8
 
 
 @router.post("/login")
@@ -269,15 +278,38 @@ async def reset_password(
 @router.post("/reset-password-with-code")
 async def reset_password_with_code(
     body: ResetPasswordWithCodeRequest,
+    request: Request,
     db: AsyncClient = Depends(get_supabase_client),
 ):
     """Reset password using email + verification code."""
+    client_ip = resolve_client_ip(request)
+    email_bucket = f"reset-password:{body.email.lower()}"
+    ip_bucket = f"reset-password-ip:{client_ip}"
+    if await is_rate_limited(
+        db, email_bucket, "reset_password_verify_failure", _RESET_CODE_RATE_LIMIT_MAX_ATTEMPTS, _RESET_CODE_RATE_LIMIT_WINDOW_SECONDS
+    ) or await is_rate_limited(
+        db, ip_bucket, "reset_password_verify_failure", _RESET_CODE_RATE_LIMIT_MAX_ATTEMPTS, _RESET_CODE_RATE_LIMIT_WINDOW_SECONDS
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="验证码校验过于频繁，请稍后再试",
+        )
+
     is_valid = await verify_code(body.email, body.code, "reset_password", db)
     if not is_valid:
+        await record_rate_limit_failure(
+            db, email_bucket, "reset_password_verify_failure", _RESET_CODE_RATE_LIMIT_WINDOW_SECONDS
+        )
+        await record_rate_limit_failure(
+            db, ip_bucket, "reset_password_verify_failure", _RESET_CODE_RATE_LIMIT_WINDOW_SECONDS
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="验证码无效或已过期，请重新获取",
         )
+    await clear_rate_limit_failures(
+        db, "reset_password_verify_failure", email_bucket, ip_bucket
+    )
 
     try:
         result = await db.from_("user_profiles").select("id").eq("email", body.email).limit(1).execute()

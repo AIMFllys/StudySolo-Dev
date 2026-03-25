@@ -5,7 +5,6 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
-import rehypeRaw from 'rehype-raw';
 import { Streamdown } from 'streamdown';
 import 'katex/dist/katex.min.css';
 import ShikiCodeBlock from './ShikiCodeBlock';
@@ -59,7 +58,7 @@ export default function NodeMarkdownOutput({ content, streaming = false }: Props
     <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[rehypeKatex, rehypeRaw]}
+        rehypePlugins={[rehypeKatex]}
         components={{
           code({ className, children, ...props }) {
             const match = className?.match(/language-(\w+)/);

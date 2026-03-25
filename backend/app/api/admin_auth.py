@@ -1,7 +1,7 @@
 """Admin Authentication API.
 
 Endpoints:
-  POST /admin/login           — bcrypt verify, sign JWT (4h), set HttpOnly Cookie
+  POST /admin/login           — bcrypt verify, sign JWT (2h), set HttpOnly Cookie
   POST /admin/logout          — clear Cookie, record audit log
   POST /admin/change-password — password complexity validation, bcrypt update
 """
@@ -30,14 +30,14 @@ router = APIRouter(tags=["admin-auth"])
 
 # Cookie configuration
 COOKIE_NAME = "admin_token"
-COOKIE_MAX_AGE = 4 * 3600  # 4 hours in seconds
-JWT_EXPIRY_HOURS = 4
+COOKIE_MAX_AGE = 2 * 3600  # 2 hours in seconds
+JWT_EXPIRY_HOURS = 2
 LOCK_DURATION_MINUTES = 30
 MAX_FAILED_ATTEMPTS = 5
 
 
 def _sign_jwt(admin_id: str, username: str) -> str:
-    """Sign an admin JWT token with 4-hour expiry."""
+    """Sign an admin JWT token with a short-lived expiry."""
     settings = get_settings()
     now = datetime.now(timezone.utc)
     payload = {
@@ -54,19 +54,23 @@ def _set_admin_cookie(response: Response, token: str) -> None:
     """Set the admin_token HttpOnly cookie on the response."""
     settings = get_settings()
     is_production = settings.environment == "production"
+    # Clear any legacy root-path cookie before issuing the scoped admin cookie.
+    response.delete_cookie(key=COOKIE_NAME, path="/")
     response.set_cookie(
         key=COOKIE_NAME,
         value=token,
         httponly=True,
         secure=is_production,
-        samesite="lax",
+        samesite="strict",
         max_age=COOKIE_MAX_AGE,
+        path="/api/admin",
     )
 
 
 def _clear_admin_cookie(response: Response) -> None:
     """Clear the admin_token cookie."""
-    response.delete_cookie(key=COOKIE_NAME, httponly=True, samesite="lax")
+    response.delete_cookie(key=COOKIE_NAME, httponly=True, samesite="strict", path="/")
+    response.delete_cookie(key=COOKIE_NAME, httponly=True, samesite="strict", path="/api/admin")
 
 
 @router.post("/login", response_model=AdminLoginResponse)

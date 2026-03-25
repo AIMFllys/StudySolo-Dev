@@ -4,19 +4,22 @@ import hashlib
 import hmac
 import os
 import time
+import uuid
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from supabase import AsyncClient
 
+from app.core.deps import get_supabase_client
 from app.models.user import CaptchaVerifyRequest
 
 router = APIRouter()
 
-CAPTCHA_SECRET = os.getenv("CAPTCHA_SECRET", "studysolo-captcha-2026")
 _PIECE_L = 42
 _PIECE_R = 9
 _L = _PIECE_L + _PIECE_R * 2 + 3
 _CANVAS_W = 320
 _CAPTCHA_TOLERANCE = 6
+_CAPTCHA_TTL_SECONDS = 300
 
 
 def _s32(x: int) -> int:
@@ -54,46 +57,130 @@ def _compute_target_x(seed: int) -> int:
     return int(min_val + rng() * (max_val - min_val))
 
 
-def verify_captcha_token(token: str) -> bool:
-    """Verify slider captcha token issued by this backend."""
+def _get_captcha_secret() -> str:
+    secret = os.getenv("CAPTCHA_SECRET")
+    if not secret:
+        raise RuntimeError("CAPTCHA_SECRET 未配置")
+    return secret
+
+
+def _sign(payload: str) -> str:
+    return hmac.new(_get_captcha_secret().encode(), payload.encode(), hashlib.sha256).hexdigest()
+
+
+def _parse_signed_token(token: str) -> tuple[str, str, str] | None:
     try:
-        parts = token.split(":", 1)
-        if len(parts) != 2:
-            return False
-        ts_str, provided_hmac = parts
-        ts = int(ts_str)
-        if abs(time.time() - ts) > 300:
-            return False
-        expected = hmac.new(
-            CAPTCHA_SECRET.encode(),
-            ts_str.encode(),
-            hashlib.sha256,
-        ).hexdigest()
-        return hmac.compare_digest(expected, provided_hmac)
+        parts = token.split(":")
+        if len(parts) != 3:
+            return None
+        challenge_id, ts_str, provided_hmac = parts
+        int(ts_str)
+        return challenge_id, ts_str, provided_hmac
     except Exception:
+        return None
+
+
+async def verify_captcha_token(token: str, db: AsyncClient) -> bool:
+    """Verify slider captcha token issued by this backend without consuming it."""
+    parts = _parse_signed_token(token)
+    if not parts:
         return False
+
+    challenge_id, ts_str, provided_hmac = parts
+    payload = f"{challenge_id}:{ts_str}"
+    if not hmac.compare_digest(_sign(payload), provided_hmac):
+        return False
+
+    now = datetime_now_iso()
+    result = (
+        await db.from_("captcha_challenges")
+        .select("id, verified, consumed")
+        .eq("id", challenge_id)
+        .gte("expires_at", now)
+        .maybe_single()
+        .execute()
+    )
+    challenge_entry = result.data if result else None
+    if not challenge_entry:
+        return False
+    return bool(challenge_entry.get("verified")) and not bool(challenge_entry.get("consumed"))
+
+
+async def consume_captcha_token(token: str, db: AsyncClient) -> bool:
+    """Consume a verified captcha token so it cannot be replayed."""
+    parts = _parse_signed_token(token)
+    if not parts:
+        return False
+
+    challenge_id, ts_str, provided_hmac = parts
+    payload = f"{challenge_id}:{ts_str}"
+    if not hmac.compare_digest(_sign(payload), provided_hmac):
+        return False
+
+    now = datetime_now_iso()
+    result = (
+        await db.from_("captcha_challenges")
+        .select("id, verified, consumed")
+        .eq("id", challenge_id)
+        .gte("expires_at", now)
+        .maybe_single()
+        .execute()
+    )
+    challenge_entry = result.data if result else None
+    if not challenge_entry:
+        return False
+    if not challenge_entry.get("verified") or challenge_entry.get("consumed"):
+        return False
+
+    await db.from_("captcha_challenges").update({"consumed": True}).eq("id", challenge_id).execute()
+    return True
+
+
+def datetime_now_iso() -> str:
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
 @router.post("/captcha-challenge")
-async def generate_captcha_challenge():
+async def generate_captcha_challenge(
+    db: AsyncClient = Depends(get_supabase_client),
+):
     """Generate a puzzle challenge for the frontend slider captcha."""
     seed = int.from_bytes(os.urandom(4), "big") % 100000
     target_x = _compute_target_x(seed)
     ts = str(int(time.time()))
-    payload = f"{seed}:{target_x}:{ts}"
-    sig = hmac.new(CAPTCHA_SECRET.encode(), payload.encode(), hashlib.sha256).hexdigest()
-    challenge = f"{seed}:{ts}:{sig}"
+    challenge_id = uuid.uuid4().hex
+    payload = f"{challenge_id}:{seed}:{ts}:{target_x}"
+    sig = _sign(payload)
+    challenge = f"{challenge_id}:{seed}:{ts}:{sig}"
+    expires_at = time.strftime(
+        "%Y-%m-%dT%H:%M:%SZ",
+        time.gmtime(time.time() + _CAPTCHA_TTL_SECONDS),
+    )
+    await db.from_("captcha_challenges").insert(
+        {
+            "id": challenge_id,
+            "seed": seed,
+            "target_x": target_x,
+            "verified": False,
+            "consumed": False,
+            "expires_at": expires_at,
+        }
+    ).execute()
+
     return {"seed": seed, "challenge": challenge}
 
 
 @router.post("/captcha-token")
-async def verify_captcha_and_issue_token(body: CaptchaVerifyRequest):
+async def verify_captcha_and_issue_token(
+    body: CaptchaVerifyRequest,
+    db: AsyncClient = Depends(get_supabase_client),
+):
     """Verify the user puzzle answer and return a signed verification token."""
     parts = body.challenge.split(":")
-    if len(parts) != 3:
+    if len(parts) != 4:
         raise HTTPException(status_code=400, detail="无效的验证挑战")
 
-    seed_str, ts_str, provided_sig = parts
+    challenge_id, seed_str, ts_str, provided_sig = parts
     try:
         seed = int(seed_str)
         ts = int(ts_str)
@@ -104,18 +191,33 @@ async def verify_captcha_and_issue_token(body: CaptchaVerifyRequest):
         raise HTTPException(status_code=400, detail="验证已过期，请刷新重试")
 
     target_x = _compute_target_x(seed)
-    payload = f"{seed}:{target_x}:{ts_str}"
-    expected_sig = hmac.new(CAPTCHA_SECRET.encode(), payload.encode(), hashlib.sha256).hexdigest()
+    payload = f"{challenge_id}:{seed}:{ts_str}:{target_x}"
+    expected_sig = _sign(payload)
     if not hmac.compare_digest(expected_sig, provided_sig):
         raise HTTPException(status_code=400, detail="无效的验证挑战")
+
+    result = (
+        await db.from_("captcha_challenges")
+        .select("id, seed, target_x, verified, consumed")
+        .eq("id", challenge_id)
+        .gte("expires_at", datetime_now_iso())
+        .maybe_single()
+        .execute()
+    )
+    challenge_entry = result.data if result else None
+    if not challenge_entry:
+        raise HTTPException(status_code=400, detail="验证已过期，请刷新重试")
+    if challenge_entry.get("seed") != seed or int(challenge_entry.get("target_x", -1)) != target_x:
+        raise HTTPException(status_code=400, detail="无效的验证挑战")
+    if challenge_entry.get("verified") or challenge_entry.get("consumed"):
+        raise HTTPException(status_code=400, detail="验证挑战已使用，请刷新重试")
 
     if abs(body.x - target_x) > _CAPTCHA_TOLERANCE:
         raise HTTPException(status_code=400, detail="拼合不准确，请重试")
 
     token_ts = str(int(time.time()))
-    token_hmac = hmac.new(
-        CAPTCHA_SECRET.encode(),
-        token_ts.encode(),
-        hashlib.sha256,
-    ).hexdigest()
-    return {"token": f"{token_ts}:{token_hmac}"}
+    token_payload = f"{challenge_id}:{token_ts}"
+    token_hmac = _sign(token_payload)
+    await db.from_("captcha_challenges").update({"verified": True}).eq("id", challenge_id).execute()
+
+    return {"token": f"{challenge_id}:{token_ts}:{token_hmac}"}

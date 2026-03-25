@@ -127,6 +127,12 @@ class AdminJWTMiddleware:
             logger.warning(
                 "AdminJWTMiddleware: DB check failed for admin_id=%s: %s", admin_id, e
             )
+            response = JSONResponse(
+                status_code=503,
+                content={"detail": "管理员鉴权服务暂不可用，请稍后重试"},
+            )
+            await response(scope, receive, send)
+            return
 
         # Attach admin_id to request state for downstream handlers
         request.state.admin_id = admin_id

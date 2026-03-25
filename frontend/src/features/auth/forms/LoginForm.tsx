@@ -35,7 +35,6 @@ export function LoginForm() {
     }
 
     setEmail(savedCredentials.email);
-    setPassword(savedCredentials.password);
     setRemember(savedCredentials.remember);
   }, []);
 
@@ -59,7 +58,7 @@ export function LoginForm() {
       });
 
       if (remember) {
-        saveRememberedCredentials(email, password);
+        saveRememberedCredentials(email);
       } else {
         clearRememberedCredentials();
       }

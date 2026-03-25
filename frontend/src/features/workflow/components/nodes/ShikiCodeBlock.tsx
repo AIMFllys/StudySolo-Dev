@@ -45,6 +45,7 @@ export default function ShikiCodeBlock({ code, lang }: ShikiCodeBlockProps) {
   return (
     <div
       className="overflow-x-auto rounded-md text-xs [&_pre]:p-3"
+      // Safe here because html comes only from shiki's codeToHtml output for plain code text.
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

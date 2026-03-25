@@ -15,6 +15,7 @@ from email.mime.text import MIMEText
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
+_MAX_VERIFICATION_ATTEMPTS = 5
 
 
 def _generate_code(length: int = 6) -> str:
@@ -153,6 +154,7 @@ async def send_verification_code_to_email(
         "code": code,
         "type": code_type,
         "is_used": False,
+        "attempt_count": 0,
         "expires_at": expires_at,
     }).execute()
 
@@ -176,17 +178,42 @@ async def verify_code(
     """
     now = datetime.now(timezone.utc).isoformat()
 
-    result = await db_client.from_("verification_codes_v2").select("id").eq(
-        "email", email
-    ).eq("code", code).eq("type", code_type).eq("is_used", False).gte(
-        "expires_at", now
-    ).limit(1).execute()
+    result = (
+        await db_client.from_("verification_codes_v2")
+        .select("id, code, attempt_count")
+        .eq("email", email)
+        .eq("type", code_type)
+        .eq("is_used", False)
+        .gte("expires_at", now)
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
 
     if not result.data:
         return False
 
-    # Mark as used
-    code_id = result.data[0]["id"]
+    record = result.data[0]
+    code_id = record["id"]
+    attempt_count = int(record.get("attempt_count") or 0)
+
+    if attempt_count >= _MAX_VERIFICATION_ATTEMPTS:
+        await db_client.from_("verification_codes_v2").update(
+            {"is_used": True}
+        ).eq("id", code_id).execute()
+        return False
+
+    if record.get("code") != code:
+        new_attempt_count = attempt_count + 1
+        update_payload = {"attempt_count": new_attempt_count}
+        if new_attempt_count >= _MAX_VERIFICATION_ATTEMPTS:
+            update_payload["is_used"] = True
+        await db_client.from_("verification_codes_v2").update(update_payload).eq(
+            "id", code_id
+        ).execute()
+        return False
+
+    # Mark as used immediately after a successful verification.
     await db_client.from_("verification_codes_v2").update(
         {"is_used": True}
     ).eq("id", code_id).execute()

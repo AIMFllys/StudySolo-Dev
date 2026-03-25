@@ -2,7 +2,6 @@ const STORAGE_KEY = 'studysolo:remembered-credentials';
 
 type SavedCredentials = {
   email: string;
-  password: string;
   remember: boolean;
   updatedAt: number;
 };
@@ -23,29 +22,34 @@ export function loadRememberedCredentials(): SavedCredentials | null {
     }
 
     const parsed = JSON.parse(raw) as Partial<SavedCredentials>;
-    if (!parsed.remember || !parsed.email || !parsed.password) {
+    if ('password' in parsed) {
+      window.localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+
+    if (!parsed.remember || !parsed.email) {
+      window.localStorage.removeItem(STORAGE_KEY);
       return null;
     }
 
     return {
       email: parsed.email,
-      password: parsed.password,
       remember: true,
       updatedAt: typeof parsed.updatedAt === 'number' ? parsed.updatedAt : Date.now(),
     };
   } catch {
+    window.localStorage.removeItem(STORAGE_KEY);
     return null;
   }
 }
 
-export function saveRememberedCredentials(email: string, password: string) {
+export function saveRememberedCredentials(email: string) {
   if (!isBrowser()) {
     return;
   }
 
   const payload: SavedCredentials = {
     email,
-    password,
     remember: true,
     updatedAt: Date.now(),
   };
