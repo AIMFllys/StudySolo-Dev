@@ -128,17 +128,29 @@ async def list_catalog_items(
     include_non_selectable: bool = False,
     tier: TierType | None = None,
 ) -> list[CatalogSku]:
+    """Return the visible, selectable AI model catalog.
+
+    IMPORTANT — Tier filtering has been intentionally removed from this layer.
+
+    All visible+selectable SKUs are returned regardless of `tier`. Tier-based
+    access control is now handled at two layers:
+      1. UI layer: NodeModelSelector greys out and shows PRO badge for premium
+         models the user cannot access yet (Upsell surface).
+      2. Execution layer: workflow_execute.py validates the selected model's
+         required_tier against the user's actual tier before invoking the LLM,
+         returning HTTP 403 if the user attempts to use an inaccessible model.
+
+    The `tier` parameter is kept in the signature for backwards compatibility
+    but is no longer used for filtering.
+    """
     rows = await _load_catalog_rows()
     visible_rows: list[CatalogSku] = []
-    user_rank = _tier_rank(tier)
     for item in rows:
         if not include_disabled and not item.is_enabled:
             continue
         if not include_hidden and not item.is_visible:
             continue
         if not include_non_selectable and not item.is_user_selectable:
-            continue
-        if user_rank < _tier_rank(item.required_tier):
             continue
         visible_rows.append(item)
     return visible_rows

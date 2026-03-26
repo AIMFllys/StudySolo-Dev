@@ -12,6 +12,7 @@ from supabase import AsyncClient
 from app.core.database import get_db
 from app.core.deps import get_current_user, get_supabase_client
 from app.engine.executor import execute_workflow
+from app.services.ai_catalog_service import get_sku_by_id, is_tier_allowed
 from app.services.usage_ledger import bind_usage_request, create_usage_request, finalize_usage_request
 
 logger = logging.getLogger(__name__)
@@ -46,6 +47,30 @@ async def execute_workflow_sse(
     nodes = workflow.get("nodes_json") or []
     edges = workflow.get("edges_json") or []
     user_id = current_user["id"]
+    user_tier = current_user.get("tier", "free")
+
+    # Tier enforcement: validate all AI node model selections before execution.
+    # Prevents bypassing the frontend greyed-out PRO badge to run premium models.
+    for _node in nodes:
+        _nd = _node.get("data", {})
+        _mr = _nd.get("model_route") or (_nd.get("config") or {}).get("model_route")
+        if not _mr:
+            continue
+        _sku = await get_sku_by_id(_mr)
+        if _sku and not is_tier_allowed(user_tier, _sku.required_tier):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "code": "MODEL_TIER_FORBIDDEN",
+                    "message": (
+                        f"节点使用了当前会员等级（{user_tier}）无权访问的模型："
+                        f"{_sku.display_name}，请升级会员后再执行"
+                    ),
+                    "model": _sku.model_id,
+                    "required_tier": _sku.required_tier,
+                    "current_tier": user_tier,
+                },
+            )
 
     # INSERT a workflow run record with status='running'
     run_id = str(uuid.uuid4())
