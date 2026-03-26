@@ -12,15 +12,17 @@ export function AdminAuditPageView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [actionFilter, setActionFilter] = useState('');
+  const [draftActionFilter, setDraftActionFilter] = useState('');
+  const [appliedActionFilter, setAppliedActionFilter] = useState('');
+  const [queryVersion, setQueryVersion] = useState(0);
 
   const params = useMemo(() => {
     const searchParams = new URLSearchParams();
     searchParams.set('page', String(page));
     searchParams.set('page_size', '20');
-    if (actionFilter.trim()) searchParams.set('action', actionFilter.trim());
+    if (appliedActionFilter) searchParams.set('action', appliedActionFilter);
     return searchParams;
-  }, [actionFilter, page]);
+  }, [appliedActionFilter, page]);
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -38,7 +40,13 @@ export function AdminAuditPageView() {
 
   useEffect(() => {
     void fetchLogs();
-  }, [fetchLogs]);
+  }, [fetchLogs, queryVersion]);
+
+  const submitQuery = useCallback(() => {
+    setPage(1);
+    setAppliedActionFilter(draftActionFilter.trim());
+    setQueryVersion((current) => current + 1);
+  }, [draftActionFilter]);
 
   return (
     <div className="mx-auto min-h-full max-w-[1600px] space-y-6 bg-[#f4f4f0] px-8 py-8">
@@ -48,23 +56,26 @@ export function AdminAuditPageView() {
       />
 
       <section className="rounded-none border border-[#c4c6cf] bg-[#f4f4f0] p-5 shadow-sm">
-        <div className="flex flex-col gap-4 md:flex-row">
+        <form
+          className="flex flex-col gap-4 md:flex-row"
+          onSubmit={(event) => {
+            event.preventDefault();
+            submitQuery();
+          }}
+        >
           <input
-            value={actionFilter}
-            onChange={(event) => setActionFilter(event.target.value)}
+            value={draftActionFilter}
+            onChange={(event) => setDraftActionFilter(event.target.value)}
             placeholder="按操作类型筛选，例如 config_update"
             className="flex-1 rounded-none border border-[#c4c6cf] bg-[#f4f4f0] px-3 py-2 text-sm text-[#002045] shadow-sm focus:border-[#002045] focus:outline-none"
           />
           <button
-            onClick={() => {
-              setPage(1);
-              void fetchLogs();
-            }}
+            type="submit"
             className="rounded-none border border-[#002045] bg-[#002045] px-4 py-2 text-sm font-medium text-white shadow-sm hover:opacity-90"
           >
             查询
           </button>
-        </div>
+        </form>
       </section>
 
       {error ? (
