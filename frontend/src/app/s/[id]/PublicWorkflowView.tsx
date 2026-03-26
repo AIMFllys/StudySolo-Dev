@@ -94,6 +94,12 @@ export default function PublicWorkflowView({ workflow }: Props) {
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showShare, setShowShare] = useState(true);
 
+  const [shareUrl, setShareUrl] = useState('');
+
+  useEffect(() => {
+    setShareUrl(window.location.href);
+  }, []);
+
   const promptLogin = useCallback(() => {
     toast.error('请先登录后再操作');
     setShowLoginPrompt(true);
@@ -151,7 +157,7 @@ export default function PublicWorkflowView({ workflow }: Props) {
       <div className="absolute inset-x-0 top-16 z-10 px-6 pt-4 pointer-events-none flex justify-between items-start">
         
         {/* Left Workflow Info Panel */}
-        <div className="pointer-events-auto max-w-sm bg-background/95 backdrop-blur-md border border-border/60 shadow-[4px_4px_0_0_rgba(0,0,0,0.1)] p-4 rounded-none">
+        <div className="pointer-events-auto max-w-sm bg-background/95 backdrop-blur-md border border-border shadow-md p-5 rounded-2xl">
           <h1 className="text-xl font-serif font-bold text-foreground truncate">
             {workflow.name}
           </h1>
@@ -160,7 +166,7 @@ export default function PublicWorkflowView({ workflow }: Props) {
               {workflow.description}
             </p>
           )}
-          <div className="mt-4 flex items-center justify-between border-t border-dashed border-border/50 pt-3 text-[10px] text-muted-foreground font-serif">
+          <div className="mt-4 flex items-center justify-between border-t border-dashed border-border pt-3 text-[10px] text-muted-foreground font-serif">
             <span>By {workflow.owner_name || 'Anonymous'}</span>
             <div className="flex gap-1.5">
               <span>Nodes: {workflow.nodes_json.length}</span>
@@ -170,11 +176,11 @@ export default function PublicWorkflowView({ workflow }: Props) {
         </div>
 
         {/* Right Action Buttons */}
-        <div className="pointer-events-auto flex flex-col gap-2">
+        <div className="pointer-events-auto flex flex-col gap-2.5">
           {workflow.is_owner && (
             <button
               onClick={() => router.push(`/c/${workflow.id}`)}
-              className="flex items-center gap-2 bg-background border border-border px-3 py-2 text-xs font-serif font-bold hover:bg-muted transition-colors shadow-[2px_2px_0_0_rgba(0,0,0,0.15)]"
+              className="flex items-center gap-2 bg-background border border-border px-3.5 py-2 text-xs font-serif font-medium rounded-lg hover:bg-muted transition-colors shadow-sm"
             >
               <Pencil className="h-3.5 w-3.5" />
               进入编辑
@@ -183,17 +189,17 @@ export default function PublicWorkflowView({ workflow }: Props) {
 
           <button
             onClick={() => setShowShare(true)}
-            className="flex items-center gap-2 bg-background border border-border px-3 py-2 text-xs font-serif font-bold hover:bg-muted transition-colors shadow-[2px_2px_0_0_rgba(0,0,0,0.15)]"
+            className="flex items-center gap-2 bg-background border border-border px-3.5 py-2 text-xs font-serif font-medium rounded-lg hover:bg-muted transition-colors shadow-sm"
           >
             <Share className="h-3.5 w-3.5" />
             分享
           </button>
 
-          <div className="flex bg-background border border-border shadow-[2px_2px_0_0_rgba(0,0,0,0.15)] mt-2">
+          <div className="flex bg-background border border-border rounded-lg overflow-hidden shadow-sm mt-1">
              <button
                 onClick={handleLike}
                 className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-[10px] uppercase tracking-wider font-bold transition-colors ${
-                  liked ? 'text-red-600 bg-red-50/50' : 'text-muted-foreground hover:bg-muted'
+                  liked ? 'text-red-600 bg-red-50/50 hover:bg-red-50' : 'text-muted-foreground hover:bg-muted'
                 }`}
               >
                 <Heart className={`h-3 w-3 ${liked ? 'fill-current' : ''}`} />
@@ -203,7 +209,7 @@ export default function PublicWorkflowView({ workflow }: Props) {
               <button
                 onClick={handleFavorite}
                 className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-[10px] uppercase tracking-wider font-bold transition-colors ${
-                  faved ? 'text-amber-600 bg-amber-50/50' : 'text-muted-foreground hover:bg-muted'
+                  faved ? 'text-amber-600 bg-amber-50/50 hover:bg-amber-50' : 'text-muted-foreground hover:bg-muted'
                 }`}
               >
                 <Star className={`h-3 w-3 ${faved ? 'fill-current' : ''}`} />
@@ -214,7 +220,7 @@ export default function PublicWorkflowView({ workflow }: Props) {
           <button
             onClick={handleFork}
             disabled={forking}
-            className="mt-2 flex items-center justify-center gap-2 bg-foreground text-background border border-foreground px-3 py-2.5 text-xs font-serif font-bold hover:opacity-90 transition-opacity disabled:opacity-50 shadow-[2px_2px_0_0_rgba(0,0,0,0.2)]"
+            className="mt-1 flex items-center justify-center gap-2 bg-foreground text-background border border-foreground/90 px-3 py-2.5 text-xs font-serif font-medium rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 shadow-md"
           >
             <GitFork className="h-3.5 w-3.5" />
             {forking ? 'Forking...' : '复制到我的空间'}
@@ -224,9 +230,9 @@ export default function PublicWorkflowView({ workflow }: Props) {
 
       {/* Share Modal Dialog */}
       {showShare && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-auto">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-auto">
           <div className="absolute inset-0 bg-background/60 backdrop-blur-sm" onClick={() => setShowShare(false)} />
-          <div className="relative bg-[#FDFBF7] border-2 border-black w-full max-w-md p-6 shadow-[8px_8px_0_0_rgba(0,0,0,1)] animate-in zoom-in-95 duration-200">
+          <div className="relative bg-[#FDFBF7] border border-black/80 w-full max-w-md p-6 rounded-xl shadow-xl animate-in zoom-in-95 duration-200">
             <button
               onClick={() => setShowShare(false)}
               className="absolute top-4 right-4 text-black/50 hover:text-black transition-colors"
@@ -241,16 +247,16 @@ export default function PublicWorkflowView({ workflow }: Props) {
               任何人都可以通过此链接访问只读版本的画布。将其发送给协作者或发布在社区中。
             </p>
             <div className="mt-5 flex items-center gap-2">
-              <div className="flex-1 bg-white border border-black/20 px-3 py-2 text-xs font-mono text-black truncate select-all">
-                {typeof window !== 'undefined' ? window.location.href : `/s/${workflow.id}`}
+              <div className="flex-1 bg-white border border-black/20 px-3 py-2 rounded text-xs font-mono text-black truncate select-all">
+                {shareUrl || `/s/${workflow.id}`}
               </div>
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(window.location.href);
+                  navigator.clipboard.writeText(shareUrl || `${window.location.origin}/s/${workflow.id}`);
                   toast.success('链接已复制到剪贴板');
                   setShowShare(false);
                 }}
-                className="bg-black text-white px-4 py-2 text-xs font-bold font-serif hover:bg-black/80 transition-colors shrink-0"
+                className="bg-black text-white px-4 py-2 rounded text-xs font-bold font-serif hover:bg-black/80 transition-colors shrink-0 shadow-sm"
               >
                 复制链接
               </button>
