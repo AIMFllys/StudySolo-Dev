@@ -1,191 +1,164 @@
-# StudySolo AI 配置中心
-# 所有 $ENV_VAR 引用在运行时由 config_loader.py 替换为环境变量值
+# StudySolo AI 运行时配置中心
+# 说明：
+# 1. YAML 只负责运行时路由策略，不再承担模型目录与价格中心职责。
+# 2. 模型目录、价格、可见性、tier gating 统一由 Supabase ai_model_families / ai_model_skus 维护。
+# 3. $ENV_A|ENV_B 表示兼容旧环境变量别名，config_loader.py 会按顺序解析。
 
-platforms:
+providers:
   dashscope:
-    name: "阿里云百炼"
+    display_name: "阿里云百炼"
+    role: "native"
     base_url: "$DASHSCOPE_BASE_URL"
     api_key: "$DASHSCOPE_API_KEY"
-    models:
-      - name: "qwen-turbo"
-        max_tokens: 4096
-        temperature: 0.7
-      - name: "qwen-plus"
-        max_tokens: 8192
-        temperature: 0.7
 
   deepseek:
-    name: "DeepSeek"
+    display_name: "DeepSeek 官方"
+    role: "native"
     base_url: "$DEEPSEEK_BASE_URL"
     api_key: "$DEEPSEEK_API_KEY"
-    models:
-      - name: "deepseek-reasoner"
-        max_tokens: 8192
-        temperature: 0.7
-      - name: "deepseek-chat"
-        max_tokens: 8192
-        temperature: 0.7
 
   moonshot:
-    name: "月之暗面"
+    display_name: "月之暗面"
+    role: "native"
     base_url: "$MOONSHOT_BASE_URL"
     api_key: "$MOONSHOT_API_KEY"
-    models:
-      - name: "moonshot-v1-8k"
-        max_tokens: 8192
-        temperature: 0.7
 
   volcengine:
-    name: "火山引擎"
+    display_name: "火山引擎"
+    role: "native"
     base_url: "$VOLCENGINE_BASE_URL"
     api_key: "$VOLCENGINE_API_KEY"
-    models:
-      - name: "doubao-pro-32k"
-        max_tokens: 32768
-        temperature: 0.7
 
   zhipu:
-    name: "智谱AI"
+    display_name: "智谱 AI"
+    role: "native"
     base_url: "$ZHIPU_BASE_URL"
     api_key: "$ZHIPU_API_KEY"
-    models:
-      - name: "glm-4"
-        max_tokens: 8192
-        temperature: 0.7
 
   qiniu:
-    name: "七牛云"
+    display_name: "七牛云"
+    role: "proxy"
     base_url: "$QINIU_BASE_URL"
-    api_key: "$QINIU_API_KEY"
-    models:
-      - name: "qiniu-llm"
-        max_tokens: 4096
-        temperature: 0.7
+    api_key: "$QINIU_AI_API_KEY|QINIU_API_KEY"
 
   siliconflow:
-    name: "硅基流动"
+    display_name: "硅基流动"
+    role: "proxy"
     base_url: "$SILICONFLOW_BASE_URL"
     api_key: "$SILICONFLOW_API_KEY"
-    models:
-      - name: "Qwen/Qwen2.5-72B-Instruct"
-        max_tokens: 8192
-        temperature: 0.7
 
-  youyun:
-    name: "优云智算"
-    base_url: "$YOUYUN_BASE_URL"
-    api_key: "$YOUYUN_API_KEY"
-    models:
-      - name: "youyun-llm"
-        max_tokens: 4096
-        temperature: 0.7
+  compshare:
+    display_name: "优云智算"
+    role: "proxy"
+    base_url: "$COMPSHARE_BASE_URL|YOUYUN_BASE_URL"
+    api_key: "$COMPSHARE_API_KEY|YOUYUN_API_KEY"
 
-# 节点类型到模型路由映射
-# route_chain A = 格式严格链（禁止代理聚合平台）
-# route_chain B = 深度推理链
-node_routes:
+task_routes:
   trigger_input:
-    route_chain: "A"
-    default_model: "qwen-turbo"
-    platform: "dashscope"
-  ai_analyzer:
-    route_chain: "A"
-    default_model: "qwen-turbo"
-    platform: "dashscope"
-  ai_planner:
-    route_chain: "A"
-    default_model: "qwen-turbo"
-    platform: "dashscope"
-  outline_gen:
-    route_chain: "B"
-    default_model: "deepseek-reasoner"
-    platform: "deepseek"
-  content_extract:
-    route_chain: "B"
-    default_model: "deepseek-reasoner"
-    platform: "deepseek"
-  summary:
-    route_chain: "B"
-    default_model: "deepseek-reasoner"
-    platform: "deepseek"
-  flashcard:
-    route_chain: "A"
-    default_model: "qwen-turbo"
-    platform: "dashscope"
-  chat_response:
-    route_chain: "B"
-    default_model: "deepseek-reasoner"
-    platform: "deepseek"
-  write_db:
-    route_chain: "A"
-    default_model: "qwen-turbo"
-    platform: "dashscope"
-  # ── P1 新增节点 ──
-  merge_polish:
-    route_chain: "B"
-    default_model: "deepseek-reasoner"
-    platform: "deepseek"
-  compare:
-    route_chain: "B"
-    default_model: "deepseek-reasoner"
-    platform: "deepseek"
-  quiz_gen:
-    route_chain: "A"
-    default_model: "qwen-turbo"
-    platform: "dashscope"
-  mind_map:
-    route_chain: "A"
-    default_model: "qwen-turbo"
-    platform: "dashscope"
-  knowledge_base:
-    route_chain: "A"
-    default_model: "qwen-turbo"
-    platform: "dashscope"
-  web_search:
-    route_chain: "A"
-    default_model: "qwen-turbo"
-    platform: "dashscope"
-  export_file:
-    route_chain: "A"
-    default_model: "qwen-turbo"
-    platform: "dashscope"
-  logic_switch:
-    route_chain: "A"
-    default_model: "qwen-turbo"
-    platform: "dashscope"
-  loop_map:
-    route_chain: "A"
-    default_model: "qwen-turbo"
-    platform: "dashscope"
+    routing_policy: "native_first"
+    sku_ids:
+      - "sku_dashscope_qwen_turbo_native"
+      - "sku_deepseek_chat_native"
+      - "sku_volcengine_doubao_pro_32k_native"
 
-# 容灾降级配置
-fallback:
+  ai_analyzer:
+    routing_policy: "native_first"
+    sku_ids:
+      - "sku_dashscope_qwen_turbo_native"
+      - "sku_deepseek_chat_native"
+      - "sku_volcengine_doubao_pro_32k_native"
+
+  ai_planner:
+    routing_policy: "native_first"
+    sku_ids:
+      - "sku_dashscope_qwen_turbo_native"
+      - "sku_deepseek_chat_native"
+      - "sku_volcengine_doubao_pro_32k_native"
+
+  flashcard:
+    routing_policy: "native_first"
+    sku_ids:
+      - "sku_dashscope_qwen_turbo_native"
+      - "sku_deepseek_chat_native"
+      - "sku_volcengine_doubao_pro_32k_native"
+
+  quiz_gen:
+    routing_policy: "native_first"
+    sku_ids:
+      - "sku_dashscope_qwen_turbo_native"
+      - "sku_deepseek_chat_native"
+      - "sku_volcengine_doubao_pro_32k_native"
+
+  logic_switch:
+    routing_policy: "native_first"
+    sku_ids:
+      - "sku_dashscope_qwen_turbo_native"
+      - "sku_deepseek_chat_native"
+
+  outline_gen:
+    routing_policy: "native_first"
+    sku_ids:
+      - "sku_deepseek_reasoner_native"
+      - "sku_dashscope_qwen_plus_native"
+      - "sku_volcengine_doubao_pro_256k_native"
+
+  content_extract:
+    routing_policy: "native_first"
+    sku_ids:
+      - "sku_deepseek_reasoner_native"
+      - "sku_dashscope_qwen_plus_native"
+      - "sku_volcengine_doubao_pro_256k_native"
+
+  summary:
+    routing_policy: "native_first"
+    sku_ids:
+      - "sku_deepseek_reasoner_native"
+      - "sku_dashscope_qwen_plus_native"
+      - "sku_volcengine_doubao_pro_256k_native"
+
+  merge_polish:
+    routing_policy: "proxy_first"
+    sku_ids:
+      - "sku_qiniu_kimi_k2_5_proxy"
+      - "sku_moonshot_v1_128k_native"
+
+  compare:
+    routing_policy: "native_first"
+    sku_ids:
+      - "sku_deepseek_reasoner_native"
+      - "sku_dashscope_qwen_plus_native"
+
+  chat_response:
+    routing_policy: "native_first"
+    sku_ids:
+      - "sku_deepseek_reasoner_native"
+      - "sku_dashscope_qwen_plus_native"
+      - "sku_volcengine_doubao_pro_256k_native"
+
+  premium_chat:
+    routing_policy: "proxy_first"
+    sku_ids:
+      - "sku_qiniu_qwen3_max_proxy"
+      - "sku_siliconflow_qwen_72b_proxy"
+      - "sku_dashscope_qwen_max_native"
+
+  search:
+    routing_policy: "capability_fixed"
+    sku_ids:
+      - "sku_qiniu_search_primary"
+      - "sku_zhipu_search_expansion"
+
+  ocr:
+    routing_policy: "capability_fixed"
+    sku_ids:
+      - "sku_zhipu_glm_ocr_native"
+
+compatibility:
+  provider_aliases:
+    youyun: "compshare"
+
+engine:
   timeout_ms: 30000
   max_retries: 3
-  # 代理聚合平台列表（链 A 禁止使用）
-  proxy_aggregator_platforms:
-    - "siliconflow"
-    - "youyun"
-    - "qiniu"
-  chains:
-    A:  # 格式严格链降级路径（禁止代理聚合平台）
-      - platform: "dashscope"
-        model: "qwen-turbo"
-      - platform: "deepseek"
-        model: "deepseek-chat"
-      - platform: "zhipu"
-        model: "glm-4"
-      - platform: "moonshot"
-        model: "moonshot-v1-8k"
-    B:  # 深度推理链降级路径
-      - platform: "deepseek"
-        model: "deepseek-reasoner"
-      - platform: "dashscope"
-        model: "qwen-plus"
-      - platform: "volcengine"
-        model: "doubao-pro-32k"
-
-# 执行引擎配置
-engine:
   max_nodes_per_workflow: 12
   json_validation_retries: 3

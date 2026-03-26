@@ -15,7 +15,7 @@ class UsageMetrics(BaseModel):
     provider_call_count: int = 0
     successful_provider_call_count: int = 0
     total_tokens: int = 0
-    total_cost_usd: float = 0.0
+    total_cost_cny: float = 0.0
     error_rate: float = 0.0
     fallback_rate: float = 0.0
     p95_latency_ms: int | None = None
@@ -34,7 +34,7 @@ class UsageLivePoint(BaseModel):
     provider_calls: int = 0
     successful_provider_calls: int = 0
     total_tokens: int = 0
-    total_cost_usd: float = 0.0
+    total_cost_cny: float = 0.0
     error_count: int = 0
     fallback_count: int = 0
 
@@ -51,8 +51,8 @@ class UsageTimeseriesPoint(BaseModel):
     workflow_calls: int = 0
     assistant_tokens: int = 0
     workflow_tokens: int = 0
-    assistant_cost_usd: float = 0.0
-    workflow_cost_usd: float = 0.0
+    assistant_cost_cny: float = 0.0
+    workflow_cost_cny: float = 0.0
 
 
 class UsageTimeseriesResponse(BaseModel):
@@ -62,12 +62,17 @@ class UsageTimeseriesResponse(BaseModel):
 
 
 class ModelBreakdownItem(BaseModel):
+    sku_id: str | None = None
+    family_id: str | None = None
     provider: str
+    vendor: str
     model: str
+    billing_channel: str
+    task_family: str | None = None
     provider_call_count: int = 0
     successful_provider_call_count: int = 0
     total_tokens: int = 0
-    total_cost_usd: float = 0.0
+    total_cost_cny: float = 0.0
     success_rate: float = 0.0
 
 
@@ -82,14 +87,18 @@ class RecentCallItem(BaseModel):
     request_id: str
     source_type: UsageSourceType
     source_subtype: str
+    sku_id: str | None = None
+    family_id: str | None = None
     provider: str
+    vendor: str
     model: str
+    billing_channel: str
     node_id: str | None = None
     status: str
     is_fallback: bool
     latency_ms: int | None = None
     total_tokens: int = 0
-    cost_amount_usd: float = 0.0
+    cost_amount_cny: float = 0.0
     started_at: datetime
 
 
@@ -101,7 +110,7 @@ class CostSplitItem(BaseModel):
     source_type: UsageSourceType
     provider_call_count: int = 0
     total_tokens: int = 0
-    total_cost_usd: float = 0.0
+    total_cost_cny: float = 0.0
 
 
 class CostSplitResponse(BaseModel):

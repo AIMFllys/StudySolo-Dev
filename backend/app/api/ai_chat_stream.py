@@ -9,6 +9,7 @@ from sse_starlette.sse import EventSourceResponse
 from app.core.deps import get_current_user
 from app.models.ai_chat import AIChatRequest
 from app.prompts import get_chat_prompt, get_create_prompt, get_intent_prompt, get_plan_prompt
+from app.services.ai_catalog_service import is_tier_allowed, resolve_selected_sku
 from app.services.ai_router import AIRouterError, call_llm, call_llm_direct
 from app.services.usage_ledger import bind_usage_request, create_usage_request, finalize_usage_request
 from app.api.ai_chat import _build_canvas_summary, _call_with_model, _extract_json_obj
@@ -21,20 +22,6 @@ _DEPTH_INSTRUCTIONS: dict[str, str] = {
     "balanced": "Please answer with useful detail and clear structure.",
     "deep": "Please analyze in depth from multiple angles before answering.",
 }
-
-PREMIUM_MODELS = {
-    "deepseek-reasoner",
-    "DeepSeek-R1",
-    "doubao-pro-256k",
-    "Doubao-pro-256k",
-    "qwen-max",
-    "Qwen3-Max",
-    "glm-4",
-    "GLM-5",
-    "moonshot-v1-128k",
-    "Kimi-K2.5",
-}
-
 
 def _resolve_source_subtype(body: AIChatRequest) -> str:
     if body.mode == "plan":
@@ -58,9 +45,14 @@ async def _chat_stream_generator(
 
     with bind_usage_request(usage_request):
         try:
-            selected_model = getattr(body, "selected_model", None)
+            selected_sku = await resolve_selected_sku(
+                selected_model_key=body.selected_model_key,
+                selected_platform=body.selected_platform,
+                selected_model=body.selected_model,
+            )
             user_tier = current_user.get("tier", "free")
-            if selected_model and selected_model in PREMIUM_MODELS and user_tier == "free":
+            if selected_sku and not is_tier_allowed(user_tier, selected_sku.required_tier):
+                request_status = "failed"
                 yield {
                     "data": json.dumps(
                         {"error": "This model requires a paid tier.", "done": True},
@@ -87,6 +79,7 @@ async def _chat_stream_generator(
                     ]
                     try:
                         raw, _, _ = await _call_with_model(
+                            body.selected_model_key,
                             body.selected_platform,
                             body.selected_model,
                             classify_msgs,
@@ -116,6 +109,7 @@ async def _chat_stream_generator(
 
                 try:
                     raw, _, model_used = await _call_with_model(
+                        body.selected_model_key,
                         body.selected_platform,
                         body.selected_model,
                         create_msgs,
@@ -168,22 +162,21 @@ async def _chat_stream_generator(
             ]
 
             force_thinking = body.thinking_level in ("balanced", "deep")
-            has_custom = bool(body.selected_model and body.selected_platform)
             _ = _DEPTH_INSTRUCTIONS.get(body.thinking_level, "")
 
             yield {"data": json.dumps({"intent": intent}, ensure_ascii=False)}
 
-            if has_custom:
+            if selected_sku:
                 token_iter = await call_llm_direct(
-                    body.selected_platform,
-                    body.selected_model,
+                    selected_sku.provider,
+                    selected_sku.model_id,
                     stream_msgs,
                     stream=True,
                 )
             elif force_thinking:
                 token_iter = await call_llm_direct(
-                    "qiniu",
-                    "DeepSeek-R1",
+                    "deepseek",
+                    "deepseek-reasoner",
                     stream_msgs,
                     stream=True,
                 )

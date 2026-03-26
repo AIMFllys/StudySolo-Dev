@@ -16,7 +16,7 @@ import yaml
 
 _CONFIG_PATH = Path(__file__).parent.parent.parent / "config.yaml"
 _ENV_FILE_PATH = Path(__file__).parent.parent.parent / ".env"
-_ENV_VAR_RE = re.compile(r"^\$([A-Z_][A-Z0-9_]*)$")
+_ENV_VAR_RE = re.compile(r"^\$([A-Z_][A-Z0-9_]*(?:\|[A-Z_][A-Z0-9_]*)*)$")
 
 # Load .env file values as a fallback lookup dict.
 # pydantic-settings loads .env into its own Settings object but does NOT
@@ -58,14 +58,19 @@ def _resolve_env_vars(value: Any) -> Any:
     if isinstance(value, str):
         m = _ENV_VAR_RE.match(value)
         if m:
-            var_name = m.group(1)
+            candidate_names = [name.strip() for name in m.group(1).split("|") if name.strip()]
             # 1) Check real environment first
-            env_val = os.environ.get(var_name)
-            if env_val is not None:
-                return env_val
+            for var_name in candidate_names:
+                env_val = os.environ.get(var_name)
+                if env_val is not None:
+                    return env_val
             # 2) Fallback to .env file
             dotenv = _load_dotenv()
-            return dotenv.get(var_name, value)
+            for var_name in candidate_names:
+                env_val = dotenv.get(var_name)
+                if env_val is not None:
+                    return env_val
+            return value
         return value
     if isinstance(value, dict):
         return {k: _resolve_env_vars(v) for k, v in value.items()}

@@ -1,4 +1,4 @@
-"""AI model router with fallback chains and usage instrumentation."""
+"""AI router using YAML task routes + Supabase catalog-backed SKUs."""
 
 import logging
 from collections.abc import AsyncIterator
@@ -8,8 +8,15 @@ from typing import Any
 from openai import APIError, APITimeoutError, AsyncOpenAI
 
 from app.core.config_loader import get_config
+from app.models.ai_catalog import CatalogSku
+from app.services.ai_catalog_service import (
+    get_sku_by_provider_model,
+    normalize_provider_key,
+    resolve_task_route_skus,
+)
 from app.services.usage_ledger import (
     UsageNumbers,
+    UsagePricing,
     estimate_usage_from_messages,
     parse_openai_usage,
     record_usage_event,
@@ -20,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 class AIRouterError(Exception):
-    """Raised when all fallback options are exhausted."""
+    """Raised when all route options are exhausted."""
 
 
 @dataclass(slots=True)
@@ -42,125 +49,80 @@ class LLMStreamResult:
     token_stream: AsyncIterator[str] | None = None
 
 
-def _get_platform(platform_name: str) -> dict:
-    cfg = get_config()
-    try:
-        return cfg["platforms"][platform_name]
-    except KeyError as exc:
-        raise AIRouterError(f"Unknown platform: {platform_name}") from exc
+def _get_provider_config(provider_name: str) -> dict[str, Any]:
+    normalized = normalize_provider_key(provider_name)
+    config = get_config().get("providers", {})
+    provider = config.get(normalized)
+    if not provider:
+        raise AIRouterError(f"Unknown provider: {provider_name}")
+    return provider
 
 
-def _get_client(platform_name: str) -> tuple[AsyncOpenAI, str]:
-    cfg = get_config()
-    platform = _get_platform(platform_name)
-    client = AsyncOpenAI(
-        base_url=platform["base_url"],
-        api_key=platform["api_key"],
-        timeout=cfg["fallback"]["timeout_ms"] / 1000,
+def _get_client(provider_name: str) -> AsyncOpenAI:
+    provider = _get_provider_config(provider_name)
+    return AsyncOpenAI(
+        base_url=provider["base_url"],
+        api_key=provider["api_key"],
+        timeout=float(get_config().get("engine", {}).get("timeout_ms", 30000)) / 1000,
     )
-    default_model = platform["models"][0]["name"]
-    return client, default_model
 
 
-def get_route(node_type: str) -> dict:
-    cfg = get_config()
-    routes = cfg.get("node_routes", {})
-    if node_type not in routes:
-        raise AIRouterError(f"Unknown node type: {node_type}")
-    return routes[node_type]
-
-
-def get_fallback_chain(route_chain: str) -> list[dict]:
-    cfg = get_config()
-    return cfg["fallback"]["chains"].get(route_chain, [])
-
-
-def is_proxy_aggregator(platform_name: str) -> bool:
-    cfg = get_config()
-    return platform_name in cfg["fallback"].get("proxy_aggregator_platforms", [])
-
-
-def _is_platform_configured(platform_name: str) -> bool:
-    platform = _get_platform(platform_name)
-    base_url = str(platform.get("base_url", "")).strip()
-    api_key = str(platform.get("api_key", "")).strip()
+def _is_provider_configured(provider_name: str) -> bool:
+    provider = _get_provider_config(provider_name)
+    base_url = str(provider.get("base_url", "")).strip()
+    api_key = str(provider.get("api_key", "")).strip()
     return bool(base_url and api_key and not base_url.startswith("$") and not api_key.startswith("$"))
 
 
-def _get_safe_reserve_steps(chain_id: str) -> list[dict]:
-    if chain_id != "A":
-        return []
-
-    reserve_platforms = ("zhipu", "moonshot")
-    reserve_models = {
-        "zhipu": "glm-4",
-        "moonshot": "moonshot-v1-8k",
-    }
-    return [
-        {"platform": platform_name, "model": reserve_models[platform_name]}
-        for platform_name in reserve_platforms
-    ]
-
-
-def _build_fallback_steps(route: dict) -> list[dict]:
-    chain_id = route["route_chain"]
-    configured_chain = get_fallback_chain(chain_id)
-    primary_step = {
-        "platform": route["platform"],
-        "model": route["default_model"],
-    }
-    candidates = [primary_step, *configured_chain, *_get_safe_reserve_steps(chain_id)]
-
-    seen: set[tuple[str, str]] = set()
-    steps: list[dict] = []
-    for step in candidates:
-        key = (step["platform"], step["model"])
-        if key in seen:
-            continue
-        seen.add(key)
-        steps.append(step)
-    return steps
-
-
-def _format_exhausted_error(chain_id: str, errors: list[str]) -> str:
-    if not errors:
-        return f"All fallback options for chain '{chain_id}' exhausted."
-    return f"All fallback options for chain '{chain_id}' exhausted. Errors: {' | '.join(errors)}"
+def _pricing_from_sku(sku: CatalogSku | None) -> UsagePricing:
+    if sku is None:
+        return UsagePricing()
+    return UsagePricing(
+        input_price_cny_per_million=sku.input_price_cny_per_million,
+        output_price_cny_per_million=sku.output_price_cny_per_million,
+    )
 
 
 async def _record_error_attempt(
     *,
-    provider: str,
-    model: str,
     attempt_index: int,
     is_fallback: bool,
     started_at,
     finished_at,
+    sku: CatalogSku | None,
+    provider_name: str,
+    model_name: str,
 ) -> None:
     await record_usage_event(
-        provider=provider,
-        model=model,
+        provider=provider_name,
+        model=model_name,
         status="error",
         usage=UsageNumbers(),
+        pricing=_pricing_from_sku(sku),
         attempt_index=attempt_index,
         is_fallback=is_fallback,
         started_at=started_at,
         finished_at=finished_at,
+        sku_id=sku.sku_id if sku else None,
+        family_id=sku.family_id if sku else None,
+        vendor=sku.vendor if sku else None,
+        billing_channel=sku.billing_channel if sku else None,
     )
 
 
 async def _call_non_stream(
     *,
-    provider: str,
-    model: str,
+    sku: CatalogSku | None,
+    provider_name: str,
+    model_name: str,
     messages: list[dict],
     attempt_index: int,
     is_fallback: bool,
 ) -> LLMCallResult:
-    client, _ = _get_client(provider)
+    client = _get_client(provider_name)
     started_at = utcnow()
     response = await client.chat.completions.create(
-        model=model,
+        model=model_name,
         messages=messages,
         stream=False,
     )
@@ -175,22 +137,28 @@ async def _call_non_stream(
         "attempt_index": attempt_index,
         "is_fallback": is_fallback,
         "provider_request_id": getattr(response, "id", None),
+        "sku_id": sku.sku_id if sku else None,
     }
     await record_usage_event(
-        provider=provider,
-        model=model,
+        provider=provider_name,
+        model=model_name,
         status="success",
         usage=usage,
+        pricing=_pricing_from_sku(sku),
         attempt_index=attempt_index,
         is_fallback=is_fallback,
         started_at=started_at,
         finished_at=finished_at,
+        sku_id=sku.sku_id if sku else None,
+        family_id=sku.family_id if sku else None,
+        vendor=sku.vendor if sku else None,
+        billing_channel=sku.billing_channel if sku else None,
         provider_request_id=request_meta["provider_request_id"],
     )
     return LLMCallResult(
         content=content,
-        provider=provider,
-        model=model,
+        provider=provider_name,
+        model=model_name,
         usage=usage,
         request_meta=request_meta,
     )
@@ -198,23 +166,24 @@ async def _call_non_stream(
 
 async def _stream_tokens(
     client: AsyncOpenAI,
-    model: str,
+    model_name: str,
     messages: list[dict],
     result: LLMStreamResult,
 ) -> AsyncIterator[str]:
     try:
         stream = await client.chat.completions.create(
-            model=model,
+            model=model_name,
             messages=messages,
             stream=True,
             stream_options={"include_usage": True},
         )
     except APIError:
         stream = await client.chat.completions.create(
-            model=model,
+            model=model_name,
             messages=messages,
             stream=True,
         )
+
     in_thinking = False
     content_parts: list[str] = []
     usage = UsageNumbers()
@@ -223,11 +192,9 @@ async def _stream_tokens(
     async for chunk in stream:
         if provider_request_id is None:
             provider_request_id = getattr(chunk, "id", None)
-
         chunk_usage = parse_openai_usage(getattr(chunk, "usage", None))
         if chunk_usage.total_tokens > 0:
             usage = chunk_usage
-
         if getattr(chunk, "model", None):
             result.model = str(chunk.model)
 
@@ -263,22 +230,43 @@ async def _stream_tokens(
     result.request_meta["provider_request_id"] = provider_request_id
 
 
+def _empty_stream() -> AsyncIterator[str]:
+    async def _stream() -> AsyncIterator[str]:
+        if False:
+            yield ""
+
+    return _stream()
+
+
+async def _build_route_candidates(node_type: str) -> list[CatalogSku]:
+    try:
+        candidates = await resolve_task_route_skus(node_type)
+    except KeyError as exc:
+        raise AIRouterError(f"Unknown task route: {node_type}") from exc
+    filtered = [sku for sku in candidates if _is_provider_configured(sku.provider)]
+    if not filtered:
+        raise AIRouterError(f"No configured route candidates for task '{node_type}'")
+    return filtered
+
+
 async def call_llm_direct_structured(
     platform_name: str,
     model_name: str,
     messages: list[dict],
     stream: bool = False,
 ) -> LLMCallResult | LLMStreamResult:
-    if not _is_platform_configured(platform_name):
-        logger.warning("Direct call target '%s' not configured, falling back to chat_response route", platform_name)
+    normalized_provider = normalize_provider_key(platform_name)
+    if not _is_provider_configured(normalized_provider):
+        logger.warning("Direct call target '%s' not configured, falling back to chat_response route", normalized_provider)
         return await call_llm_structured("chat_response", messages, stream=stream)
 
+    sku = await get_sku_by_provider_model(normalized_provider, model_name)
     if stream:
-        client, _ = _get_client(platform_name)
+        client = _get_client(normalized_provider)
         result = LLMStreamResult(
-            provider=platform_name,
+            provider=normalized_provider,
             model=model_name,
-            request_meta={"attempt_index": 1, "is_fallback": False},
+            request_meta={"attempt_index": 1, "is_fallback": False, "sku_id": sku.sku_id if sku else None},
         )
 
         async def token_stream() -> AsyncIterator[str]:
@@ -293,24 +281,30 @@ async def call_llm_direct_structured(
                     model=result.model or model_name,
                     status="success",
                     usage=result.usage or UsageNumbers(),
+                    pricing=_pricing_from_sku(sku),
                     attempt_index=1,
                     is_fallback=False,
                     started_at=started_at,
                     finished_at=utcnow(),
+                    sku_id=sku.sku_id if sku else None,
+                    family_id=sku.family_id if sku else None,
+                    vendor=sku.vendor if sku else None,
+                    billing_channel=sku.billing_channel if sku else None,
                     provider_request_id=result.request_meta.get("provider_request_id"),
                 )
             except (APITimeoutError, APIError) as exc:
                 await _record_error_attempt(
-                    provider=platform_name,
-                    model=model_name,
                     attempt_index=1,
                     is_fallback=False,
                     started_at=started_at,
                     finished_at=utcnow(),
+                    sku=sku,
+                    provider_name=normalized_provider,
+                    model_name=model_name,
                 )
-                logger.warning("Direct streaming call to '%s/%s' failed: %s", platform_name, model_name, exc)
+                logger.warning("Direct streaming call to '%s/%s' failed: %s", normalized_provider, model_name, exc)
                 if yielded_any:
-                    raise AIRouterError(f"Streaming interrupted on {platform_name}/{model_name}: {exc}") from exc
+                    raise AIRouterError(f"Streaming interrupted on {normalized_provider}/{model_name}: {exc}") from exc
                 fallback_result = await call_llm_structured("chat_response", messages, stream=True)
                 assert isinstance(fallback_result, LLMStreamResult)
                 result.provider = fallback_result.provider
@@ -326,22 +320,24 @@ async def call_llm_direct_structured(
 
     try:
         return await _call_non_stream(
-            provider=platform_name,
-            model=model_name,
+            sku=sku,
+            provider_name=normalized_provider,
+            model_name=model_name,
             messages=messages,
             attempt_index=1,
             is_fallback=False,
         )
     except (APITimeoutError, APIError) as exc:
         await _record_error_attempt(
-            provider=platform_name,
-            model=model_name,
             attempt_index=1,
             is_fallback=False,
             started_at=utcnow(),
             finished_at=utcnow(),
+            sku=sku,
+            provider_name=normalized_provider,
+            model_name=model_name,
         )
-        logger.warning("Direct call to '%s/%s' failed: %s, falling back", platform_name, model_name, exc)
+        logger.warning("Direct call to '%s/%s' failed: %s, falling back", normalized_provider, model_name, exc)
         return await call_llm_structured("chat_response", messages, stream=stream)
 
 
@@ -350,9 +346,7 @@ async def call_llm_structured(
     messages: list[dict],
     stream: bool = False,
 ) -> LLMCallResult | LLMStreamResult:
-    route = get_route(node_type)
-    chain_id = route["route_chain"]
-    fallback_steps = _build_fallback_steps(route)
+    candidates = await _build_route_candidates(node_type)
 
     if stream:
         result = LLMStreamResult()
@@ -360,27 +354,22 @@ async def call_llm_structured(
         async def token_stream() -> AsyncIterator[str]:
             errors: list[str] = []
 
-            for index, step in enumerate(fallback_steps, start=1):
-                platform_name = step["platform"]
-                model_name = step["model"]
+            for index, sku in enumerate(candidates, start=1):
+                provider_name = sku.provider
+                model_name = sku.model_id
                 is_fallback = index > 1
-
-                if chain_id == "A" and is_proxy_aggregator(platform_name):
-                    logger.warning("Skipping proxy aggregator platform '%s' for chain A", platform_name)
-                    continue
-
-                if not _is_platform_configured(platform_name):
-                    logger.warning("Skipping unconfigured platform '%s' for chain %s", platform_name, chain_id)
-                    continue
-
-                result.provider = platform_name
+                result.provider = provider_name
                 result.model = model_name
-                result.request_meta = {"attempt_index": index, "is_fallback": is_fallback}
+                result.request_meta = {
+                    "attempt_index": index,
+                    "is_fallback": is_fallback,
+                    "sku_id": sku.sku_id,
+                }
 
                 yielded_any = False
                 started_at = utcnow()
                 try:
-                    client, _ = _get_client(platform_name)
+                    client = _get_client(provider_name)
                     async for token in _stream_tokens(client, model_name, messages, result):
                         yielded_any = True
                         yield token
@@ -389,85 +378,79 @@ async def call_llm_structured(
                         model=result.model or model_name,
                         status="success",
                         usage=result.usage or UsageNumbers(),
+                        pricing=_pricing_from_sku(sku),
                         attempt_index=index,
                         is_fallback=is_fallback,
                         started_at=started_at,
                         finished_at=utcnow(),
+                        sku_id=sku.sku_id,
+                        family_id=sku.family_id,
+                        vendor=sku.vendor,
+                        billing_channel=sku.billing_channel,
                         provider_request_id=result.request_meta.get("provider_request_id"),
                     )
                     return
                 except (APITimeoutError, APIError) as exc:
                     await _record_error_attempt(
-                        provider=platform_name,
-                        model=model_name,
                         attempt_index=index,
                         is_fallback=is_fallback,
                         started_at=started_at,
                         finished_at=utcnow(),
+                        sku=sku,
+                        provider_name=provider_name,
+                        model_name=model_name,
                     )
                     logger.warning(
-                        "Streaming platform '%s' model '%s' failed: %s, trying next fallback",
-                        platform_name,
+                        "Streaming provider '%s' model '%s' failed: %s, trying next route candidate",
+                        provider_name,
                         model_name,
                         exc,
                     )
                     if yielded_any:
-                        raise AIRouterError(f"Streaming interrupted on {platform_name}/{model_name}: {exc}") from exc
-                    errors.append(f"{platform_name}/{model_name}: {exc}")
+                        raise AIRouterError(f"Streaming interrupted on {provider_name}/{model_name}: {exc}") from exc
+                    errors.append(f"{provider_name}/{model_name}: {exc}")
                     continue
 
-            raise AIRouterError(_format_exhausted_error(chain_id, errors))
+            raise AIRouterError(f"All route options for '{node_type}' exhausted. Errors: {' | '.join(errors)}")
 
         result.token_stream = token_stream()
         return result
 
     errors: list[str] = []
-    for index, step in enumerate(fallback_steps, start=1):
-        platform_name = step["platform"]
-        model_name = step["model"]
+    for index, sku in enumerate(candidates, start=1):
+        provider_name = sku.provider
+        model_name = sku.model_id
         is_fallback = index > 1
-
-        if chain_id == "A" and is_proxy_aggregator(platform_name):
-            logger.warning("Skipping proxy aggregator platform '%s' for chain A", platform_name)
-            continue
-
-        if not _is_platform_configured(platform_name):
-            logger.warning("Skipping unconfigured platform '%s' for chain %s", platform_name, chain_id)
-            continue
-
         started_at = utcnow()
         try:
             return await _call_non_stream(
-                provider=platform_name,
-                model=model_name,
+                sku=sku,
+                provider_name=provider_name,
+                model_name=model_name,
                 messages=messages,
                 attempt_index=index,
                 is_fallback=is_fallback,
             )
         except (APITimeoutError, APIError) as exc:
             await _record_error_attempt(
-                provider=platform_name,
-                model=model_name,
                 attempt_index=index,
                 is_fallback=is_fallback,
                 started_at=started_at,
                 finished_at=utcnow(),
+                sku=sku,
+                provider_name=provider_name,
+                model_name=model_name,
             )
             logger.warning(
-                "Platform '%s' model '%s' failed: %s, trying next fallback",
-                platform_name,
+                "Provider '%s' model '%s' failed: %s, trying next route candidate",
+                provider_name,
                 model_name,
                 exc,
             )
-            errors.append(f"{platform_name}/{model_name}: {exc}")
+            errors.append(f"{provider_name}/{model_name}: {exc}")
             continue
 
-    raise AIRouterError(_format_exhausted_error(chain_id, errors))
-
-
-async def _empty_stream() -> AsyncIterator[str]:
-    if False:
-        yield ""
+    raise AIRouterError(f"All route options for '{node_type}' exhausted. Errors: {' | '.join(errors)}")
 
 
 async def call_llm_direct(

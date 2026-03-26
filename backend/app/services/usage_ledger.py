@@ -2,7 +2,7 @@ import math
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Any
 
 from app.core.database import get_db
@@ -10,7 +10,9 @@ from app.core.database import get_db
 UTC = timezone.utc
 REQUEST_PROVIDER_SENTINEL = "__all__"
 MODEL_UNKNOWN_SENTINEL = "__unknown__"
-_PRICING_CACHE_TTL = timedelta(minutes=5)
+REQUEST_SKU_SENTINEL = "__request__"
+REQUEST_VENDOR_SENTINEL = "__request__"
+REQUEST_BILLING_CHANNEL = "request"
 
 
 @dataclass(slots=True)
@@ -42,8 +44,8 @@ class UsageNumbers:
 
 @dataclass(slots=True)
 class UsagePricing:
-    input_price_per_million: float = 0.0
-    output_price_per_million: float = 0.0
+    input_price_cny_per_million: float = 0.0
+    output_price_cny_per_million: float = 0.0
 
 
 _request_context: ContextVar[BoundUsageRequest | None] = ContextVar(
@@ -54,10 +56,6 @@ _call_context: ContextVar[BoundUsageCall | None] = ContextVar(
     "usage_call_context",
     default=None,
 )
-_pricing_cache: dict[tuple[str, str], UsagePricing] = {}
-_pricing_cache_expires_at: datetime | None = None
-
-
 def utcnow() -> datetime:
     return datetime.now(UTC)
 
@@ -207,47 +205,13 @@ async def finalize_usage_request(request_id: str, status: str) -> None:
     )
 
 
-async def _get_pricing_map() -> dict[tuple[str, str], UsagePricing]:
-    global _pricing_cache, _pricing_cache_expires_at
-    now = utcnow()
-    if _pricing_cache_expires_at and _pricing_cache_expires_at > now:
-        return _pricing_cache
-
-    db = await get_db()
-    result = (
-        await db.table("ai_models")
-        .select(
-            "id, provider, input_price, output_price, input_price_per_million, output_price_per_million"
-        )
-        .execute()
-    )
-    cache: dict[tuple[str, str], UsagePricing] = {}
-    for row in result.data or []:
-        provider = normalize_provider(row.get("provider"))
-        model = normalize_model(row.get("id"))
-        input_rate = float(row.get("input_price_per_million") or row.get("input_price") or 0.0)
-        output_rate = float(row.get("output_price_per_million") or row.get("output_price") or 0.0)
-        cache[(provider, model)] = UsagePricing(
-            input_price_per_million=input_rate,
-            output_price_per_million=output_rate,
-        )
-    _pricing_cache = cache
-    _pricing_cache_expires_at = now + _PRICING_CACHE_TTL
-    return _pricing_cache
-
-
-async def calculate_cost_usd(
+def calculate_cost_cny(
     *,
-    provider: str,
-    model: str,
     usage: UsageNumbers,
+    pricing: UsagePricing,
 ) -> float:
-    pricing_map = await _get_pricing_map()
-    pricing = pricing_map.get((normalize_provider(provider), normalize_model(model)))
-    if pricing is None:
-        return 0.0
-    input_cost = usage.input_tokens * pricing.input_price_per_million / 1_000_000
-    output_cost = usage.output_tokens * pricing.output_price_per_million / 1_000_000
+    input_cost = usage.input_tokens * pricing.input_price_cny_per_million / 1_000_000
+    output_cost = usage.output_tokens * pricing.output_price_cny_per_million / 1_000_000
     return round(input_cost + output_cost, 8)
 
 
@@ -257,10 +221,15 @@ async def record_usage_event(
     model: str,
     status: str,
     usage: UsageNumbers,
+    pricing: UsagePricing | None = None,
     attempt_index: int,
     is_fallback: bool,
     started_at: datetime,
     finished_at: datetime,
+    sku_id: str | None = None,
+    family_id: str | None = None,
+    vendor: str | None = None,
+    billing_channel: str | None = None,
     provider_request_id: str | None = None,
 ) -> None:
     request = get_bound_usage_request()
@@ -270,7 +239,8 @@ async def record_usage_event(
     call_context = get_bound_usage_call()
     db = await get_db()
     latency_ms = max(0, int((finished_at - started_at).total_seconds() * 1000))
-    cost_amount_usd = await calculate_cost_usd(provider=provider, model=model, usage=usage)
+    resolved_pricing = pricing or UsagePricing()
+    cost_amount_cny = calculate_cost_cny(usage=usage, pricing=resolved_pricing)
 
     await (
         db.table("ss_ai_usage_events")
@@ -281,6 +251,10 @@ async def record_usage_event(
             "source_subtype": request.source_subtype,
             "provider": normalize_provider(provider),
             "model": normalize_model(model),
+            "sku_id": sku_id,
+            "family_id": family_id,
+            "vendor": vendor,
+            "billing_channel": billing_channel,
             "node_id": call_context.node_id if call_context else None,
             "attempt_index": attempt_index,
             "is_fallback": is_fallback,
@@ -291,7 +265,9 @@ async def record_usage_event(
             "reasoning_tokens": usage.reasoning_tokens,
             "cached_tokens": usage.cached_tokens,
             "total_tokens": usage.total_tokens,
-            "cost_amount_usd": cost_amount_usd,
+            "input_price_cny_per_million": resolved_pricing.input_price_cny_per_million,
+            "output_price_cny_per_million": resolved_pricing.output_price_cny_per_million,
+            "cost_amount_cny": cost_amount_cny,
             "provider_request_id": provider_request_id,
             "started_at": started_at.isoformat(),
             "finished_at": finished_at.isoformat(),
@@ -306,10 +282,14 @@ async def record_usage_event(
         source_subtype=request.source_subtype,
         provider=provider,
         model=model,
+        sku_id=sku_id or REQUEST_SKU_SENTINEL,
+        family_id=family_id or REQUEST_SKU_SENTINEL,
+        vendor=vendor or REQUEST_VENDOR_SENTINEL,
+        billing_channel=billing_channel or REQUEST_BILLING_CHANNEL,
         provider_calls=1,
         successful_provider_calls=1 if status == "success" else 0,
         total_tokens=usage.total_tokens if status == "success" else 0,
-        total_cost_usd=cost_amount_usd if status == "success" else 0.0,
+        total_cost_cny=cost_amount_cny if status == "success" else 0.0,
         error_count=0 if status == "success" else 1,
         fallback_count=1 if is_fallback else 0,
         latency_ms_sum=latency_ms,
@@ -325,11 +305,15 @@ async def _increment_minute_rollup(
     source_subtype: str,
     provider: str = REQUEST_PROVIDER_SENTINEL,
     model: str = REQUEST_PROVIDER_SENTINEL,
+    sku_id: str = REQUEST_SKU_SENTINEL,
+    family_id: str = REQUEST_SKU_SENTINEL,
+    vendor: str = REQUEST_VENDOR_SENTINEL,
+    billing_channel: str = REQUEST_BILLING_CHANNEL,
     logical_requests: int = 0,
     provider_calls: int = 0,
     successful_provider_calls: int = 0,
     total_tokens: int = 0,
-    total_cost_usd: float = 0.0,
+    total_cost_cny: float = 0.0,
     error_count: int = 0,
     fallback_count: int = 0,
     latency_ms_sum: int = 0,
@@ -345,11 +329,15 @@ async def _increment_minute_rollup(
             "p_source_subtype": source_subtype,
             "p_provider": normalize_provider(provider),
             "p_model": normalize_model(model),
+            "p_sku_id": sku_id,
+            "p_family_id": family_id,
+            "p_vendor": vendor,
+            "p_billing_channel": billing_channel,
             "p_logical_requests": logical_requests,
             "p_provider_calls": provider_calls,
             "p_successful_provider_calls": successful_provider_calls,
             "p_total_tokens": total_tokens,
-            "p_total_cost_usd": total_cost_usd,
+            "p_total_cost_cny": total_cost_cny,
             "p_error_count": error_count,
             "p_fallback_count": fallback_count,
             "p_latency_ms_sum": latency_ms_sum,

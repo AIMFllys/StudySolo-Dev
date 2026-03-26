@@ -74,6 +74,8 @@ export interface AIStepNodeData {
   output: string;
   error?: string;
   output_format?: string;
+  input_snapshot?: string;
+  execution_time_ms?: number;
 }
 
 /** 循环容器块节点数据 */

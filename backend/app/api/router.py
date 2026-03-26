@@ -18,6 +18,7 @@ from app.api.workflow_execute import router as workflow_execute_router
 from app.api.workflow_social import router as workflow_social_router
 from app.api.workflow_collaboration import router as workflow_collab_router
 from app.api.ai import router as ai_router
+from app.api.ai_catalog import router as ai_catalog_router
 from app.api.ai_chat import router as ai_chat_router
 from app.api.ai_chat_stream import stream_router as ai_chat_stream_router
 from app.api.nodes import router as nodes_router
@@ -34,6 +35,7 @@ router.include_router(workflow_social_router, prefix="/workflow", tags=["workflo
 router.include_router(workflow_collab_router, prefix="/workflow", tags=["workflow-collaboration"])
 router.include_router(workflow_execute_router, prefix="/workflow", tags=["workflow-execute"])
 router.include_router(ai_router, prefix="/ai", tags=["ai"])
+router.include_router(ai_catalog_router, prefix="/ai", tags=["ai-catalog"])
 router.include_router(ai_chat_router, prefix="/ai", tags=["ai-chat"])
 router.include_router(ai_chat_stream_router, prefix="/ai", tags=["ai-chat-stream"])
 router.include_router(nodes_router, prefix="/nodes", tags=["nodes"])

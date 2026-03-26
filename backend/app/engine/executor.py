@@ -291,6 +291,16 @@ def _merge_outputs(
     return updated
 
 
+def _build_input_snapshot(node_input: NodeInput) -> str:
+    """Safely serialize the combined node input into a JSON string."""
+    snapshot = {
+        "user_content": node_input.user_content,
+        "upstream_outputs": node_input.upstream_outputs,
+        "node_config": node_input.node_config,
+    }
+    return json.dumps(snapshot, ensure_ascii=False)
+
+
 # ── Single node execution ────────────────────────────────────────────────────
 
 async def _execute_single_node(
@@ -475,6 +485,13 @@ async def execute_workflow(
                 node_config=node_data.get("config"),
             )
 
+            # Emit input snapshot
+            try:
+                snapshot_json = _build_input_snapshot(node_input)
+                yield sse_event("node_input", {"node_id": node_id, "input_snapshot": snapshot_json})
+            except Exception as e:
+                logger.warning("Failed to serialize input snapshot for node %s: %s", node_id, e)
+
             full_output = ""
             try:
                 with bind_usage_call(node_id=node_id, node_type=node_type_str):
@@ -512,7 +529,7 @@ async def execute_workflow(
                 yield sse_event("node_status", {"node_id": nid, "status": "running"})
 
             # Build tasks
-            tasks = []
+            tasks: list[asyncio.Task] = []
             for nid in active_nodes:
                 node_cfg = node_map.get(nid)
                 if not node_cfg:
@@ -524,6 +541,20 @@ async def execute_workflow(
                     for uid in direct_upstream_ids
                     if uid in accumulated_outputs
                 }
+
+                # Construct node input for the snapshot
+                node_data = node_cfg.get("data", {})
+                node_input = NodeInput(
+                    user_content=node_data.get("label", ""),
+                    upstream_outputs=upstream_outputs,
+                    implicit_context=implicit_context,
+                    node_config=node_data.get("config"),
+                )
+                try:
+                    snapshot_json = _build_input_snapshot(node_input)
+                    yield sse_event("node_input", {"node_id": nid, "input_snapshot": snapshot_json})
+                except Exception as e:
+                    logger.warning("Failed to serialize input snapshot for node %s: %s", nid, e)
 
                 task = asyncio.create_task(
                     _execute_single_node_with_timeout(

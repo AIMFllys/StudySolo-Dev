@@ -6,6 +6,9 @@ import type { WorkflowSSEEvent } from '@/types/workflow-events';
 
 export type ExecutionStatus = 'idle' | 'running' | 'completed' | 'error';
 
+
+export type ExecutionStatus = 'idle' | 'running' | 'completed' | 'error';
+
 const MAX_RECONNECT_ATTEMPTS = 3;
 
 export function useWorkflowExecution() {
@@ -14,6 +17,7 @@ export function useWorkflowExecution() {
 
   const esRef = useRef<EventSource | null>(null);
   const reconnectCountRef = useRef(0);
+  const startTimeMapRef = useRef<Record<string, number>>({});
 
   const { currentWorkflowId, setSelectedNodeId, updateNodeData } = useWorkflowStore();
 
@@ -21,6 +25,7 @@ export function useWorkflowExecution() {
     esRef.current?.close();
     esRef.current = null;
     reconnectCountRef.current = 0;
+    startTimeMapRef.current = {};
   }, []);
 
   const start = useCallback(
@@ -39,14 +44,36 @@ export function useWorkflowExecution() {
         const es = new EventSource(`/api/workflow/${id}/execute`);
         esRef.current = es;
 
+        es.addEventListener('node_input', (e) => {
+          try {
+            const data = JSON.parse(e.data) as Extract<WorkflowSSEEvent, { type: 'node_input' }>;
+            updateNodeData(data.node_id, {
+              input_snapshot: data.input_snapshot,
+            });
+          } catch { /* ignore malformed SSE */ }
+        });
+
         es.addEventListener('node_status', (e) => {
           try {
             const data = JSON.parse(e.data) as Extract<WorkflowSSEEvent, { type: 'node_status' }>;
             setSelectedNodeId(data.node_id);
-            updateNodeData(data.node_id, {
+            
+            const updates: Parameters<typeof updateNodeData>[1] = {
               status: data.status,
               ...(data.error ? { error: data.error } : {}),
-            });
+            };
+
+            if (data.status === 'running') {
+              startTimeMapRef.current[data.node_id] = performance.now();
+            } else if (data.status === 'done' || data.status === 'error') {
+              const startT = startTimeMapRef.current[data.node_id];
+              if (startT) {
+                updates.execution_time_ms = Math.round(performance.now() - startT);
+                delete startTimeMapRef.current[data.node_id];
+              }
+            }
+
+            updateNodeData(data.node_id, updates);
           } catch { /* ignore malformed SSE */ }
         });
 
@@ -95,6 +122,7 @@ export function useWorkflowExecution() {
           } finally {
             es.close();
             esRef.current = null;
+            startTimeMapRef.current = {};
             // Resume cloud sync after execution completes
             window.dispatchEvent(new Event('workflow:execution-end'));
           }

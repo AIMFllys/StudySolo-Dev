@@ -13,6 +13,7 @@ from app.prompts import (
     get_intent_system_prompt,
     get_modify_system_prompt,
 )
+from app.services.ai_catalog_service import is_tier_allowed, resolve_selected_sku
 from app.services.ai_router import LLMCallResult, call_llm_direct_structured, call_llm_structured
 from app.services.usage_ledger import bind_usage_request, create_usage_request, finalize_usage_request
 
@@ -62,12 +63,23 @@ def _build_canvas_summary(ctx) -> str:
 
 
 async def _call_with_model(
+    selected_model_key: str | None,
     platform: str | None,
     model: str | None,
     messages: list[dict],
 ) -> tuple[str, str, str]:
-    if platform and model:
-        result = await call_llm_direct_structured(platform, model, messages, stream=False)
+    selected_sku = await resolve_selected_sku(
+        selected_model_key=selected_model_key,
+        selected_platform=platform,
+        selected_model=model,
+    )
+    if selected_sku:
+        result = await call_llm_direct_structured(
+            selected_sku.provider,
+            selected_sku.model_id,
+            messages,
+            stream=False,
+        )
     else:
         result = await call_llm_structured("chat_response", messages, stream=False)
 
@@ -96,6 +108,21 @@ async def ai_chat(
 
     with bind_usage_request(usage_request):
         try:
+            selected_sku = await resolve_selected_sku(
+                selected_model_key=body.selected_model_key,
+                selected_platform=body.selected_platform,
+                selected_model=body.selected_model,
+            )
+            user_tier = current_user.get("tier", "free")
+            if selected_sku and not is_tier_allowed(user_tier, selected_sku.required_tier):
+                request_status = "failed"
+                return AIChatResponse(
+                    intent="CHAT",
+                    response="This model requires a paid tier.",
+                    model_used=selected_sku.model_id,
+                    platform_used=selected_sku.provider,
+                )
+
             canvas_summary = _build_canvas_summary(body.canvas_context)
             has_canvas = bool(body.canvas_context and body.canvas_context.nodes)
 
@@ -122,6 +149,7 @@ async def ai_chat(
                 ]
                 try:
                     raw, _, _ = await _call_with_model(
+                        body.selected_model_key,
                         body.selected_platform,
                         body.selected_model,
                         classify_msgs,
@@ -137,8 +165,8 @@ async def ai_chat(
                 return AIChatResponse(
                     intent="BUILD",
                     response="Preparing workflow generation...",
-                    model_used=body.selected_model or "default",
-                    platform_used=body.selected_platform or "default",
+                    model_used=selected_sku.model_id if selected_sku else (body.selected_model or "default"),
+                    platform_used=selected_sku.provider if selected_sku else (body.selected_platform or "default"),
                 )
 
             if intent == "MODIFY":
@@ -148,6 +176,7 @@ async def ai_chat(
                     {"role": "user", "content": body.user_input},
                 ]
                 raw, platform_used, model_used = await _call_with_model(
+                    body.selected_model_key,
                     body.selected_platform,
                     body.selected_model,
                     modify_msgs,
@@ -185,6 +214,7 @@ async def ai_chat(
                 {"role": "user", "content": body.user_input},
             ]
             raw, platform_used, model_used = await _call_with_model(
+                body.selected_model_key,
                 body.selected_platform,
                 body.selected_model,
                 chat_msgs,
