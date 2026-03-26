@@ -162,3 +162,78 @@ engine:
   max_retries: 3
   max_nodes_per_workflow: 12
   json_validation_retries: 3
+
+# ============================================================
+# AI 对话面板精选模型路由（轨道 A）
+# 设计原则：
+#   - sku_ids 数组即降级链：index 0 = 首选，index 1 = 降级
+#   - 只有 1 个 sku_id = 无降级，挂了直接报错
+#   - is_recommended = true 则前端渲染 ⭐ 推荐图标
+#   - required_tier 决定前端置灰 + 后端拦截
+# ============================================================
+chat_models:
+  - key: "deepseek_r1"
+    display_name: "DeepSeek R1"
+    required_tier: "free"
+    sort_order: 1
+    is_recommended: false
+    sku_ids:
+      - "sku_deepseek_reasoner_native"
+
+  - key: "qwen35_flash"
+    display_name: "Qwen3.5-Flash"
+    required_tier: "free"
+    sort_order: 2
+    is_recommended: false
+    sku_ids:
+      - "sku_dashscope_qwen35_flash_native"
+
+  - key: "qwen3_max"
+    display_name: "Qwen3-Max"
+    required_tier: "pro"
+    sort_order: 3
+    is_recommended: false
+    sku_ids:
+      - "sku_qiniu_qwen3_max_proxy"          # 首选：七牛云代理
+      - "sku_dashscope_qwen_max_native"       # 降级：百炼官网
+
+  - key: "glm45"
+    display_name: "GLM-4.5"
+    required_tier: "free"
+    sort_order: 4
+    is_recommended: false
+    sku_ids:
+      - "sku_zhipu_glm_45_native"
+
+  - key: "glm47"
+    display_name: "GLM-4.7"
+    required_tier: "pro"
+    sort_order: 5
+    is_recommended: true                      # ⭐ 推荐图标
+    sku_ids:
+      - "sku_zhipu_glm_47_native"
+
+  - key: "doubao_seed"
+    display_name: "DouBao-Seed2.0"
+    required_tier: "pro"
+    sort_order: 6
+    is_recommended: false
+    sku_ids:
+      - "sku_qiniu_doubao_seed_lite_proxy"    # 首选：七牛云代理
+      - "sku_volcengine_doubao_seed_native"   # 降级：火山引擎官网
+
+  - key: "kimi_k2"
+    display_name: "Kimi-K2"
+    required_tier: "pro"
+    sort_order: 7
+    is_recommended: false
+    sku_ids:
+      - "sku_moonshot_kimi_k2_native"
+
+  - key: "gpt_oss_120b"
+    display_name: "GPT-OSS-120B"
+    required_tier: "pro"
+    sort_order: 8
+    is_recommended: false
+    sku_ids:
+      - "sku_qiniu_gpt_oss_120b_proxy"

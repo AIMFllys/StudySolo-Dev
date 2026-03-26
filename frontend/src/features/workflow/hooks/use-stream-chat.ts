@@ -31,7 +31,8 @@ export interface StreamChatOptions {
   history: ChatEntry[];
   intentHint?: string | null;
   mode?: 'plan' | 'chat' | 'create';
-  selectedModel: AIModelOption;
+  /** Accepts AIModelOption (Track B) or ChatModelOption (Track A) — only skuId is consumed */
+  selectedModel: { skuId: string | null };
   thinkingDepth?: ThinkingDepth;
 }
 

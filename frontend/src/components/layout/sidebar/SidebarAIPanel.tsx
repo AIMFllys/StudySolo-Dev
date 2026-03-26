@@ -9,8 +9,7 @@ import { useCanvasContext } from '@/features/workflow/hooks/use-canvas-context';
 import { useConversationStore } from '@/stores/use-conversation-store';
 import { useStreamChat } from '@/features/workflow/hooks/use-stream-chat';
 import { useWorkflowExecution } from '@/features/workflow/hooks/use-workflow-execution';
-import { DEFAULT_MODEL, type AIModelOption } from '@/features/workflow/constants/ai-models';
-import { getDefaultAiModel, getUserAiModelCatalog } from '@/services/ai-catalog.service';
+import { getChatModelList, type ChatModelOption } from '@/services/ai-catalog.service';
 import { getUser, type TierType } from '@/services/auth.service';
 import { useAIChatStore } from '@/stores/use-ai-chat-store';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
@@ -44,7 +43,9 @@ export function SidebarAIPanel() {
   const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [userTier, setUserTier] = useState<TierType>('free');
-  const [availableModels, setAvailableModels] = useState<AIModelOption[]>([DEFAULT_MODEL]);
+  const [chatModels, setChatModels] = useState<ChatModelOption[]>([]);
+  // Track A selected model — default to first accessible model once list loads
+  const [selectedChatModel, setSelectedChatModel] = useState<ChatModelOption | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const historyDropdownRef = useRef<HTMLDivElement>(null);
@@ -88,22 +89,18 @@ export function SidebarAIPanel() {
 
   useEffect(() => {
     let cancelled = false;
-    getUserAiModelCatalog()
+    // Track A: load curated chat panel model list
+    getChatModelList()
       .then((models) => {
-        if (cancelled) {
-          return;
-        }
-        setAvailableModels(models);
-        const matched = models.find((item) => item.skuId === selectedModel.skuId);
-        if (!matched) {
-          setSelectedModel(getDefaultAiModel(models));
-        }
+        if (cancelled) return;
+        setChatModels(models);
+        // Auto-select first accessible model
+        const firstAccessible = models.find((m) => m.isAccessible) ?? models[0];
+        setSelectedChatModel((prev) => prev ?? firstAccessible ?? null);
       })
       .catch(() => null);
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedModel.skuId, setSelectedModel]);
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     initStore();
@@ -158,9 +155,11 @@ export function SidebarAIPanel() {
       history: currentHistory,
       intentHint: mode === 'chat' ? 'CHAT' : undefined,
       mode,
-      selectedModel,
+      // Track A: pass chat panel model's skuId to backend
+      selectedModel: { skuId: selectedChatModel?.skuId ?? null },
       thinkingDepth,
     });
+
   };
 
   return (
@@ -171,9 +170,9 @@ export function SidebarAIPanel() {
             AI 对话
           </span>
           <ModelSelector
-            value={selectedModel}
-            options={availableModels}
-            onChange={setSelectedModel}
+            value={selectedChatModel}
+            options={chatModels}
+            onChange={setSelectedChatModel}
             userTier={userTier}
           />
         </div>

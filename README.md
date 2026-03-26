@@ -1,126 +1,127 @@
-# StudySolo
+<div align="center">
+  <h1>StudySolo</h1>
+  <p>一个由 AI 驱动的新型智能学习工作流平台 (An AI-Powered Learning Workflow Platform)</p>
 
-> 最后更新：2026-03-26
+  <!-- Badges -->
+  <p>
+    <a href="#license"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License" /></a>
+    <a href="#tech-stack"><img src="https://img.shields.io/badge/framework-Next.js_16-black?style=flat-square&logo=next.js" alt="Next.js" /></a>
+    <a href="#tech-stack"><img src="https://img.shields.io/badge/backend-FastAPI-009688?style=flat-square&logo=fastapi" alt="FastAPI" /></a>
+    <a href="#tech-stack"><img src="https://img.shields.io/badge/database-Supabase-3ECF8E?style=flat-square&logo=supabase" alt="Supabase" /></a>
+  </p>
+</div>
+
+---
+
+> 最后更新：2026-03-27
+> 
 > 文档编码：UTF-8（无 BOM） / LF
 
-StudySolo 是一个 AI 学习工作流平台。用户在前端画布中组织节点，后端以 DAG 方式执行工作流，并通过 SSE 将 AI 输出实时返回到前端。
+StudySolo 是一个基于前后端分离架构的 AI 学习工作流编排平台。它允许用户在直观的前端画布中自由组织学习节点，后端通过 DAG（有向无环图）引擎执行复杂的工作流，并依赖 SSE 技术将多轨 AI 大模型的输出实时流式返回给终端用户。
 
-## 1. 当前技术栈
+## ✨ 核心特性 (Features)
 
-### 前端
+- 🎨 **可视化工作流画布**：基于 `@xyflow/react` 的沉浸式拖拽编辑，轻松构建你的学习、分析、生成管线。
+- 🧠 **高度灵活的节点体系**：内置输入、分析、生成、交互与输出等多类插件化节点（详见引擎架构）。
+- 🚀 **多轨 AI 模型选型与容灾**：深度集成了供应商、大模型家族与 SKU 两级路由机制，自带高可用 Fallback 策略。
+- ⚡ **实时响应流式返回**：基于 FastAPI 与 SSE-Starlette 构建的高性能后端引擎。
+- 🛡️ **严密的访问控制**：采用 Supabase Row Level Security (RLS) 提供行级数据安全与完整的鉴权闭环。
 
-- Next.js `16.1.6`
-- React `19.2.3`
-- TypeScript `5`
-- Tailwind CSS `v4`
-- Zustand
-- `@xyflow/react`
+## 🛠️ 技术栈 (Tech Stack)
 
-### 后端
+### 前端 (Frontend)
+- **核心框架**：Next.js `16.1.6` (App Router) / React `19.2.3`
+- **语言与样式**：TypeScript `5` / Tailwind CSS `v4` / Framer Motion
+- **状态与组件**：Zustand `5.0.11` / `@xyflow/react` / Supabase SSR
 
-- FastAPI `>=0.115`
-- Pydantic `>=2.10`
-- Supabase Python `>=2.11`
-- OpenAI SDK `>=1.60`
-- SSE-Starlette
+### 后端 (Backend)
+- **核心框架**：FastAPI `>=0.115` / Python 3.10+
+- **数据与流**：Pydantic `>=2.10` / SSE-Starlette / OpenAI SDK
+- **安全与限流**：SlowAPI
 
-### 数据与共享层
+### 基础架构层 (Infrastructure)
+- **数据库**：Supabase PostgreSQL + Auth + pgvector
+- **代码复用**：标准化的本地 `shared/` 统一维护共享层与跨项目规范
 
-- Supabase PostgreSQL + Auth + RLS + pgvector
-- `shared/`：Git submodule，用于共享类型与跨项目规范
-
-## 2. 仓库结构
+## 📂 仓库结构 (Repository Structure)
 
 ```text
 StudySolo/
-├─ frontend/                 # Next.js 前端
-├─ backend/                  # FastAPI 后端
-├─ shared/                   # 共享子模块（Git submodule）
-├─ supabase/migrations/      # 数据库迁移
-├─ docs/                     # 项目规范与技术文档
-├─ scripts/                  # 启动与部署脚本
-└─ .agent/                   # 项目级 skills / rules / workflows
+├── frontend/                 # 基于 Next.js 的前端服务 (Port: 2037)
+├── backend/                  # 基于 FastAPI 的后端服务 (Port: 2038)
+├── supabase/migrations/      # Supabase 数据库结构与迁移脚本
+├── shared/                   # 项目间通用共享模块 (Git Submodule)
+├── docs/                     # 架构设计标准与产品规范文档
+├── scripts/                  # 运行启动、环境检测辅助脚本
+└── .agent/                   # 适用于构建环节的专有 AI Agent 规则与技能
 ```
 
-## 3. 本地启动
+## 🚀 快速开始 (Quick Start)
 
-### 前端
+### 1. 启动前端服务
 
 ```bash
 cd frontend
 pnpm install
 pnpm dev
 ```
+> 前端默认热更新地址：`http://localhost:2037`
 
-默认地址：`http://localhost:2037`
-
-### 后端
+### 2. 启动后端服务
 
 ```bash
 cd backend
 python -m venv .venv
+# 激活环境后安装依赖（Windows 示例）：
 .venv\Scripts\python.exe -m pip install -r requirements.txt -r requirements-dev.txt
 .venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 2038
 ```
+> 后端 Swagger 接口测试面板：`http://localhost:2038/docs`
 
-Swagger：`http://localhost:2038/docs`
+### 3. 一键完整启动 (Windows PowerShell)
 
-### 一键启动
+在 Windows 平台下，您可以通过提供的脚本同时拉起所有的开发服务面板：
 
 ```powershell
 powershell scripts/start-studysolo.ps1
 ```
 
-## 4. 测试与检查
+## 🧪 代码检查与测试 (Testing & Linting)
 
-### 前端
+保持高质量的项目工程化迭代，需要稳定的检查环节约束。
 
+**前端校验指令：**
 ```bash
 cd frontend
-pnpm lint
-pnpm lint:lines
-pnpm test
+pnpm lint        # 执行 ESLint 等代码静态语法检查
+pnpm lint:lines  # 关键文件行数超限检测
+pnpm test        # 执行 Vitest 单元与组件交互测试
 ```
 
-### 后端
-
+**后端校验指令：**
 ```powershell
 cd backend
 .\.venv\Scripts\python.exe -m pytest tests
 ```
 
-## 5. 核心架构要点
+## 📖 核心文档导航 (Documentation)
 
-- 工作流节点体系由 `frontend/src/types/workflow.ts` 定义
-- 当前边类型仅 `sequential`
-- 当前节点状态包含 `waiting`、`skipped`
-- AI 模型目录权威表是 `ai_model_families` + `ai_model_skus`
-- 正式选型字段是 `selected_model_key`
-- 正式计费字段统一 `*_cny`
-- 当前后端 API 已覆盖：
-  - auth
-  - workflow CRUD / execute / social / collaboration
-  - ai generate / chat / chat-stream / catalog
-  - knowledge
-  - exports
-  - feedback
-  - usage
-  - admin 全组
+对项目的深入扩展和共建，强烈建议您在改动之前查阅如下核心设计文档：
 
-## 6. 文档导航
+- [🗺️ 项目架构全景概览](./docs/项目规范与框架流程/项目规范/项目架构全景.md)
+- [📝 命名与代码书写规范](./docs/项目规范与框架流程/项目规范/naming.md)
+- [🔗 后端 API 协同规范](./docs/项目规范与框架流程/项目规范/api.md)
+- [🧩 核心节点插件化开发指南](./backend/app/nodes/CONTRIBUTING.md)
+- [🗃️ Shared 子模块参考手册](./shared/README.md)
+- [🤖 Agent 与 Workflow 协作机制说明](./shared/AGENTS.md)
 
-- [项目架构全景](./docs/项目规范与框架流程/项目规范/项目架构全景.md)
-- [命名规范](./docs/项目规范与框架流程/项目规范/naming.md)
-- [API 规范](./docs/项目规范与框架流程/项目规范/api.md)
-- [节点开发指南](./backend/app/nodes/CONTRIBUTING.md)
-- [shared README](./shared/README.md)
-- [shared AGENTS](./shared/AGENTS.md)
+>⚠️ **特别说明 (`shared` 边界)：**  
+>当前仓库中的 `shared/` 为 Git submodule。在后续若与 Platform Monorepo 同步时使用 subtree 操作时，切勿混淆两套流程策略结构（具体参照 `shared/docs/guides/subtree-sync.md`）。
 
-## 7. `shared` 与 Platform 的关系
+## 🤝 参与贡献 (Contributing)
 
-必须区分两件事：
+欢迎通过提交 Issue 错误报告或是提交 Pull Request 来帮助本平台变得更好！参与研发前请务必仔细阅读官方的规范并遵守现有项目的架构。
 
-- 当前仓库中的 `shared/` 是 Git submodule
-- Platform Monorepo 中的 `StudySolo/` 是 git subtree
+## 📄 开源协议 (License)
 
-不要把 `shared` 写成 git subtree，也不要把 Platform 中的 subtree 同步问题写成 `shared` 子模块问题。
+StudySolo 项目基于 [MIT License](./LICENSE) 发布。

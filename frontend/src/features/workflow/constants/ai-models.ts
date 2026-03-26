@@ -121,6 +121,26 @@ export function groupModelsByProvider(options: AIModelOption[]) {
   return groups;
 }
 
+// Vendor brand names for Track B (workflow node 2-level menu)
+const VENDOR_DISPLAY_NAMES: Record<string, string> = {
+  deepseek: 'DeepSeek',
+  qwen: '通义千问',
+  zhipu: '智谱 GLM',
+  doubao: '豆包',
+  moonshot: 'Kimi (月之暗面)',
+  openai_oss: 'GPT OSS',
+};
+
+export function groupModelsByVendor(options: AIModelOption[]): Record<string, AIModelOption[]> {
+  const groups: Record<string, AIModelOption[]> = {};
+  for (const model of options) {
+    const vendorKey = model.vendor ?? 'other';
+    const displayVendor = VENDOR_DISPLAY_NAMES[vendorKey] ?? vendorKey;
+    (groups[displayVendor] ??= []).push(model);
+  }
+  return groups;
+}
+
 export const FALLBACK_AI_MODEL_OPTIONS: AIModelOption[] = [
   {
     skuId: 'sku_deepseek_chat_native',

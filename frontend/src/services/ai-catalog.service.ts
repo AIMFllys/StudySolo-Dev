@@ -5,8 +5,34 @@ import {
   mapCatalogSkuToOption,
   type AIModelOption,
 } from '@/features/workflow/constants/ai-models';
+import type { TierType } from '@/services/auth.service';
 import type { AdminCatalogResponse, AdminCatalogUpdateRequest, AdminCatalogUpdateResponse, UserCatalogResponse } from '@/types/ai-catalog';
 import { adminFetch } from '@/services/admin.service';
+
+// Track A: Chat panel model definition
+export interface ChatModelOption {
+  key: string;
+  displayName: string;
+  requiredTier: TierType;
+  sortOrder: number;
+  brandColor: string;
+  description: string;
+  hasFallback: boolean;
+  isRecommended: boolean;
+  isPremium: boolean;
+  isAccessible: boolean;
+  skuId: string | null;
+}
+
+// Track A: Fetch curated chat panel model list from dedicated endpoint
+export async function getChatModelList(): Promise<ChatModelOption[]> {
+  const response = await authedFetch('/api/ai/chat/models');
+  if (!response.ok) {
+    throw new Error(await parseApiError(response, '加载对话模型列表失败'));
+  }
+  const data = await response.json() as { models: ChatModelOption[] };
+  return data.models ?? [];
+}
 
 export async function getUserAiModelCatalog(): Promise<AIModelOption[]> {
   const response = await authedFetch('/api/ai/models/catalog');
