@@ -119,3 +119,158 @@
 ---
 
 > **阶段结论**：这两大繁重的基础模块重铸工程在此宣告已全部符合要求闭环合并完成。我们的底层应用形态终于走完了从小众单独承接运行试验版本到兼容现代架构要求、能够平滑应对并发并具有完善生命周期操作、共享流权限划分等高鲁棒性级别的基建转换升级。当下环境已非常安定成熟，无论针对展示或外沿集成已具备强大的结构防守基石支撑能力。
+
+---
+
+## 🔧 补充修复：节点 UI 框架深度重构与 Bug 修复（2026-03-26 晚）
+
+> **所属模块**：`frontend/src/features/workflow/components/nodes/`
+> **触发原因**：协作系统收尾后的综合深审中，发现节点 UI 层存在多处根因级问题，进行专项修复。
+> **涉及 Commit**：`fix(workflow): requiresModel meta-flag, idle result slip, fix model_route:'B' test remnant` + `fix(workflow-node): unset model placeholder, fix isLogicSwitch scope, user-keyed catalog cache`
+
+---
+
+### 一、根因分析总览
+
+通过对 `workflow-meta.ts` → `AIStepNode.tsx` → `NodeModelSelector.tsx` → `use-action-executor.ts` → `use-workflow-catalog.ts` → 后端 `executor.py` 的全链路取证，共识别 **6 个根因问题**：
+
+| # | 问题 | 严重性 | 位置 |
+|---|------|--------|------|
+| 1 | `model_route` 前端值不传递给后端执行引擎，模型选择功能无效 | 🔴 高（有意搁置） | `executor.py` |
+| 2 | `model_route:''` 时显示 `models[0]` 假模型名，视觉欺骗用户 | 🟠 中 | `NodeModelSelector.tsx` |
+| 3 | `pending` 状态的 `NodeResultSlip` 返回 `null`，纸条物理消失 | 🟠 中 | `NodeResultSlip.tsx` |
+| 4 | `use-action-executor.ts` 硬编码 `model_route: 'B'`（测试残留） | 🟠 中 | `use-action-executor.ts` |
+| 5 | `workflow-meta.ts` 无 `requiresModel` 字段，靠脆弱枚举排除法控制模型选择器 | 🟡 中 | `workflow-meta.ts` / `AIStepNode.tsx` |
+| 6 | `useWorkflowCatalog` 模块级缓存跨用户 Session 污染 | 🟠 中 | `use-workflow-catalog.ts` |
+
+---
+
+### 二、已修复内容（5 项）
+
+#### 修复 A：`workflow-meta.ts` 引入 `requiresModel` 元数据字段
+
+**根因**：`AIStepNode` 以 `nodeType !== 'trigger_input' && !isLogicSwitch` 的枚举排除法决定是否展示 `NodeModelSelector`。节点种类增加后（`write_db`、`export_file`、`knowledge_base` 等工具型节点），枚举列表落后，导致这些节点也错误渲染模型选择器。
+
+**修复**：在 `NodeTypeMeta` 类型增加 `requiresModel: boolean` 字段，全部 19 个节点逐一标注：
+
+- ✅ `true`（11 个）：`ai_analyzer`、`ai_planner`、`outline_gen`、`content_extract`、`summary`、`flashcard`、`chat_response`、`compare`、`mind_map`、`quiz_gen`、`merge_polish`
+- ❌ `false`（8 个）：`trigger_input`、`write_db`、`knowledge_base`、`web_search`、`export_file`、`logic_switch`、`loop_map`、`loop_group`
+
+`AIStepNode` 守卫从枚举排除改为数据驱动：
+
+```tsx
+// 修复前（脆弱枚举法）
+{model_route != null && model_route !== '' && nodeType !== 'trigger_input' && !isLogicSwitch && (
+  <NodeModelSelector ... />
+)}
+
+// 修复后（数据驱动）
+{typeMeta.requiresModel && (
+  <NodeModelSelector nodeId={id} currentModel={model_route ?? ''} ... />
+)}
+```
+
+---
+
+#### 修复 B：`NodeResultSlip` 的 `pending` 状态不再返回 `null`
+
+**根因**：`if (status === 'pending') return null` 导致编辑态下节点底部纸条物理消失，节点空洞感强，边界不清晰，视觉违背"Ink & Parchment"的实体质感设计原则。
+
+**修复**：`pending` 改为渲染极低调的"闲置中"灰色占位标签，节点始终具备物理占位感：
+
+```tsx
+if (!status || status === 'pending') {
+  return (
+    <div className="node-result-slip mt-1 border-t border-dashed border-black/8 ...">
+      <Clock3 className="w-3 h-3 text-black/20" />
+      <span className="font-mono text-[10px] text-black/20">闲置中</span>
+    </div>
+  );
+}
+```
+
+---
+
+#### 修复 C：`use-action-executor.ts` 清除测试残留硬编码
+
+**根因**：AI 对话助手通过 `ADD_NODE` 创建节点时，代码硬编码 `model_route: 'B'`，此为早期联调时的临时测试值，从未被清除，导致 AI 生成的节点携带无效路由标识。
+
+**修复**：
+
+```ts
+// 修复前
+model_route: 'B',
+// 修复后
+model_route: '',   // User selects model via NodeModelSelector
+```
+
+---
+
+#### 修复 D：`NodeModelSelector` 去除视觉欺骗，引入"未选"占位态
+
+**根因**：`currentModel === ''` 时，`models.find(...)` 返回 `undefined`，fallback 到 `models[0]`，触发按钮显示 `deepseek-chat`，但 `model_route` 仍是空字符串。用户以为已选模型，实则未绑定。
+
+**修复**：区分"已选"和"未选"两种视觉态，彻底消除视觉欺骗：
+
+```tsx
+const selectedModelInfo = currentModel
+  ? models.find((m) => m.model === currentModel)
+  : undefined;
+const isUnset = !currentModel || !selectedModelInfo;
+
+// 未选态：○ 选择模型（虚线圆 + 斜体灰色）
+// 已选态：● deepseek-chat（彩色品牌圆 + 模型名）
+```
+
+---
+
+#### 修复 E：`useWorkflowCatalog` 用户 Session 隔离缓存
+
+**根因**：`let _cachedModels: AIModelOption[] | null` 是全局模块单例，永不失效。用户 A（免费）退出、用户 B（PRO）登录后，B 仍看到 A 的免费模型列表，造成跨用户信息泄漏。
+
+**修复**：将单值缓存改为 `{ userId, tier }` 键控结构，换用户或升级套餐均自动失效重取：
+
+```ts
+interface CacheEntry { userId: string; tier: string; models: AIModelOption[]; }
+let _cache: CacheEntry | null = null;
+// 初始化时：getUser() → 比对 userId+tier → 命中直接用 / 不一致则重新拉取
+```
+
+---
+
+### 三、有意搁置项（等待 AI 路由重构完成后一步打通）
+
+| 问题 | 详情 | 修复预案 |
+|------|------|---------|
+| `model_route` 不传递给后端 | `executor.py` 构建 `NodeInput` 时完全不读取 `node_data.get("model_route")`，前端选择的模型不影响实际 LLM 调用 | 路由层稳定后，在 `NodeInput` 处加 `selected_model_key=node_data.get("model_route")` 打通 |
+| `model_route` 字段值语义错误 | 目前存 `model_id`（如 `deepseek-chat`），语义上应存 `skuId`（如 `sku_deepseek_chat_native`），供后端 `resolve_selected_sku()` 精确路由 | 同步修复：前端改为 `updateNodeData(nodeId, { model_route: model.skuId })` |
+
+---
+
+### 四、修复后节点 UI 完整状态机
+
+```
+新建节点（requiresModel: true）
+  ├─ Header：○ 选择模型（虚线圆 + 斜体灰色占位）
+  └─ 纸条底部：🕒 闲置中
+
+用户选定模型后
+  ├─ Header：● deepseek-chat（彩色品牌圆 + 模型名）
+  └─ 纸条底部：🕒 闲置中
+
+执行中
+  ├─ Header：● deepseek-chat
+  └─ 纸条底部：⟳ 执行中...
+
+执行完成
+  ├─ Header：● deepseek-chat
+  └─ 纸条底部：✓ 运行成功 2.3s（可展开查看完整输出）
+
+错误状态
+  ├─ Header：● deepseek-chat
+  └─ 纸条底部：⚠ 执行失败（可展开查看错误信息）
+
+非AI节点（requiresModel: false，如 write_db / logic_switch）
+  ├─ Header：无模型选择器（彻底不渲染，零残余）
+  └─ 纸条底部：同如上状态机
+```
