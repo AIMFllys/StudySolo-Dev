@@ -82,8 +82,8 @@ function AIStepNode({ data, selected, type, id }: NodeProps) {
                 </span>
               )}
             </div>
-            {model_route != null && model_route !== '' && nodeType !== 'trigger_input' && !isLogicSwitch && (
-              <NodeModelSelector nodeId={id} currentModel={model_route} nodeThemeColor="currentColor" />
+            {typeMeta.requiresModel && (
+              <NodeModelSelector nodeId={id} currentModel={model_route ?? ''} nodeThemeColor="currentColor" />
             )}
           </div>
 

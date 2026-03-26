@@ -86,7 +86,7 @@ export async function executeCanvasActions(actions: CanvasAction[]): Promise<Exe
                   label,
                   type,
                   system_prompt: '',
-                  model_route: 'B',
+                  model_route: '',   // User selects model via NodeModelSelector
                   status: 'pending',
                   output: '',
                 },

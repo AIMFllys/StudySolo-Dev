@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronRight, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, CheckCircle2, AlertCircle, Loader2, Clock3 } from 'lucide-react';
 import { NodeStatus } from '@/types';
 import { getRenderer } from './index';
 
@@ -47,8 +47,18 @@ export const NodeResultSlip: React.FC<NodeResultSlipProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const parsedInput = useMemo(() => parseInputSnapshot(inputSnapshot), [inputSnapshot]);
 
-  if (status === 'pending') {
-    return null;
+  // ── Pending: show a silent "idle" tab — never return null ──────────────────
+  if (!status || status === 'pending') {
+    return (
+      <div className="node-result-slip mt-1 w-full bg-black/[0.02] dark:bg-white/[0.02] border-t border-dashed border-black/8 dark:border-white/8 rounded-b-md nodrag">
+        <div className="flex items-center gap-2 px-3 py-1.5 pointer-events-none select-none">
+          <Clock3 className="w-3 h-3 text-black/20 dark:text-white/20" />
+          <span className="font-mono text-[10px] text-black/20 dark:text-white/20 tracking-wider">
+            闲置中
+          </span>
+        </div>
+      </div>
+    );
   }
 
   const Renderer = getRenderer(nodeType);
