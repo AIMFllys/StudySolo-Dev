@@ -17,7 +17,7 @@ function AIStepNode({ data, selected, type, id }: NodeProps) {
   const typeMeta = getNodeTypeMeta(nodeType);
   const isActive = status === 'running' || status === 'waiting' || selected;
   const nodeTheme = getNodeTheme(nodeType);
-  const isLogicSwitch = nodeType === 'logic_switch';
+  const isLogicSwitch = nodeType === 'logic_switch'; // Controls BRANCH badge + BranchManagerPanel
   const statusBadge = status === 'running' ? '(ACTIVE)' : status === 'waiting' ? '(WAIT)' : '';
   
   const cardShadow = isActive ? 'ring-2 ring-primary/40 shadow-xl shadow-primary/10 scale-[1.02]' : '';

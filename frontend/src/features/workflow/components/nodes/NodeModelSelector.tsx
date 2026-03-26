@@ -22,7 +22,6 @@ interface NodeModelSelectorProps {
 export const NodeModelSelector: React.FC<NodeModelSelectorProps> = ({
   nodeId,
   currentModel,
-  nodeThemeColor,
 }) => {
   const updateNodeData = useWorkflowStore((s) => s.updateNodeData);
   const { models, isLoading } = useWorkflowCatalog();
@@ -40,26 +39,38 @@ export const NodeModelSelector: React.FC<NodeModelSelectorProps> = ({
     updateNodeData(nodeId, { model_route: model.model });
   };
 
-  const selectedModelInfo = models.find((m) => m.model === currentModel) ?? models[0];
-  const brandColor = selectedModelInfo?.brandColor ?? nodeThemeColor;
+  // When currentModel is empty or not found in catalog → show unset placeholder
+  const selectedModelInfo = currentModel
+    ? models.find((m) => m.model === currentModel)
+    : undefined;
+
+  const isUnset = !currentModel || !selectedModelInfo;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
-          className="node-model-selector-trigger group flex items-center gap-1.5 focus:outline-none bg-transparent border-none opacity-60 font-mono text-[9px] uppercase hover:opacity-100 hover:border hover:border-dashed hover:border-current/20 px-1 py-0.5 rounded transition-all"
-          title={isLoading ? '加载模型列表...' : '切换 AI 模型'}
+          className="node-model-selector-trigger group flex items-center gap-1.5 focus:outline-none bg-transparent border-none font-mono text-[9px] uppercase transition-all px-1 py-0.5 rounded hover:bg-black/5 dark:hover:bg-white/5"
+          title={isLoading ? '加载模型列表...' : isUnset ? '点击选择 AI 模型' : '切换 AI 模型'}
           disabled={isLoading}
         >
           {isLoading ? (
             <span className="w-1.5 h-1.5 rounded-full inline-block animate-pulse bg-stone-400" />
+          ) : isUnset ? (
+            /* Unset state: pulsing empty dot + italic placeholder */
+            <>
+              <span className="w-1.5 h-1.5 rounded-full border border-dashed border-black/30 dark:border-white/30 inline-block" />
+              <span className="opacity-40 italic tracking-wide">选择模型</span>
+            </>
           ) : (
-            <span
-              className="w-1.5 h-1.5 rounded-full inline-block transition-colors"
-              style={{ backgroundColor: brandColor }}
-            />
+            <>
+              <span
+                className="w-1.5 h-1.5 rounded-full inline-block transition-colors"
+                style={{ backgroundColor: selectedModelInfo.brandColor }}
+              />
+              <span className="opacity-70 group-hover:opacity-100">{selectedModelInfo.model}</span>
+            </>
           )}
-          <span>{selectedModelInfo?.model ?? currentModel}</span>
         </button>
       </DropdownMenuTrigger>
 
