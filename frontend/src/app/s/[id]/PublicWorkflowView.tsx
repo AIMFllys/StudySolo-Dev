@@ -1,8 +1,8 @@
 'use client';
 
-import { Heart, Star, GitFork, Pencil } from 'lucide-react';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Heart, Star, GitFork, Pencil, LogIn, X } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
 import { toggleLike, toggleFavorite, forkWorkflow } from '@/services/workflow.service';
@@ -24,17 +24,84 @@ function CanvasPlaceholder() {
   );
 }
 
+/** Lightweight login-redirect confirmation dialog */
+function LoginPromptDialog({
+  onConfirm,
+  onCancel,
+}: {
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"
+        onClick={onCancel}
+      />
+      {/* Dialog */}
+      <div className="relative bg-background border border-border rounded-xl shadow-xl px-6 py-5 max-w-sm w-full mx-4 animate-in zoom-in-95 fade-in duration-200">
+        <button
+          onClick={onCancel}
+          className="absolute top-3 right-3 p-1 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+        <div className="flex flex-col items-center text-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+            <LogIn className="h-5 w-5 text-foreground" />
+          </div>
+          <h3 className="text-sm font-serif font-semibold text-foreground">
+            需要登录
+          </h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            此操作需要登录后才能使用。<br />
+            是否跳转至登录页面？
+          </p>
+          <div className="flex items-center gap-2 mt-1 w-full">
+            <button
+              onClick={onCancel}
+              className="flex-1 rounded-md border border-border px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors"
+            >
+              暂不登录
+            </button>
+            <button
+              onClick={onConfirm}
+              className="flex-1 rounded-md bg-foreground text-background px-3 py-2 text-xs font-medium hover:opacity-90 transition-opacity"
+            >
+              前往登录
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface Props {
   workflow: WorkflowPublicView;
 }
 
 export default function PublicWorkflowView({ workflow }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
   const [likes, setLikes] = useState(workflow.likes_count);
   const [favs, setFavs] = useState(workflow.favorites_count);
   const [liked, setLiked] = useState(workflow.is_liked ?? false);
   const [faved, setFaved] = useState(workflow.is_favorited ?? false);
   const [forking, setForking] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+  const promptLogin = useCallback(() => {
+    toast.error('请先登录后再操作');
+    setShowLoginPrompt(true);
+  }, []);
+
+  const handleLoginRedirect = useCallback(() => {
+    setShowLoginPrompt(false);
+    router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
+  }, [router, pathname]);
 
   async function handleLike() {
     try {
@@ -42,7 +109,7 @@ export default function PublicWorkflowView({ workflow }: Props) {
       setLiked(res.toggled);
       setLikes(res.count);
     } catch {
-      toast.error('请先登录后再操作');
+      promptLogin();
     }
   }
 
@@ -52,7 +119,7 @@ export default function PublicWorkflowView({ workflow }: Props) {
       setFaved(res.toggled);
       setFavs(res.count);
     } catch {
-      toast.error('请先登录后再操作');
+      promptLogin();
     }
   }
 
@@ -63,8 +130,8 @@ export default function PublicWorkflowView({ workflow }: Props) {
       toast.success('已 Fork 到我的工作空间');
       router.push(`/c/${forked.id}`);
     } catch {
-      toast.error('Fork 失败，请先登录');
       setForking(false);
+      promptLogin();
     }
   }
 
@@ -175,6 +242,14 @@ export default function PublicWorkflowView({ workflow }: Props) {
         <span>·</span>
         <span>{workflow.edges_json.length} 条连线</span>
       </div>
+
+      {/* Login prompt dialog */}
+      {showLoginPrompt && (
+        <LoginPromptDialog
+          onConfirm={handleLoginRedirect}
+          onCancel={() => setShowLoginPrompt(false)}
+        />
+      )}
     </div>
   );
 }
