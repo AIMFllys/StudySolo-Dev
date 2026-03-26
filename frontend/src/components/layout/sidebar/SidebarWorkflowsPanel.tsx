@@ -2,6 +2,7 @@
 
 import { SidebarWorkflowItem } from './SidebarWorkflowItem';
 import type { WorkflowMeta } from '@/types/workflow';
+import { groupWorkflowsForDisplay } from '@/features/workflow/utils/group-workflows';
 
 interface SidebarWorkflowsPanelProps {
   workflows: WorkflowMeta[];
@@ -24,9 +25,11 @@ export function SidebarWorkflowsPanel({
     return <p className="px-4 py-3 text-xs text-muted-foreground">暂无工作流</p>;
   }
   
-  const favs = workflows.filter(w => w.is_favorited);
-  const pubs = workflows.filter(w => !w.is_favorited && w.is_public);
-  const uncat = workflows.filter(w => !w.is_favorited && !w.is_public);
+  const {
+    favorites: favs,
+    published: pubs,
+    uncategorized: uncat,
+  } = groupWorkflowsForDisplay(workflows);
 
   return (
     <>

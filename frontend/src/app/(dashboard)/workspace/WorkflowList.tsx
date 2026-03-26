@@ -6,6 +6,7 @@ import Link from 'next/link';
 import type { WorkflowMeta } from '@/types/workflow';
 import { Star, Heart, FileText, Globe } from 'lucide-react';
 import { SidebarContextMenu } from '@/components/layout/sidebar/SidebarContextMenu';
+import { groupWorkflowsForDisplay } from '@/features/workflow/utils/group-workflows';
 import {
   toggleLike as apiToggleLike,
   toggleFavorite as apiToggleFavorite,
@@ -92,9 +93,8 @@ export default function WorkflowList({ initialWorkflows }: WorkflowListProps) {
     toggleFavoriteHandler(id);
   };
 
-  const favorites = workflows.filter(w => w.is_favorited);
-  const published = workflows.filter(w => !w.is_favorited && w.is_public);
-  const uncategorized = workflows.filter(w => !w.is_favorited && !w.is_public);
+  const { favorites, published, uncategorized } =
+    groupWorkflowsForDisplay(workflows);
 
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [editingField, setEditingField] = useState<'name' | 'desc' | 'tags' | null>(null);
