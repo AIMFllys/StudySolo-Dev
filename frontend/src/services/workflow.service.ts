@@ -158,7 +158,7 @@ export async function fetchMarketplace(
   try {
     const response = await fetch(
       buildApiUrl(`/api/workflow/marketplace?${qs.toString()}`),
-      { next: { revalidate: 60 } }
+      { cache: 'no-store' }
     );
     if (!response.ok) return [];
     return (await response.json()) as WorkflowMeta[];

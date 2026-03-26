@@ -36,6 +36,8 @@ interface PanelState {
   collapsedSections: Record<string, boolean>;
   /** Whether the right panel is docked to the left sidebar */
   rightPanelDockedToSidebar: boolean;
+  /** Bumped when marketplace data may have changed (e.g. workflow toggled public) */
+  marketplaceVersion: number;
 
   /** Toggle a sidebar panel — if already active, collapse; if different, switch */
   toggleSidebarPanel: (panel: SidebarPanel) => void;
@@ -51,6 +53,8 @@ interface PanelState {
 
   /** Toggle docking the right panel into the left sidebar */
   toggleRightPanelDock: () => void;
+  /** Signal marketplace panels to re-fetch data */
+  bumpMarketplaceVersion: () => void;
 }
 
 export const usePanelStore = create<PanelState>()(
@@ -62,6 +66,7 @@ export const usePanelStore = create<PanelState>()(
       rightPanelCollapsed: false,
       collapsedSections: {},
       rightPanelDockedToSidebar: false,
+      marketplaceVersion: 0,
 
       toggleSidebarPanel: (panel) =>
         set((state) => ({
@@ -98,8 +103,13 @@ export const usePanelStore = create<PanelState>()(
             activeSidebarPanel: docking
               ? ('execution' as SidebarPanel)
               : ('node-store' as SidebarPanel),
-          };
-        }),
+        };
+      }),
+
+      bumpMarketplaceVersion: () =>
+        set((state) => ({
+          marketplaceVersion: state.marketplaceVersion + 1,
+        })),
     }),
     {
       name: 'studysolo-panel-layout',

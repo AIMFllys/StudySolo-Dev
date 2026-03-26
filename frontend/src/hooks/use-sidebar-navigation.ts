@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { logout } from '@/services/auth.service';
 
@@ -15,6 +15,8 @@ interface UseSidebarNavigationResult {
   settingsActive: boolean;
   isWorkflowActive: (workflowId: string) => boolean;
   logoutAndRedirect: () => Promise<void>;
+  /** Call router.refresh() to re-fetch SSR data */
+  refreshRouter: () => void;
 }
 
 export function useSidebarNavigation(): UseSidebarNavigationResult {
@@ -31,10 +33,13 @@ export function useSidebarNavigation(): UseSidebarNavigationResult {
     router.push('/login');
   }, [router]);
 
+  const refreshRouter = useMemo(() => () => router.refresh(), [router]);
+
   return {
     pathname,
     settingsActive: isSettingsRouteActive(pathname),
     isWorkflowActive,
     logoutAndRedirect,
+    refreshRouter,
   };
 }

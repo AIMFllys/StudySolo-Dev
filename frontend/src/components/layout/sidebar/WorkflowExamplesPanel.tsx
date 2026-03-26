@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FileText, ArrowRight, Star, Heart, Search, Filter } from 'lucide-react';
 import { fetchMarketplace, forkWorkflow } from '@/services/workflow.service';
+import { usePanelStore } from '@/stores/use-panel-store';
 import type { WorkflowMeta } from '@/types/workflow';
 
 type FilterType = 'all' | 'official' | 'featured' | 'public';
@@ -16,6 +17,7 @@ export default function WorkflowExamplesPanel() {
   const [filter, setFilter] = useState<FilterType>('all');
   const [loading, setLoading] = useState(true);
   const [forkingId, setForkingId] = useState<string | null>(null);
+  const marketplaceVersion = usePanelStore((s) => s.marketplaceVersion);
 
   // Debounce search input by 400ms
   useEffect(() => {
@@ -34,7 +36,7 @@ export default function WorkflowExamplesPanel() {
       if (!cancelled) { setWorkflows(data); setLoading(false); }
     });
     return () => { cancelled = true; };
-  }, [filter, debouncedSearch]);
+  }, [filter, debouncedSearch, marketplaceVersion]);
 
   const handleFork = async (id: string) => {
     setForkingId(id);

@@ -73,8 +73,10 @@ export default function Sidebar({ workflows }: SidebarProps) {
     getUser().then(setUser).catch(() => null);
   }, []);
 
-  const { pathname, isWorkflowActive, logoutAndRedirect } =
+  const { pathname, isWorkflowActive, logoutAndRedirect, refreshRouter } =
     useSidebarNavigation();
+  const bumpMarketplace = usePanelStore((s) => s.bumpMarketplaceVersion);
+  const afterVisibilityChange = () => { bumpMarketplace(); refreshRouter(); };
   const { contextMenu, handleContextMenu, closeContextMenu } =
     useWorkflowContextMenu();
   const { processingWorkflowId, onRenameWorkflow, onDeleteWorkflow } =
@@ -290,8 +292,8 @@ export default function Sidebar({ workflows }: SidebarProps) {
           onClose={closeContextMenu}
           onRename={handleRename}
           onDelete={handleDelete}
-          onToggleFavorite={(id) => { void apiToggleFavorite(id); closeContextMenu(); }}
-          onTogglePublish={(id) => { const wf = workflows.find(w => w.id === id); if (wf) void updateWorkflow(id, { is_public: !wf.is_public }); closeContextMenu(); }}
+          onToggleFavorite={(id) => { void apiToggleFavorite(id).then(refreshRouter); closeContextMenu(); }}
+          onTogglePublish={(id) => { const wf = workflows.find(w => w.id === id); if (wf) void updateWorkflow(id, { is_public: !wf.is_public }).then(afterVisibilityChange); closeContextMenu(); }}
         />
       )}
     </>

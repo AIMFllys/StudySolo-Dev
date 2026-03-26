@@ -1,36 +1,20 @@
 import type { Metadata } from "next";
-import { Inter, Noto_Sans_SC, JetBrains_Mono, Noto_Serif_SC } from "next/font/google";
 import ThemeProvider from "@/components/layout/ThemeProvider";
 import { AuthSessionBridge } from "@/features/auth/components";
 import NextTopLoader from "nextjs-toploader";
 import { Toaster } from "sonner";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-sans",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const notoSansSC = Noto_Sans_SC({
-  variable: "--font-sans-sc",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const notoSerifSC = Noto_Serif_SC({
-  variable: "--font-serif-sc",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "900"],
-  display: "swap",
-});
+/**
+ * Font CSS variables — powered by @fontsource (local, no Google CDN).
+ * Family names match the @fontsource-variable package output.
+ */
+const fontVars = {
+  "--font-sans": "'Inter Variable', system-ui, sans-serif",
+  "--font-sans-sc": "'Noto Sans SC Variable', 'Inter Variable', sans-serif",
+  "--font-mono": "'JetBrains Mono Variable', monospace",
+  "--font-serif-sc": "'Noto Serif SC Variable', serif",
+} as React.CSSProperties;
 
 export const metadata: Metadata = {
   title: "StudySolo - AI Learning Workflow Platform",
@@ -45,7 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN" className="dark" suppressHydrationWarning>
-      <body className={`${inter.variable} ${notoSansSC.variable} ${jetbrainsMono.variable} ${notoSerifSC.variable} antialiased`}>
+      <body className="antialiased" style={fontVars}>
         <AuthSessionBridge />
         <NextTopLoader
           color="#6366F1"

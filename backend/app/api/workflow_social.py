@@ -24,7 +24,7 @@ _PUBLIC_VIEW_COLS = (
     "user_id,created_at"
 )
 _MARKETPLACE_COLS = (
-    "id,name,description,tags,is_public,is_featured,is_official,"
+    "id,name,description,status,tags,is_public,is_featured,is_official,"
     "likes_count,favorites_count,user_id,created_at,updated_at"
 )
 
