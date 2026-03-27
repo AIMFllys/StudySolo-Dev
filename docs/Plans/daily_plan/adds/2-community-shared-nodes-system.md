@@ -923,3 +923,865 @@ frontend/src/
 | 节点自动注册 | `backend/app/nodes/__init__.py` |
 | 后端路由注册 | `backend/app/api/router.py` |
 | 拖拽数据协议 | `dataTransfer key: 'application/studysolo-node-type'` + `'application/studysolo-community-id'` |
+
+---
+
+## 15. 独立分类体系（Category System）
+
+> **设计决策**：社区节点使用独立于官方引擎的场景化分类体系，不与官方节点的 5 大分类（input/process/generate/output/control）混用。
+
+### 15.1 分类常量定义（前端）
+
+```typescript
+// frontend/src/features/community-nodes/constants/categories.ts
+
+export const COMMUNITY_NODE_CATEGORIES = [
+  { id: 'academic',       label: '学术论文',   icon: 'GraduationCap' },
+  { id: 'coding',         label: '代码开发',   icon: 'Code' },
+  { id: 'translation',    label: '语言翻译',   icon: 'Languages' },
+  { id: 'writing',        label: '创意写作',   icon: 'PenTool' },
+  { id: 'data_analysis',  label: '数据分析',   icon: 'BarChart3' },
+  { id: 'education',      label: '教育辅导',   icon: 'BookOpen' },
+  { id: 'legal',          label: '法律咨询',   icon: 'Scale' },
+  { id: 'health',         label: '医疗健康',   icon: 'HeartPulse' },
+  { id: 'business',       label: '商业分析',   icon: 'Briefcase' },
+  { id: 'daily_tools',    label: '日常工具',   icon: 'Wrench' },
+  { id: 'assessment',     label: '评估检查',   icon: 'ClipboardCheck' },
+  { id: 'research',       label: '科研实验',   icon: 'Microscope' },
+  { id: 'other',          label: '其他',       icon: 'Puzzle' },
+] as const;
+
+export type CommunityCategory = typeof COMMUNITY_NODE_CATEGORIES[number]['id'];
+```
+
+### 15.2 存储与查询
+
+```
+存储：ss_community_nodes.category = 'academic' (string)
+查询：GET /api/community-nodes/?category=coding&search=python
+
+后端 SQL：
+  .eq('is_public', True)
+  .eq('category', category)                        -- 精确匹配分类
+  .or_(f'name.ilike.%{search}%,description.ilike.%{search}%')  -- 模糊搜索名称+描述
+```
+
+### 15.3 前端 UI（共享视图内）
+
+```
+共享节点视图内增加分类筛选：
+
+┌─────────────────────────────────────┐
+│  [搜索框]                            │
+│  [🎓 学术] [💻 代码] [🌐 翻译] ...  │  ← 水平 Tag 筛选（可多选，可取消）
+│  排序：❤️ 最多点赞 | 🕐 最新发布     │
+│  ─────────────────────────────────── │
+│  节点列表...                         │
+└─────────────────────────────────────┘
+```
+
+### 15.4 数据库端
+
+category 字段已在 §2.1 的 `ss_community_nodes` 表中定义（`TEXT NOT NULL DEFAULT 'other'`），
+已有索引 `ss_community_nodes_category_idx`。无需额外 DDL 变更。
+
+---
+
+## 16. 知识文件上传机制
+
+> **MVP 决策**：采用「提取纯文本 → 截断 8000 字符 → 存 DB TEXT 字段」方案。
+>
+> 不使用完整 RAG 管道的原因：
+> - MVP 无需异步 BackgroundTasks + polling 状态逻辑
+> - 开发量减少约 60%（无需新建 chunk/embedding 表）
+> - 社区节点的知识文件通常是中等大小（1-20 页）
+> - 后续 Phase 可升级到 RAG（基础设施已就绪）
+
+### 16.1 数据库变更（在 §2.1 表中新增字段）
+
+```sql
+-- 在 ss_community_nodes 表新增以下字段：
+ALTER TABLE ss_community_nodes ADD COLUMN IF NOT EXISTS
+    knowledge_file_path  TEXT DEFAULT NULL;          -- Supabase Storage 路径
+
+ALTER TABLE ss_community_nodes ADD COLUMN IF NOT EXISTS
+    knowledge_file_name  TEXT DEFAULT NULL;           -- 原始文件名
+
+ALTER TABLE ss_community_nodes ADD COLUMN IF NOT EXISTS
+    knowledge_file_size  INTEGER DEFAULT 0;           -- 文件大小 (bytes)
+
+ALTER TABLE ss_community_nodes ADD COLUMN IF NOT EXISTS
+    knowledge_text       TEXT DEFAULT NULL;            -- 提取后的纯文本（截断 8000 字符）
+```
+
+> **注意**：`knowledge_text` 是预提取的缓存字段。执行时直接从 DB 读取，无需再次解析文件。
+> 字段不返回给前端（和 prompt 一样的安全策略）。
+
+### 16.2 Supabase Storage Bucket
+
+```sql
+-- 新建 Storage Bucket（在 Supabase Dashboard 或迁移中执行）
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'community-node-files',
+  'community-node-files',
+  false,                                            -- 私有 bucket
+  10485760,                                         -- 10MB 限制
+  ARRAY[
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'text/markdown',
+    'text/plain'
+  ]
+);
+
+-- Storage RLS：只有上传者可以读写
+CREATE POLICY "作者可上传知识文件"
+    ON storage.objects FOR INSERT
+    WITH CHECK (
+        bucket_id = 'community-node-files'
+        AND auth.uid()::text = (storage.foldername(name))[1]
+    );
+
+CREATE POLICY "后端 service_role 可读知识文件"
+    ON storage.objects FOR SELECT
+    USING (bucket_id = 'community-node-files');
+```
+
+### 16.3 上传 & 提取流程
+
+```python
+# backend/app/api/community_nodes.py — 发布时的文件处理
+
+from app.services.file_parser import parse_file
+
+MAX_KNOWLEDGE_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+MAX_KNOWLEDGE_TEXT_LENGTH = 8000             # 8000 字符硬截断
+ALLOWED_KNOWLEDGE_EXTENSIONS = {'pdf', 'docx', 'md', 'txt'}
+
+@router.post("/")
+async def publish_community_node(
+    name: str = Form(...),
+    description: str = Form(...),
+    prompt: str = Form(...),
+    icon: str = Form('Bot'),
+    category: str = Form('other'),
+    output_format: str = Form('markdown'),
+    output_schema: str | None = Form(None),      # JSON string
+    model_preference: str = Form('auto'),
+    input_hint: str = Form(''),
+    knowledge_file: UploadFile | None = File(None),   # 可选文件
+    current_user: dict = Depends(get_current_user),
+    db: AsyncClient = Depends(get_supabase_client),
+    service_db: AsyncClient = Depends(get_db),
+):
+    """发布社区节点（含可选知识文件）"""
+    user_id = current_user["id"]
+
+    # ── 知识文件处理 ──
+    knowledge_file_path = None
+    knowledge_file_name = None
+    knowledge_file_size = 0
+    knowledge_text = None
+
+    if knowledge_file and knowledge_file.filename:
+        ext = knowledge_file.filename.rsplit('.', 1)[-1].lower()
+        if ext not in ALLOWED_KNOWLEDGE_EXTENSIONS:
+            raise HTTPException(400, f"不支持的文件格式: .{ext}")
+
+        content = await knowledge_file.read()
+        if len(content) > MAX_KNOWLEDGE_FILE_SIZE:
+            raise HTTPException(400, "知识文件不能超过 10MB")
+
+        # ❶ 提取纯文本
+        parsed = parse_file(knowledge_file.filename, content)
+        knowledge_text = parsed.full_text[:MAX_KNOWLEDGE_TEXT_LENGTH]
+
+        # ❷ 上传到 Supabase Storage
+        storage_path = f"{user_id}/{uuid.uuid4()}.{ext}"
+        await service_db.storage.from_('community-node-files').upload(
+            path=storage_path,
+            file=content,
+            file_options={"content-type": knowledge_file.content_type},
+        )
+
+        knowledge_file_path = storage_path
+        knowledge_file_name = knowledge_file.filename
+        knowledge_file_size = len(content)
+
+    # ── 插入节点记录 ──
+    node_id = str(uuid.uuid4())
+    parsed_schema = json.loads(output_schema) if output_schema else None
+
+    await service_db.from_("ss_community_nodes").insert({
+        "id": node_id,
+        "author_id": user_id,
+        "name": name,
+        "description": description,
+        "prompt": prompt,
+        "icon": icon,
+        "category": category,
+        "output_format": output_format,
+        "output_schema": parsed_schema,
+        "model_preference": model_preference,
+        "input_hint": input_hint,
+        "knowledge_file_path": knowledge_file_path,
+        "knowledge_file_name": knowledge_file_name,
+        "knowledge_file_size": knowledge_file_size,
+        "knowledge_text": knowledge_text,
+        "status": "pending",
+    }).execute()
+
+    return {"id": node_id, "status": "pending"}
+```
+
+### 16.4 执行时知识注入
+
+```python
+# backend/app/nodes/community/node.py — execute() 知识注入部分
+
+# ① 从 DB 读取 prompt + knowledge_text
+node_def = await CommunityNodeService.get_node_with_prompt(community_node_id)
+custom_prompt = node_def['prompt']
+knowledge_text = node_def.get('knowledge_text')
+
+# ② 拼装 system prompt
+if knowledge_text:
+    custom_prompt += f"""
+
+---
+【参考知识库】
+以下是发布者提供的参考资料，请在回答中优先参考此知识：
+
+{knowledge_text}
+---"""
+
+# ③ 构建 messages
+messages = [
+    {"role": "system", "content": custom_prompt},
+    {"role": "user", "content": user_input},
+]
+```
+
+### 16.5 前端发布表单扩展（PublishNodeDialog）
+
+```
+┌─────────────────────────────────────┐
+│  ...（基础信息、Prompt 编辑区）       │
+│                                     │
+│  ── 知识库（可选）──                  │
+│  [📎 上传文件] 或 [拖拽文件到此]      │
+│  支持：PDF、Word、Markdown、TXT       │
+│  限制：单个文件 ≤ 10MB               │
+│                                     │
+│  已上传：                            │
+│  ┌──────────────────────────────┐   │
+│  │ 📄 machine-learning.pdf     │   │
+│  │    2.3 MB                    │   │
+│  │    [✕ 移除]                  │   │
+│  └──────────────────────────────┘   │
+│                                     │
+│  ── 输出格式 ──                      │
+│  ...                                │
+└─────────────────────────────────────┘
+```
+
+### 16.6 后续升级路径（非 MVP）
+
+```
+Phase 2 升级路径：如果需要支持大文件精确检索
+  ↓
+  发布时：file_parser → text_chunker → embed_texts → ss_community_node_chunks
+  执行时：用户输入作 query → 语义检索 top_k=5 chunks → 注入 prompt
+  基础设施：复用项目已有的 knowledge_service.py 管道
+
+  所需新增：
+  - ss_community_node_chunks 表（结构同 ss_kb_document_chunks）
+  - ss_community_node_embeddings 表（结构同 ss_kb_chunk_embeddings）
+  - BackgroundTasks 异步处理 + 前端 polling
+  - 约 50 行代码（大部分复用 knowledge_service.py）
+```
+
+---
+
+## 17. 输出格式约束（JSON Schema 强制）
+
+> **MVP 决策**：后端 prompt 注入 + post_process 正则清洗 + JSON 校验。
+> 不依赖 LLM 的 structured output API（通义千问 turbo 不支持），纯逻辑实现。
+
+### 17.1 发布者配置 JSON 格式时的交互
+
+```
+输出格式           [▼ JSON     ]    ← 选择 JSON 后，展开以下面板
+
+┌── JSON Schema 定义 ──────────────────────────┐
+│                                               │
+│  [✨ AI 生成 Schema]  [📋 从示例推断]         │  ← 辅助按钮
+│                                               │
+│  {                                            │  ← Monaco Editor (JSON mode)
+│    "type": "object",                          │
+│    "properties": {                            │
+│      "summary": {                             │
+│        "type": "string",                      │
+│        "description": "代码摘要"              │
+│      },                                       │
+│      "issues": {                              │
+│        "type": "array",                       │
+│        "items": {                             │
+│          "type": "object",                    │
+│          "properties": {                      │
+│            "line": { "type": "number" },      │
+│            "severity": {                      │
+│              "type": "string",                │
+│              "enum": ["error","warning","info"]│
+│            },                                 │
+│            "message": { "type": "string" }    │
+│          }                                    │
+│        }                                      │
+│      }                                        │
+│    },                                         │
+│    "required": ["summary", "issues"]          │
+│  }                                            │
+│                                               │
+│  校验状态：✅ JSON Schema 格式合法             │
+└───────────────────────────────────────────────┘
+```
+
+### 17.2 后端 prompt 注入逻辑
+
+```python
+# backend/app/nodes/community/node.py — execute() 中 JSON 约束部分
+
+import json
+import re
+
+def _build_json_constraint_prompt(output_schema: dict) -> str:
+    """构建 JSON 格式强制约束的 prompt 片段。"""
+    schema_str = json.dumps(output_schema, ensure_ascii=False, indent=2)
+    return f"""
+
+---
+【输出格式严格约束 / OUTPUT FORMAT CONSTRAINT】
+
+你必须且只能输出一个合规的 JSON 对象。
+
+严格要求：
+1. 以 {{ 开头，以 }} 结尾
+2. 不要输出 ```json ``` 代码块标记
+3. 不要输出任何解释、注释或多余文字
+4. 字段名必须与以下 Schema 完全一致
+5. 所有 required 字段必须存在
+
+JSON Schema：
+{schema_str}
+---"""
+
+
+# execute() 中的拼装：
+if output_format == 'json' and output_schema:
+    custom_prompt += _build_json_constraint_prompt(output_schema)
+```
+
+### 17.3 后端 post_process 清洗逻辑
+
+```python
+# backend/app/nodes/community/node.py — post_process 重写
+
+class CommunityNode(BaseNode):
+    # ...
+
+    async def post_process(self, raw_output: str) -> NodeOutput:
+        """社区节点输出后处理：JSON 模式时进行清洗 + 校验。"""
+        if self._output_format != 'json':
+            return NodeOutput(content=raw_output, format="markdown")
+
+        cleaned = raw_output.strip()
+
+        # ❶ 去掉 ```json ... ``` 代码块标记
+        if cleaned.startswith("```"):
+            cleaned = re.sub(r'^```\w*\n?', '', cleaned)
+            cleaned = re.sub(r'\n?```$', '', cleaned)
+            cleaned = cleaned.strip()
+
+        # ❷ 尝试提取 JSON 对象（处理模型在 JSON 后附加解释文本的情况）
+        brace_start = cleaned.find('{')
+        brace_end = cleaned.rfind('}')
+        if brace_start >= 0 and brace_end > brace_start:
+            cleaned = cleaned[brace_start:brace_end + 1]
+
+        # ❸ 尝试解析
+        try:
+            parsed = json.loads(cleaned)
+            return NodeOutput(
+                content=json.dumps(parsed, ensure_ascii=False, indent=2),
+                format="json",
+                metadata={"json_valid": True},
+            )
+        except json.JSONDecodeError as e:
+            # ❹ 解析失败：返回 markdown 标注错误
+            return NodeOutput(
+                content=(
+                    f"⚠️ **JSON 格式校验失败**\n\n"
+                    f"错误信息：{e.msg}\n\n"
+                    f"模型原始输出：\n```\n{raw_output[:2000]}\n```"
+                ),
+                format="markdown",
+                metadata={"json_valid": False, "json_error": str(e)},
+            )
+```
+
+### 17.4 JSON 校验重试（可选增强，config.yaml 已有设置）
+
+```
+config.yaml 已定义：
+  engine:
+    json_validation_retries: 3    ← 现有配置
+
+MVP 阶段不重试。如需重试，在 executor.py 的 node_done 后检查
+  metadata.json_valid == False → 重新调用 execute()（最多重试 N 次）
+
+Phase 2 实现。
+```
+
+---
+
+## 18. AI 辅助生成 JSON Schema
+
+> **MVP 决策**：硬编码调用 `call_llm_direct("dashscope", "qwen-turbo-latest")`，
+> 不消耗用户额度，平台内部调用。使用已有 `ai_router.py` 的 `call_llm_direct` 函数。
+
+### 18.1 API 端点
+
+```
+POST /api/community-nodes/generate-schema
+
+请求体：
+{
+  "name": "Python 代码审查器",
+  "description": "审查 Python 代码质量",
+  "prompt_snippet": "你是一个专业的 Python 代码审查专家..."  ← prompt 的前 500 字
+}
+
+响应体：
+{
+  "schema": { ... JSON Schema ... },
+  "example": { ... 示例输出 ... }
+}
+```
+
+### 18.2 后端实现
+
+```python
+# backend/app/api/community_nodes.py — AI 生成 Schema 端点
+
+from app.services.ai_router import call_llm_direct
+
+SCHEMA_GEN_SYSTEM_PROMPT = """你是一个 JSON Schema 生成专家。
+
+用户正在创建一个 AI 节点，需要你根据节点信息生成合适的 JSON Schema。
+
+要求：
+1. 输出一个标准的 JSON Schema (draft-07)
+2. 包含 "type", "properties", "required" 字段
+3. 每个 property 都有 "type" 和 "description"
+4. 同时生成一个符合 Schema 的示例 JSON
+
+严格按以下格式输出（不要多余文字）：
+```json
+{
+  "schema": { ... 你的 JSON Schema ... },
+  "example": { ... 符合 Schema 的示例 ... }
+}
+```"""
+
+@router.post("/generate-schema")
+async def generate_schema(
+    body: SchemaGenRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """AI 辅助生成 JSON Schema（平台内部调用，不消耗用户额度）"""
+
+    user_message = (
+        f"节点名称：{body.name}\n"
+        f"节点描述：{body.description}\n"
+        f"提示词摘要：{body.prompt_snippet[:500]}\n\n"
+        "请为这个节点生成合适的 JSON Schema 和输出示例。"
+    )
+
+    messages = [
+        {"role": "system", "content": SCHEMA_GEN_SYSTEM_PROMPT},
+        {"role": "user", "content": user_message},
+    ]
+
+    # 硬编码调用通义千问 turbo — 最便宜的模型，平台承担成本
+    result = await call_llm_direct(
+        platform_name="dashscope",
+        model_name="qwen-turbo-latest",
+        messages=messages,
+        stream=False,
+    )
+
+    # 解析 AI 返回的 JSON
+    try:
+        # 去掉可能的 ```json ``` 包装
+        content = result if isinstance(result, str) else result.content
+        cleaned = content.strip()
+        if cleaned.startswith("```"):
+            cleaned = re.sub(r'^```\w*\n?', '', cleaned)
+            cleaned = re.sub(r'\n?```$', '', cleaned)
+        parsed = json.loads(cleaned.strip())
+        return {
+            "schema": parsed.get("schema", {}),
+            "example": parsed.get("example", {}),
+        }
+    except (json.JSONDecodeError, AttributeError):
+        raise HTTPException(
+            status_code=500,
+            detail="AI 生成的 Schema 格式异常，请手动编写或重试",
+        )
+```
+
+### 18.3 调用链路与成本
+
+```
+调用路径：
+  call_llm_direct("dashscope", "qwen-turbo-latest", messages)
+    → ai_router.py L456 → _call_non_stream()
+    → 百炼官网 API
+
+成本：
+  qwen-turbo-latest 价格：
+    输入: ¥0.3 / 百万 tokens
+    输出: ¥0.6 / 百万 tokens
+  一次 Schema 生成 ≈ 500 input + 500 output tokens
+    → 成本 ≈ ¥0.00045 / 次
+    → 1000 次 ≈ ¥0.45
+  结论：可忽略不计
+
+计费：
+  不走用户 usage_ledger（不 bind_usage_request）
+  后端直接调用 call_llm_direct，记录在平台的 usage events 中
+  但不关联到具体用户的额度系统
+```
+
+### 18.4 限流保护
+
+```python
+# 限流：每用户每小时最多 20 次
+# 使用简单的内存限流（或 Redis，如有）
+
+from datetime import timedelta
+
+# 简易方案：在 API 层面加装 slowapi
+# 或用一个 dict + asyncio.Lock 做内存限流
+
+SCHEMA_GEN_RATE_LIMIT = 20     # 每小时
+SCHEMA_GEN_WINDOW = 3600       # 秒
+```
+
+### 18.5 前端交互
+
+```typescript
+// frontend/src/features/community-nodes/components/SchemaEditor.tsx
+
+// 点击 [✨ AI 生成 Schema] 按钮
+const handleGenerateSchema = async () => {
+  setGenerating(true);
+  try {
+    const result = await communityNodesService.generateSchema({
+      name,
+      description,
+      prompt_snippet: prompt.slice(0, 500),
+    });
+    setOutputSchema(JSON.stringify(result.schema, null, 2));
+    setSchemaExample(JSON.stringify(result.example, null, 2));
+    toast.success('Schema 已生成，请检查并调整');
+  } catch (error) {
+    toast.error('生成失败，请手动编写或重试');
+  } finally {
+    setGenerating(false);
+  }
+};
+```
+
+---
+
+## 19. LLM 路由策略（社区节点专用）
+
+> **关键问题**：`call_llm(node_type, messages)` 中的 `node_type` 对应 `config.yaml > task_routes`。
+> 社区节点的 `node_type = "community_node"` 没有在 `task_routes` 中注册。
+
+### 19.1 解决方案
+
+```python
+# backend/app/nodes/community/node.py — execute() 中的 LLM 调用
+
+async def execute(self, node_input, llm_caller):
+    # ...（读取 prompt、拼装 messages）...
+
+    # ── LLM 路由策略 ──
+    # 优先使用用户在画布上选择的 model_route（如果有）
+    model_route = (node_input.node_config or {}).get("model_route")
+    if model_route:
+        # 用户指定了模型 → 走 direct 路由
+        # model_route 格式：sku_id（如 "sku_deepseek_reasoner_native"）
+        from app.services.ai_router import call_llm_direct_structured
+        from app.services.ai_catalog_service import get_sku_by_id
+        sku = await get_sku_by_id(model_route)
+        if sku:
+            result = await call_llm_direct_structured(
+                sku.provider, sku.model_id, messages, stream=True,
+            )
+            async for token in result.token_stream:
+                yield token
+            return
+
+    # 用户未指定模型 → 走 chat_response 的默认路由
+    # chat_response 路由在 config.yaml 中有降级链，是最通用的 AI 路由
+    async for token in llm_caller("chat_response", messages, stream=True):
+        yield token
+```
+
+### 19.2 为什么用 chat_response 降级
+
+```
+chat_response 的 task_routes（config.yaml L131-136）：
+  sku_ids:
+    - sku_deepseek_reasoner_native      # 首选
+    - sku_dashscope_qwen_plus_native    # 降级 1
+    - sku_volcengine_doubao_pro_256k    # 降级 2
+
+这是最通用的高质量路由组，适合社区节点的多样化场景。
+如果用户自选模型，则忽略此路由，直接走 call_llm_direct。
+```
+
+### 19.3 Tier 校验
+
+```
+重要安全约束：
+  workflow_execute.py L83-102 已有 Tier 校验逻辑（遍历所有节点的 model_route）。
+  社区节点也走这个逻辑 → 如果用户选了 Pro 模型但不是 Pro 用户 → 403。
+  无需额外代码。
+```
+
+---
+
+## 20. 数据库 Schema 补充（更新 §2.1）
+
+以下字段需补充到 `ss_community_nodes` CREATE TABLE 中：
+
+```sql
+-- §2.1 补充字段（知识文件 + 分类更新）
+-- 在 ss_community_nodes 表定义中补充：
+
+    -- 知识文件
+    knowledge_file_path  TEXT DEFAULT NULL,           -- Supabase Storage 路径
+    knowledge_file_name  TEXT DEFAULT NULL,           -- 原始文件名（展示用）
+    knowledge_file_size  INTEGER DEFAULT 0,           -- 文件大小 bytes
+    knowledge_text       TEXT DEFAULT NULL,           -- 提取后纯文本（≤8000 字符）
+```
+
+### 20.1 完整字段安全矩阵
+
+| 字段 | 公开 API 返回 | 作者 API 返回 | 后端执行加载 | 前端可见 |
+|------|:---:|:---:|:---:|:---:|
+| `id, name, description, icon` | ✅ | ✅ | ✅ | ✅ |
+| `category, version` | ✅ | ✅ | ✅ | ✅ |
+| `input_hint, output_format` | ✅ | ✅ | ✅ | ✅ |
+| `model_preference` | ✅ | ✅ | ✅ | ✅ |
+| `likes_count, install_count` | ✅ | ✅ | ❌ | ✅ |
+| `prompt` | ❌ | ✅ | ✅ | ❌（作者可见） |
+| `output_schema` | ✅ | ✅ | ✅ | ✅ |
+| `knowledge_file_name` | ✅ | ✅ | ❌ | ✅ |
+| `knowledge_file_size` | ✅ | ✅ | ❌ | ✅ |
+| `knowledge_text` | ❌ | ❌ | ✅ | ❌ |
+| `knowledge_file_path` | ❌ | ❌ | ✅ | ❌ |
+
+---
+
+## 21. Pydantic 模型补充（更新 §3.4）
+
+```python
+# backend/app/models/community_nodes.py — 补充字段
+
+class CommunityNodeCreate(BaseModel):
+    name: str
+    description: str
+    icon: str = 'Bot'
+    category: str = 'other'                     # ← 默认改为 'other'
+    prompt: str
+    input_hint: str = ''
+    output_format: str = 'markdown'             # 'markdown' | 'json'
+    output_schema: dict | None = None           # JSON Schema（json 模式时必需）
+    model_preference: str = 'auto'
+    # knowledge_file 通过 Form + File 上传，不在 JSON body 中
+
+class CommunityNodePublic(BaseModel):
+    """返回给前端的公开信息（不含 prompt、knowledge_text）"""
+    id: str
+    author_id: str
+    author_name: str
+    name: str
+    description: str
+    icon: str
+    category: str                               # ← 使用场景化分类
+    version: str
+    input_hint: str
+    output_format: str
+    output_schema: dict | None                  # ← 新增：前端可展示 JSON 约束
+    model_preference: str
+    knowledge_file_name: str | None             # ← 新增：展示"有辅助知识"
+    knowledge_file_size: int                    # ← 新增
+    likes_count: int
+    install_count: int
+    is_liked: bool
+    created_at: datetime
+    # prompt 不在这里！
+    # knowledge_text 不在这里！
+    # knowledge_file_path 不在这里！
+
+class SchemaGenRequest(BaseModel):
+    """AI 生成 Schema 请求"""
+    name: str
+    description: str
+    prompt_snippet: str                         # prompt 的前 500 字
+```
+
+---
+
+## 22. Checklist 补充（更新 §13）
+
+```
+□ 分类体系
+  □ 前端 COMMUNITY_NODE_CATEGORIES 常量定义
+  □ CommunityNodeList 分类筛选 Tag 组件
+  □ API search 参数支持 category + name/description ILIKE
+
+□ 知识文件上传
+  □ Supabase Storage bucket: 'community-node-files'
+  □ Storage RLS 策略（上传者写，service_role 读）
+  □ 发布 API 接收 multipart/form-data（Form + File）
+  □ file_parser.parse_file() 提取文本
+  □ 截断 8000 字符存入 knowledge_text
+  □ PublishNodeDialog 文件上传区域
+  □ 单文件 ≤ 10MB 校验
+
+□ 输出格式约束
+  □ PublishNodeDialog 输出格式选择器（markdown/json）
+  □ SchemaEditor 组件（Monaco Editor + JSON Schema 模式）
+  □ 前端 JSON Schema 格式校验（发布前校验合法性）
+  □ 后端 _build_json_constraint_prompt() prompt 注入
+  □ 后端 CommunityNode.post_process() JSON 清洗逻辑
+  □ 清洗失败时的 graceful fallback（返回错误标注的 markdown）
+
+□ AI 生成 Schema
+  □ POST /api/community-nodes/generate-schema 端点
+  □ SCHEMA_GEN_SYSTEM_PROMPT 定义
+  □ 调用 call_llm_direct("dashscope", "qwen-turbo-latest")
+  □ 限流：20 次/用户/小时
+  □ 前端 SchemaEditor 中 [✨ AI 生成] 按钮 + loading 状态
+
+□ LLM 路由
+  □ CommunityNode.execute() 中 model_route 直连逻辑
+  □ 无 model_route 时降级到 chat_response 路由
+  □ workflow_execute.py 的 Tier 校验覆盖社区节点
+```
+
+---
+
+## 23. 完整发布表单（最终版，替代 §6.2）
+
+```
+┌─────────────────────────────────────────────┐
+│  🚀 发布我的节点                              │
+├─────────────────────────────────────────────┤
+│                                             │
+│  ── 基础信息 ──                              │
+│  节点名称 *        [__________________]      │
+│  描述 *            [__________________]      │
+│  分类 *            [▼ 学术论文         ]      │  ← COMMUNITY_NODE_CATEGORIES
+│  图标              [▼ 🤖 Bot          ]      │  ← 16 个预设 lucide icon
+│                                             │
+│  ── System Prompt（核心，使用者不可见）──      │
+│  ┌────────────────────────────────────┐     │
+│  │  你是一个专业的 Python 代码审查     │     │  ← 大文本区域
+│  │  专家。用户会提交代码片段，你需要   │     │
+│  │  逐行检查...                       │     │
+│  │                                    │     │
+│  └────────────────────────────────────┘     │
+│  输入提示           [需要Python代码片段]      │
+│                                             │
+│  ── 知识库（可选）──                         │
+│  ┌────────────────────────────────────┐     │
+│  │  📎 点击或拖拽上传知识文件           │     │
+│  │  支持 PDF/Word/MD/TXT，≤ 10MB     │     │
+│  └────────────────────────────────────┘     │
+│  ⓘ AI 执行时会参考此文件内容辅助回答         │
+│                                             │
+│  ── 输出设置 ──                              │
+│  输出格式           [▼ Markdown       ]      │  ← 选 JSON 时展开 Schema 编辑器
+│                                             │
+│  ┌── JSON Schema（仅 JSON 模式显示）─────┐  │
+│  │  [✨ AI 生成]                         │  │
+│  │  ┌───────────────────────────────┐   │  │
+│  │  │ { "type": "object", ...       │   │  │  ← Monaco Editor
+│  │  └───────────────────────────────┘   │  │
+│  │  校验：✅ 格式合法                    │  │
+│  └───────────────────────────────────────┘  │
+│                                             │
+│  推荐模型           [▼ 自动            ]      │  ← auto/fast/powerful
+│                                             │
+│  [取消]                           [🚀 发布]  │
+└─────────────────────────────────────────────┘
+```
+
+---
+
+## 24. 使用者 vs 发布者权限矩阵（最终版）
+
+| 配置项 | 发布者 | 使用者 | 存储位置 |
+|--------|:---:|:---:|---------|
+| 节点名称 | ✅ 定义 | ✅ 可改画布 label | DB `name` / 画布 `data.label` |
+| 节点描述 | ✅ 定义 | 👁️ 只读 | DB `description` |
+| 分类 | ✅ 选择 | 👁️ 筛选用 | DB `category` |
+| 图标 | ✅ 选择 | 👁️ 只读 | DB `icon` |
+| System Prompt | ✅ 编写 | ❌ 不可见 | DB `prompt` |
+| 输入提示 | ✅ 编写 | 👁️ 只读 | DB `input_hint` |
+| 知识文件 | ✅ 上传 | 👁️ 仅见文件名 | Storage + DB `knowledge_text` |
+| 输出格式 | ✅ 选择 | 👁️ 只读 | DB `output_format` |
+| JSON Schema | ✅ 编写/AI生成 | 👁️ 只读 | DB `output_schema` |
+| 模型选择 | ✅ 设推荐值 | ✅ 可覆盖 | DB `model_preference` / 画布 `data.model_route` |
+
+---
+
+## 25. 前端新增文件补充（更新 §11）
+
+### 前端新增（知识文件、JSON Schema、分类相关）
+
+```
+frontend/src/features/community-nodes/
+├── constants/
+│   └── categories.ts                        ← 分类常量 + 类型
+├── components/
+│   ├── SchemaEditor.tsx                     ← JSON Schema 编辑器（Monaco + AI 生成按钮）
+│   ├── KnowledgeFileUpload.tsx             ← 知识文件上传区域
+│   └── CategoryFilter.tsx                  ← 分类 Tag 筛选器
+└── services/
+    └── community-nodes.service.ts          ← 补充 generateSchema() API 方法
+```
+
+### 总计文件数更新
+
+```
+原计划：约 18-22 个文件
+更新后：约 25-28 个文件
+  新增部分：
+  +3 前端组件（SchemaEditor, KnowledgeFileUpload, CategoryFilter）
+  +1 前端常量（categories.ts）
+  +0 后端（合并到 community_nodes.py 路由 + node.py 执行器中）
+  修改部分：
+  community_nodes.py       ← 增加 generate-schema 端点 + 文件上传处理
+  node.py                   ← 增加知识注入 + JSON 约束 + LLM 路由逻辑
+  PublishNodeDialog.tsx     ← 扩展表单
+  community-nodes.service.ts ← 增加 API 方法
+```
