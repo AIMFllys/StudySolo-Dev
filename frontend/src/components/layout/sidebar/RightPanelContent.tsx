@@ -13,6 +13,7 @@ import {
   STATUS_META,
 } from '@/features/workflow/constants/workflow-meta';
 import { ExecutionTraceList } from '@/features/workflow/components/execution/ExecutionTraceList';
+import { NodeConfigFormContent } from '@/features/workflow/components/node-config/NodeConfigFormContent';
 import {
   countExecutionSessionStatuses,
   getExecutionSessionStepCount,
@@ -43,10 +44,6 @@ function getEdgeSummary(node: Node, edges: { source: string; target: string }[])
   };
 }
 
-/**
- * RightPanelContent — the actual content of the execution/right panel.
- * This is extracted so it can be rendered in either the right panel or the left sidebar.
- */
 export default function RightPanelContent() {
   const {
     edges,
@@ -76,7 +73,7 @@ export default function RightPanelContent() {
   const focusTrace = executionSession ? resolveExecutionFocusTrace(executionSession) : null;
   const focusNode = focusTrace
     ? (nodes.find((node) => node.id === focusTrace.nodeId) ?? selectedNode)
-    : selectedNode;
+    : null;
   const focusMeta = focusTrace
     ? getNodeTypeMeta(focusTrace.nodeType)
     : focusNode
@@ -97,16 +94,14 @@ export default function RightPanelContent() {
           : (focusTrace.finalOutput ?? focusTrace.streamingOutput),
         '该步骤还没有生成可展示内容',
       )
-    : getNodePreview(getNodeData(focusNode)?.output, '该步骤还没有生成可展示内容');
+    : '该步骤还没有生成可展示内容';
   const generatedStepsBadge = executionSession
     ? `${getExecutionSessionStepCount(executionSession)} 个步骤`
     : '等待执行';
-  const focusBadgeLabel = executionSession && focusTrace ? '执行焦点' : '当前焦点';
   const pendingCount = statusCounts.pending ?? 0;
   const runningCount = statusCounts.running ?? 0;
   const doneCount = statusCounts.done ?? 0;
   const errorCount = statusCounts.error ?? 0;
-
   const focusStatusToneClassName = executionSession && focusTrace
     ? 'mt-2 text-[10px] uppercase tracking-[0.18em] text-primary'
     : null;
@@ -114,7 +109,6 @@ export default function RightPanelContent() {
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       <div className="flex-1 overflow-y-auto scrollbar-hide">
-        {/* Section 1: Status overview */}
         <CollapsibleSection id="right-status" title="工作流步骤总览">
           <p className="mb-3 text-sm text-muted-foreground">
             每个生成步骤都会在这里同步展示，便于看清当前逻辑链路和产出。
@@ -127,52 +121,87 @@ export default function RightPanelContent() {
           </div>
         </CollapsibleSection>
 
-        {/* Section 2: Selected node detail */}
-        {focusNode && focusMeta && focusStatus && focusEdges ? (
-          <CollapsibleSection
-            id="right-focus"
-            title={focusBadgeLabel}
-            badge={
+        <CollapsibleSection
+          id="right-focus"
+          title="当前焦点"
+          badge={
+            focusStatus ? (
               <span className={`rounded-md px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide shadow-sm ${focusStatus.badgeClassName}`}>
                 {focusStatus.label}
               </span>
-            }
-          >
-            <div>
-              <h4 className="text-sm font-semibold text-foreground">{focusTitle}</h4>
-              <p className="mt-1 text-xs text-muted-foreground">{focusDescription}</p>
-              {focusStatusToneClassName ? (
-                <p className={focusStatusToneClassName}>随执行状态自动切换</p>
-              ) : null}
-            </div>
-
-            <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground font-mono">
-              <div className="node-paper-bg rounded-xl border-[1.5px] border-border/50 px-3 py-2 text-center shadow-sm">
-                <p className="text-[10px] uppercase font-medium">进入连接</p>
-                <p className="mt-1 text-sm font-semibold text-foreground">{focusEdges.incoming}</p>
+            ) : null
+          }
+        >
+          <div className="space-y-4">
+            <div className="node-paper-bg rounded-xl border-[1.5px] border-border/50 px-4 py-4 shadow-sm">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground">执行焦点</h4>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    当前运行中的步骤会优先显示在这里，便于快速查看执行状态与输出摘要。
+                  </p>
+                </div>
+                {focusStatus ? (
+                  <span className={`rounded-md px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide shadow-sm ${focusStatus.badgeClassName}`}>
+                    {focusStatus.label}
+                  </span>
+                ) : null}
               </div>
-              <div className="node-paper-bg rounded-xl border-[1.5px] border-border/50 px-3 py-2 text-center shadow-sm">
-                <p className="text-[10px] uppercase font-medium">输出连接</p>
-                <p className="mt-1 text-sm font-semibold text-foreground">{focusEdges.outgoing}</p>
+
+              {focusNode && focusMeta && focusStatus && focusEdges ? (
+                <>
+                  <div>
+                    <h5 className="text-sm font-semibold text-foreground">{focusTitle}</h5>
+                    <p className="mt-1 text-xs text-muted-foreground">{focusDescription}</p>
+                    {focusStatusToneClassName ? (
+                      <p className={focusStatusToneClassName}>随执行状态自动切换</p>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground font-mono">
+                    <div className="rounded-xl border-[1.5px] border-border/50 bg-background px-3 py-2 text-center shadow-sm">
+                      <p className="text-[10px] uppercase font-medium">进入连接</p>
+                      <p className="mt-1 text-sm font-semibold text-foreground">{focusEdges.incoming}</p>
+                    </div>
+                    <div className="rounded-xl border-[1.5px] border-border/50 bg-background px-3 py-2 text-center shadow-sm">
+                      <p className="text-[10px] uppercase font-medium">输出连接</p>
+                      <p className="mt-1 text-sm font-semibold text-foreground">{focusEdges.outgoing}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 rounded-xl border-[1.5px] border-border/50 bg-background px-3 py-3 shadow-sm">
+                    <p className="font-mono text-[10px] uppercase tracking-wider font-medium text-muted-foreground">输出预览</p>
+                    <p className="mt-2 text-sm leading-6 text-foreground font-serif">
+                      {focusPreview}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-xl border border-dashed border-border/70 bg-background/70 px-3 py-3 text-sm text-muted-foreground">
+                  还没有活跃的执行焦点。运行工作流后，这里会自动显示当前步骤的状态和输出摘要。
+                </div>
+              )}
+            </div>
+
+            <div className="node-paper-bg rounded-xl border-[1.5px] border-border/50 px-4 py-4 shadow-sm">
+              <div className="mb-3">
+                <h4 className="text-sm font-semibold text-foreground">选中节点配置</h4>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  这里展示当前选中节点的真实配置，修改后会立即写回节点数据。
+                </p>
               </div>
-            </div>
 
-            <div className="node-paper-bg mt-3 rounded-xl border-[1.5px] border-border/50 px-3 py-3 shadow-sm">
-              <p className="font-mono text-[10px] uppercase tracking-wider font-medium text-muted-foreground">输出预览</p>
-              <p className="mt-2 text-sm leading-6 text-foreground font-serif">
-                {focusPreview}
-              </p>
+              {selectedNode ? (
+                <NodeConfigFormContent nodeId={selectedNode.id} showExecutionNotice />
+              ) : (
+                <div className="rounded-xl border border-dashed border-border/70 bg-background/70 px-3 py-3 text-sm text-muted-foreground">
+                  当前没有可编辑的节点。先在画布中创建或选中一个节点后，这里会显示对应配置。
+                </div>
+              )}
             </div>
-          </CollapsibleSection>
-        ) : (
-          <CollapsibleSection id="right-focus" title="当前焦点">
-            <p className="text-sm text-muted-foreground">
-              还没有生成任何工作流步骤。输入学习目标后，右侧会按步骤展示整个生成链路。
-            </p>
-          </CollapsibleSection>
-        )}
+          </div>
+        </CollapsibleSection>
 
-        {/* Section 3: Last prompt */}
         {lastPrompt ? (
           <CollapsibleSection id="right-prompt" title="最近一次生成目标">
             <p className="text-sm leading-6 text-foreground">{lastPrompt}</p>
@@ -182,7 +211,6 @@ export default function RightPanelContent() {
           </CollapsibleSection>
         ) : null}
 
-        {/* Section 4: Node list */}
         <CollapsibleSection
           id="right-nodes"
           title="生成步骤"
