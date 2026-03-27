@@ -25,10 +25,26 @@ export function TraceStepItem({ trace, nodeNameMap }: TraceStepItemProps) {
   const duration = useMemo(() => (
     trace.durationMs ? formatDuration(trace.durationMs) : ''
   ), [trace.durationMs]);
+  const timelineClassName = trace.status === 'done'
+    ? 'border-emerald-500/50 border-solid'
+    : trace.status === 'running'
+      ? 'border-sky-500/60 border-dashed'
+      : trace.status === 'skipped'
+        ? 'border-black/5 border-dashed opacity-60 dark:border-white/5'
+        : 'border-black/10 border-dashed dark:border-white/10';
+  const dotClassName = trace.status === 'running'
+    ? `${badge.dotClassName} animate-pulse shadow-[0_0_0_6px_rgba(56,189,248,0.12)]`
+    : badge.dotClassName;
+  const titleClassName = trace.status === 'skipped'
+    ? 'mt-1 text-sm font-medium text-foreground line-through decoration-muted-foreground/60'
+    : 'mt-1 text-sm font-medium text-foreground';
+  const summaryClassName = trace.status === 'skipped'
+    ? 'mt-1 text-xs leading-5 text-muted-foreground line-through decoration-muted-foreground/60'
+    : 'mt-1 text-xs leading-5 text-muted-foreground';
 
   return (
-    <div className="relative border-l border-dashed border-black/10 pl-5 dark:border-white/10">
-      <div className={`absolute -left-[5px] top-2 h-[10px] w-[10px] rounded-full ${badge.dotClassName}`} />
+    <div className={`relative border-l pl-5 ${timelineClassName}`}>
+      <div className={`absolute -left-[5px] top-2 h-[10px] w-[10px] rounded-full ${dotClassName}`} />
 
       <div className="pb-5">
         <div className="mb-2 flex items-start justify-between gap-3">
@@ -36,10 +52,18 @@ export function TraceStepItem({ trace, nodeNameMap }: TraceStepItemProps) {
             <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               步骤 {trace.executionOrder}
             </div>
-            <div className="mt-1 text-sm font-medium text-foreground">{trace.nodeName}</div>
+            <div className={titleClassName}>
+              <span className="mr-2 text-muted-foreground">→</span>
+              {trace.nodeName}
+            </div>
             {trace.inputSummary && (
-              <div className="mt-1 text-xs leading-5 text-muted-foreground">{trace.inputSummary}</div>
+              <div className={summaryClassName}>{trace.inputSummary}</div>
             )}
+            {trace.chainIds && trace.chainIds.length > 0 ? (
+              <div className="mt-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+                {trace.chainIds.map((chainId) => `线路 ${chainId}`).join(' / ')}
+              </div>
+            ) : null}
           </div>
           <div className="flex items-center gap-2">
             {duration ? <span className="text-[10px] text-muted-foreground">{duration}</span> : null}

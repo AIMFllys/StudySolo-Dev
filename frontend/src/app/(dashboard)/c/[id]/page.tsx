@@ -52,6 +52,7 @@ export default async function PrivateCanvasPage({ params }: Props) {
         <WorkflowCanvasLoader
           key={workflow.id}
           workflowId={workflow.id}
+          workflowName={workflow.name}
           initialNodes={workflow.nodes_json ?? []}
           initialEdges={workflow.edges_json ?? []}
         />

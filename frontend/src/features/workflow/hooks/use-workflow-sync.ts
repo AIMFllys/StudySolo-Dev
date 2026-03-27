@@ -59,29 +59,8 @@ export function useWorkflowSync(): UseWorkflowSync {
   const lastSavedHashRef    = useRef<string>('');
   const lastCloudHashRef    = useRef<string>('');
   const lastCloudTimeRef    = useRef<number>(0);
-  const executionLockRef    = useRef<boolean>(false);
   const intervalRef         = useRef<ReturnType<typeof setInterval> | null>(null);
   const cloudTimerRef       = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // ── Execution lock: pause cloud sync during SSE execution ─────────────────
-  useEffect(() => {
-    const lockHandler = () => { executionLockRef.current = true; };
-    const unlockHandler = () => {
-      executionLockRef.current = false;
-      // After execution, force a cloud save of whatever backend wrote
-      // Give 1s grace for backend save_callback to finish
-      setTimeout(() => {
-        lastCloudHashRef.current = '';  // Invalidate so next tick saves
-      }, 1500);
-    };
-
-    window.addEventListener('workflow:execution-start', lockHandler);
-    window.addEventListener('workflow:execution-end', unlockHandler);
-    return () => {
-      window.removeEventListener('workflow:execution-start', lockHandler);
-      window.removeEventListener('workflow:execution-end', unlockHandler);
-    };
-  }, []);
 
   // ── Core save functions ───────────────────────────────────────────────────
   const saveToLocal = useCallback(async (
@@ -103,7 +82,6 @@ export function useWorkflowSync(): UseWorkflowSync {
   const saveToCloud = useCallback(async (
     workflowId: string, nodes: Node[], edges: Edge[]
   ) => {
-    if (executionLockRef.current) return; // Don't overwrite during execution
     setSyncStatus('saving_cloud');
     try {
       const res = await authedFetch(`/api/workflow/${workflowId}`, {

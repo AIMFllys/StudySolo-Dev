@@ -19,6 +19,7 @@ const WorkflowCanvas = dynamic(
 
 interface Props {
   workflowId: string;
+  workflowName: string;
   initialNodes: Node[];
   initialEdges: Edge[];
 }
@@ -27,7 +28,7 @@ function cacheKey(id: string) {
   return `workflow_cache_${id}`;
 }
 
-export default function WorkflowCanvasLoader({ workflowId, initialNodes, initialEdges }: Props) {
+export default function WorkflowCanvasLoader({ workflowId, workflowName, initialNodes, initialEdges }: Props) {
   const setCurrentWorkflow = useWorkflowStore((s) => s.setCurrentWorkflow);
   const setEdges = useWorkflowStore((s) => s.setEdges);
   const hasInitializedRef = useRef(false);
@@ -56,15 +57,14 @@ export default function WorkflowCanvasLoader({ workflowId, initialNodes, initial
       }
 
       // Load nodes immediately (no edges yet)
-      setCurrentWorkflow(workflowId, nodes, []);
+      setCurrentWorkflow(workflowId, workflowName, nodes, []);
 
       // Defer edges by one frame so Handle components mount first
       requestAnimationFrame(() => {
         setEdges(edges);
       });
     })();
-  }, [workflowId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [workflowId, workflowName]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <WorkflowCanvas />;
 }
-

@@ -35,6 +35,7 @@ import CanvasContextMenu, { buildCanvasMenuItems } from '@/features/workflow/com
 import NodeContextMenu, { buildNodeMenuGroups } from '@/features/workflow/components/canvas/NodeContextMenu';
 import EdgeContextMenu from '@/features/workflow/components/canvas/EdgeContextMenu';
 import NodeConfigDrawer from '@/features/workflow/components/node-config/NodeConfigDrawer';
+import type { NodeConfigAnchorRect } from '@/features/workflow/components/node-config/popover-position';
 import { useLoopGroupDrop } from '@/features/workflow/hooks/use-loop-group-drop';
 import { NODE_TYPE_META } from '@/features/workflow/constants/workflow-meta';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
@@ -61,6 +62,7 @@ const nodeTypes: NodeTypes = {
   flashcard: AIStepNode,
   chat_response: AIStepNode,
   write_db: AIStepNode,
+  ai_step: AIStepNode, // 兼容历史数据兜底
   // ── P1 节点 (7) ──
   compare: AIStepNode,
   mind_map: AIStepNode,
@@ -143,6 +145,7 @@ function WorkflowCanvasInner() {
   const [modal, setModal] = useState<{ title: string; message: string } | null>(null);
   const [placementMode, setPlacementMode] = useState<string | null>(null);
   const [configNodeId, setConfigNodeId] = useState<string | null>(null);
+  const [configAnchorRect, setConfigAnchorRect] = useState<NodeConfigAnchorRect | null>(null);
   const reactFlowInstance = useReactFlow();
   const annotationCountRef = useRef(0);
   const handleNodeDragStop = useLoopGroupDrop();
@@ -644,13 +647,26 @@ function WorkflowCanvasInner() {
 
   useEffect(() => {
     const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { nodeId?: string };
+      const detail = (e as CustomEvent).detail as {
+        nodeId?: string;
+        anchorRect?: NodeConfigAnchorRect | null;
+      };
       if (detail?.nodeId) {
         setConfigNodeId(detail.nodeId);
+        setConfigAnchorRect(detail.anchorRect ?? null);
       }
     };
     window.addEventListener('workflow:open-node-config', handler);
     return () => window.removeEventListener('workflow:open-node-config', handler);
+  }, []);
+
+  useEffect(() => {
+    const handler = () => {
+      setConfigNodeId(null);
+      setConfigAnchorRect(null);
+    };
+    window.addEventListener('workflow:close-node-config', handler);
+    return () => window.removeEventListener('workflow:close-node-config', handler);
   }, []);
 
   // ── Compute React Flow props based on active tool ──────────────────────────
@@ -749,7 +765,17 @@ function WorkflowCanvasInner() {
           y={nodeMenu.y}
           groups={buildNodeMenuGroups({
             onCopy: () => void handleCopyNode(nodeMenu.nodeId),
-            onConfigure: () => setConfigNodeId(nodeMenu.nodeId),
+            onConfigure: () => {
+              setConfigNodeId(nodeMenu.nodeId);
+              setConfigAnchorRect({
+                top: nodeMenu.y,
+                left: nodeMenu.x,
+                right: nodeMenu.x,
+                bottom: nodeMenu.y,
+                width: 0,
+                height: 0,
+              });
+            },
             onDelete: () => handleDeleteNode(nodeMenu.nodeId),
             onToggleSlip: () => {
               const node = useWorkflowStore.getState().nodes.find(n => n.id === nodeMenu.nodeId);
@@ -768,7 +794,11 @@ function WorkflowCanvasInner() {
       <NodeConfigDrawer
         key={configNodeId ?? 'node-config-drawer'}
         nodeId={configNodeId}
-        onClose={() => setConfigNodeId(null)}
+        anchorRect={configAnchorRect}
+        onClose={() => {
+          setConfigNodeId(null);
+          setConfigAnchorRect(null);
+        }}
       />
 
       {/* ── Edge right-click context menu ── */}

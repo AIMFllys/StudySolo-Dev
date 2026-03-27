@@ -3,22 +3,26 @@
 import { useCallback, useRef, useState } from 'react';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
 import type { WorkflowSSEEvent } from '@/types/workflow-events';
+import {
+  buildExecutionRequestBody,
+  getExecutionFailureMessage,
+  shouldFinalizeExecutionAsInterrupted,
+} from '@/features/workflow/utils/execution-state';
+import { extractSseEvents } from '@/features/workflow/utils/parse-sse';
 import { buildParallelGroupId, parseInputSummary } from '@/features/workflow/utils/trace-helpers';
 
 export type ExecutionStatus = 'idle' | 'running' | 'completed' | 'error';
-
-const MAX_RECONNECT_ATTEMPTS = 3;
 
 export function useWorkflowExecution() {
   const [status, setStatus] = useState<ExecutionStatus>('idle');
   const [error, setError] = useState<string | null>(null);
 
-  const esRef = useRef<EventSource | null>(null);
-  const reconnectCountRef = useRef(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const startTimeMapRef = useRef<Record<string, number>>({});
   const traceOrderRef = useRef(1);
 
   const currentWorkflowId = useWorkflowStore((state) => state.currentWorkflowId);
+  const currentWorkflowName = useWorkflowStore((state) => state.currentWorkflowName);
   const setSelectedNodeId = useWorkflowStore((state) => state.setSelectedNodeId);
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const startExecutionSession = useWorkflowStore((state) => state.startExecutionSession);
@@ -27,40 +31,55 @@ export function useWorkflowExecution() {
   const appendNodeTraceToken = useWorkflowStore((state) => state.appendNodeTraceToken);
   const finalizeExecutionSession = useWorkflowStore((state) => state.finalizeExecutionSession);
   const clearExecutionSession = useWorkflowStore((state) => state.clearExecutionSession);
-  const stop = useCallback(() => {
-    esRef.current?.close();
-    esRef.current = null;
-    reconnectCountRef.current = 0;
+
+  const resetTrackingState = useCallback(() => {
     startTimeMapRef.current = {};
     traceOrderRef.current = 1;
   }, []);
 
+  const closeStream = useCallback(() => {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+  }, []);
+
+  const finishWithError = useCallback((message: string) => {
+    setStatus('error');
+    setError(message);
+    finalizeExecutionSession('error');
+    closeStream();
+    resetTrackingState();
+  }, [closeStream, finalizeExecutionSession, resetTrackingState]);
+
+  const stop = useCallback(() => {
+    finishWithError('执行流已中断，请手动重新运行');
+  }, [finishWithError]);
+
   const start = useCallback(
-    (workflowId?: string) => {
+    async (workflowId?: string) => {
       const id = workflowId ?? currentWorkflowId;
       if (!id) return;
 
-      stop();
+      const snapshot = useWorkflowStore.getState();
+      const workflowName = snapshot.currentWorkflowName ?? currentWorkflowName ?? id;
+      const nodes = snapshot.nodes;
+      const edges = snapshot.edges;
+
+      closeStream();
+      resetTrackingState();
       setStatus('running');
       setError(null);
       clearExecutionSession();
-      startExecutionSession(id);
+      startExecutionSession(id, workflowName);
+      window.dispatchEvent(new Event('workflow:close-node-config'));
 
-      // Pause cloud sync during execution to avoid race condition
-      window.dispatchEvent(new Event('workflow:execution-start'));
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+      let didComplete = false;
 
-      const connect = (attempt: number) => {
-        const es = new EventSource(`/api/workflow/${id}/execute`);
-        esRef.current = es;
-
-        es.addEventListener('node_input', (e) => {
-          try {
-            const data = JSON.parse(e.data) as Extract<WorkflowSSEEvent, { type: 'node_input' }>;
-            // Use node_input arrival as the execution start timestamp.
-            // This is more accurate than node_status:running because:
-            // - Single nodes: node_input fires right before actual execution begins
-            // - Parallel nodes: node_input fires per-node just before asyncio.gather,
-            //   whereas node_status:running is batched for all parallel nodes first.
+      const handleEvent = (event: string, payload: string) => {
+        try {
+          if (event === 'node_input') {
+            const data = JSON.parse(payload) as Extract<WorkflowSSEEvent, { type: 'node_input' }>;
             startTimeMapRef.current[data.node_id] = performance.now();
             const session = useWorkflowStore.getState().executionSession;
             const runningNodeIds = (session?.traces ?? [])
@@ -94,22 +113,19 @@ export function useWorkflowExecution() {
               inputSummary: parseInputSummary(data.input_snapshot),
               rawInputSnapshot: data.input_snapshot,
             });
-          } catch { /* ignore malformed SSE */ }
-        });
+            return;
+          }
 
-        es.addEventListener('node_status', (e) => {
-          try {
-            const data = JSON.parse(e.data) as Extract<WorkflowSSEEvent, { type: 'node_status' }>;
+          if (event === 'node_status') {
+            const data = JSON.parse(payload) as Extract<WorkflowSSEEvent, { type: 'node_status' }>;
             setSelectedNodeId(data.node_id);
-            
+
             const updates: Parameters<typeof updateNodeData>[1] = {
               status: data.status,
               ...(data.error ? { error: data.error } : {}),
             };
 
             if (data.status === 'running') {
-              // Timing is now anchored to node_input event (see above) for accuracy.
-              // Fallback: if node_input was never received, start timing here.
               if (!startTimeMapRef.current[data.node_id]) {
                 startTimeMapRef.current[data.node_id] = performance.now();
               }
@@ -132,23 +148,21 @@ export function useWorkflowExecution() {
                   : undefined,
               });
             }
-          } catch { /* ignore malformed SSE */ }
-        });
+            return;
+          }
 
-        es.addEventListener('node_token', (e) => {
-          try {
-            const data = JSON.parse(e.data) as Extract<WorkflowSSEEvent, { type: 'node_token' }>;
+          if (event === 'node_token') {
+            const data = JSON.parse(payload) as Extract<WorkflowSSEEvent, { type: 'node_token' }>;
             setSelectedNodeId(data.node_id);
             updateNodeData(data.node_id, (prev) => ({
               output: (prev.output ?? '') + data.token,
             }));
             appendNodeTraceToken(data.node_id, data.token);
-          } catch { /* ignore malformed SSE */ }
-        });
+            return;
+          }
 
-        es.addEventListener('node_done', (e) => {
-          try {
-            const data = JSON.parse(e.data) as Extract<WorkflowSSEEvent, { type: 'node_done' }>;
+          if (event === 'node_done') {
+            const data = JSON.parse(payload) as Extract<WorkflowSSEEvent, { type: 'node_done' }>;
             setSelectedNodeId(data.node_id);
             updateNodeData(data.node_id, {
               output: data.full_output,
@@ -158,66 +172,108 @@ export function useWorkflowExecution() {
               status: 'done',
               finalOutput: data.full_output,
             });
-          } catch { /* ignore malformed SSE */ }
-        });
+            return;
+          }
 
-        es.addEventListener('loop_iteration', (e) => {
-          try {
-            const data = JSON.parse(e.data) as Extract<WorkflowSSEEvent, { type: 'loop_iteration' }>;
+          if (event === 'loop_iteration') {
+            const data = JSON.parse(payload) as Extract<WorkflowSSEEvent, { type: 'loop_iteration' }>;
             setSelectedNodeId(data.group_id);
             updateNodeData(data.group_id, {
               currentIteration: data.iteration,
               totalIterations: data.total,
               status: 'running',
             });
-          } catch { /* ignore malformed SSE */ }
-        });
-
-        es.addEventListener('workflow_done', (e) => {
-          try {
-            const data = JSON.parse(e.data) as Extract<WorkflowSSEEvent, { type: 'workflow_done' }>;
-            setStatus(data.status === 'completed' ? 'completed' : 'error');
-            if (data.status !== 'completed' && data.error) {
-              setError(data.error);
-            }
-            finalizeExecutionSession(data.status === 'completed' ? 'completed' : 'error');
-          } catch {
-            setStatus('completed');
-            finalizeExecutionSession('completed');
-          } finally {
-            es.close();
-            esRef.current = null;
-            startTimeMapRef.current = {};
-            traceOrderRef.current = 1;
-            // Resume cloud sync after execution completes
-            window.dispatchEvent(new Event('workflow:execution-end'));
+            return;
           }
-        });
 
-        es.onerror = () => {
-          es.close();
-          if (attempt < MAX_RECONNECT_ATTEMPTS) {
-            reconnectCountRef.current = attempt + 1;
-            setTimeout(() => connect(attempt + 1), 1000 * (attempt + 1));
-          } else {
-            setStatus('error');
-            setError('连接中断，已重试 3 次');
-            esRef.current = null;
+          if (event === 'save_error') {
+            const data = JSON.parse(payload) as Extract<WorkflowSSEEvent, { type: 'save_error' }>;
+            setError(data.error);
+            return;
           }
-        };
+
+          if (event === 'workflow_done') {
+            const data = JSON.parse(payload) as Extract<WorkflowSSEEvent, { type: 'workflow_done' }>;
+            didComplete = true;
+            const nextStatus = data.status === 'completed' ? 'completed' : 'error';
+            setStatus(nextStatus);
+            setError(data.status === 'completed' ? null : (data.error ?? '工作流执行失败'));
+            finalizeExecutionSession(nextStatus);
+            closeStream();
+            resetTrackingState();
+          }
+        } catch {
+          // Ignore malformed SSE payloads.
+        }
       };
 
-      connect(0);
+      try {
+        const response = await fetch(`/api/workflow/${id}/execute`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(buildExecutionRequestBody(nodes, edges)),
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        if (!response.body) {
+          throw new Error('EMPTY_STREAM');
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) {
+            break;
+          }
+
+          buffer += decoder.decode(value, { stream: true });
+          const parsed = extractSseEvents(buffer);
+          buffer = parsed.remainder;
+
+          for (const event of parsed.events) {
+            handleEvent(event.event, event.data);
+          }
+        }
+
+        buffer += decoder.decode();
+        const parsed = extractSseEvents(buffer);
+        for (const event of parsed.events) {
+          handleEvent(event.event, event.data);
+        }
+
+        if (shouldFinalizeExecutionAsInterrupted(didComplete, controller.signal.aborted)) {
+          finishWithError('执行流异常中断，请手动重新运行');
+        }
+      } catch (caught) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        finishWithError(getExecutionFailureMessage(caught));
+      }
     },
     [
       appendNodeTraceToken,
       clearExecutionSession,
+      closeStream,
       currentWorkflowId,
+      currentWorkflowName,
+      finishWithError,
       finalizeExecutionSession,
       registerNodeTrace,
+      resetTrackingState,
       setSelectedNodeId,
       startExecutionSession,
-      stop,
       updateNodeData,
       updateNodeTrace,
     ]

@@ -102,7 +102,20 @@ function AIStepNode({ data, selected, type, id }: NodeProps) {
                 onPointerDown={(event) => event.stopPropagation()}
                 onClick={(event) => {
                   event.stopPropagation();
-                  window.dispatchEvent(new CustomEvent('workflow:open-node-config', { detail: { nodeId: id } }));
+                  const rect = event.currentTarget.getBoundingClientRect();
+                  window.dispatchEvent(new CustomEvent('workflow:open-node-config', {
+                    detail: {
+                      nodeId: id,
+                      anchorRect: {
+                        top: rect.top,
+                        left: rect.left,
+                        right: rect.right,
+                        bottom: rect.bottom,
+                        width: rect.width,
+                        height: rect.height,
+                      },
+                    },
+                  }));
                 }}
               >
                 <Settings2 className="h-3.5 w-3.5" />

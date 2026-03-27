@@ -12,6 +12,7 @@ from supabase import AsyncClient
 from app.core.database import get_db
 from app.core.deps import get_current_user, get_supabase_client
 from app.engine.executor import execute_workflow
+from app.models.workflow import WorkflowExecuteRequest
 from app.services.ai_catalog_service import get_sku_by_id, is_tier_allowed
 from app.services.usage_ledger import bind_usage_request, create_usage_request, finalize_usage_request
 
@@ -20,12 +21,28 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/{workflow_id}/execute")
-async def execute_workflow_sse(
+def _resolve_requested_graph(
+    workflow: dict,
+    body: WorkflowExecuteRequest | None,
+) -> tuple[list[dict], list[dict]]:
+    if body is None or (body.nodes_json is None and body.edges_json is None):
+        return workflow.get("nodes_json") or [], workflow.get("edges_json") or []
+
+    if body.nodes_json is None or body.edges_json is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="nodes_json 和 edges_json 必须同时提供，不能只提交半张图",
+        )
+
+    return body.nodes_json, body.edges_json
+
+
+async def _execute_workflow_sse_impl(
     workflow_id: str,
-    current_user: dict = Depends(get_current_user),
-    db: AsyncClient = Depends(get_supabase_client),
-    service_db: AsyncClient = Depends(get_db),
+    body: WorkflowExecuteRequest | None,
+    current_user: dict,
+    db: AsyncClient,
+    service_db: AsyncClient,
 ):
     """SSE endpoint: execute a workflow and stream node events.
 
@@ -44,8 +61,7 @@ async def execute_workflow_sse(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="工作流不存在")
 
     workflow = result.data
-    nodes = workflow.get("nodes_json") or []
-    edges = workflow.get("edges_json") or []
+    nodes, edges = _resolve_requested_graph(workflow, body)
     user_id = current_user["id"]
     user_tier = current_user.get("tier", "free")
     workflow_input = next(
@@ -156,6 +172,41 @@ async def execute_workflow_sse(
             "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no",
         },
+    )
+
+
+@router.get("/{workflow_id}/execute")
+async def execute_workflow_sse(
+    workflow_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncClient = Depends(get_supabase_client),
+    service_db: AsyncClient = Depends(get_db),
+):
+    """Deprecated GET execute endpoint kept for older clients."""
+    return await _execute_workflow_sse_impl(
+        workflow_id=workflow_id,
+        body=None,
+        current_user=current_user,
+        db=db,
+        service_db=service_db,
+    )
+
+
+@router.post("/{workflow_id}/execute")
+async def execute_workflow_sse_post(
+    workflow_id: str,
+    body: WorkflowExecuteRequest | None = None,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncClient = Depends(get_supabase_client),
+    service_db: AsyncClient = Depends(get_db),
+):
+    """POST SSE endpoint that accepts an optional in-memory workflow graph."""
+    return await _execute_workflow_sse_impl(
+        workflow_id=workflow_id,
+        body=body,
+        current_user=current_user,
+        db=db,
+        service_db=service_db,
     )
 
 

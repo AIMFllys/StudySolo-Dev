@@ -1,48 +1,65 @@
 'use client';
 
-import { useMemo } from 'react';
-import type { NodeExecutionTrace, WorkflowExecutionSession } from '@/types';
+import { useEffect, useMemo, useState } from 'react';
+import type { WorkflowExecutionSession } from '@/types';
 import { TraceParallelGroup } from '@/features/workflow/components/execution/TraceParallelGroup';
 import { TraceStepItem } from '@/features/workflow/components/execution/TraceStepItem';
+import {
+  buildTraceListItems,
+  filterTracesByChain,
+  shouldShowChainTabs,
+} from '@/features/workflow/components/execution/trace-list-utils';
 
 interface ExecutionTraceListProps {
   session: WorkflowExecutionSession;
   nodeNameMap: Record<string, string>;
 }
 
-type TraceListItem =
-  | { kind: 'single'; trace: NodeExecutionTrace }
-  | { kind: 'parallel'; traces: NodeExecutionTrace[] };
-
 export function ExecutionTraceList({ session, nodeNameMap }: ExecutionTraceListProps) {
-  const items = useMemo<TraceListItem[]>(() => {
-    const sorted = [...session.traces].sort((a, b) => a.executionOrder - b.executionOrder);
-    const visited = new Set<string>();
-    const nextItems: TraceListItem[] = [];
+  const [activeChainId, setActiveChainId] = useState<number | null>(null);
 
-    for (const trace of sorted) {
-      if (visited.has(trace.nodeId)) {
-        continue;
-      }
+  useEffect(() => {
+    setActiveChainId(null);
+  }, [session.sessionId]);
 
-      if (trace.parallelGroupId) {
-        const group = sorted.filter((item) => item.parallelGroupId === trace.parallelGroupId);
-        if (group.length > 1) {
-          group.forEach((item) => visited.add(item.nodeId));
-          nextItems.push({ kind: 'parallel', traces: group });
-          continue;
-        }
-      }
+  const filteredTraces = useMemo(() => {
+    return filterTracesByChain(session.traces, activeChainId);
+  }, [activeChainId, session.traces]);
 
-      visited.add(trace.nodeId);
-      nextItems.push({ kind: 'single', trace });
-    }
-
-    return nextItems;
-  }, [session.traces]);
+  const items = useMemo(() => buildTraceListItems(filteredTraces), [filteredTraces]);
+  const hasMultipleChains = shouldShowChainTabs(session.chains);
 
   return (
     <div className="space-y-4 p-4">
+      {hasMultipleChains ? (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          <button
+            type="button"
+            onClick={() => setActiveChainId(null)}
+            className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+              activeChainId === null
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-border text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            全部
+          </button>
+          {(session.chains ?? []).map((chain) => (
+            <button
+              key={chain.chainId}
+              type="button"
+              onClick={() => setActiveChainId(chain.chainId)}
+              className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                activeChainId === chain.chainId
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {chain.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
       {items.map((item, index) => (
         item.kind === 'parallel'
           ? <TraceParallelGroup key={`parallel-${index}`} traces={item.traces} nodeNameMap={nodeNameMap} />

@@ -16,7 +16,7 @@ export function ExecutionProgressHeader({ session, onClose }: ExecutionProgressH
 
   useEffect(() => {
     if (session.overallStatus !== 'running') {
-      setElapsedMs(session.totalDurationMs ?? elapsedMs);
+      setElapsedMs(session.totalDurationMs ?? Math.round(performance.now() - session.startedAt));
       return;
     }
 
@@ -25,7 +25,7 @@ export function ExecutionProgressHeader({ session, onClose }: ExecutionProgressH
     }, 500);
 
     return () => window.clearInterval(timer);
-  }, [elapsedMs, session.overallStatus, session.startedAt, session.totalDurationMs]);
+  }, [session.overallStatus, session.startedAt, session.totalDurationMs]);
 
   const progress = session.totalCount > 0
     ? Math.min(100, Math.round((session.completedCount / session.totalCount) * 100))
@@ -36,7 +36,7 @@ export function ExecutionProgressHeader({ session, onClose }: ExecutionProgressH
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
           <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">执行追踪</div>
-          <div className="mt-1 text-sm font-medium text-foreground">{session.workflowId}</div>
+          <div className="mt-1 text-sm font-medium text-foreground">{session.workflowName}</div>
         </div>
         <button
           type="button"

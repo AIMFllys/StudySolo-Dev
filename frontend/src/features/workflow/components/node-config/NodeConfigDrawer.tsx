@@ -1,17 +1,23 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Settings2, X } from 'lucide-react';
 import type { NodeConfigFieldSchema, NodeConfigFieldSchemaOption } from '@/types';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
 import { getNodeTypeMeta } from '@/features/workflow/constants/workflow-meta';
 import { useNodeManifest } from '@/features/workflow/hooks/use-node-manifest';
 import { authedFetch } from '@/services/api-client';
+import {
+  type NodeConfigAnchorRect,
+  resolveNodeConfigPopoverPosition,
+} from './popover-position';
+import { buildLoopGroupConfigPatch, buildMergedConfigPatch } from './config-patch';
 import { NodeConfigField } from './NodeConfigField';
 import { KnowledgeNodeLibrary } from './KnowledgeNodeLibrary';
 
 interface NodeConfigDrawerProps {
   nodeId: string | null;
+  anchorRect: NodeConfigAnchorRect | null;
   onClose: () => void;
 }
 
@@ -38,10 +44,11 @@ async function fetchDynamicOptions(
   }
 }
 
-export default function NodeConfigDrawer({ nodeId, onClose }: NodeConfigDrawerProps) {
+export default function NodeConfigDrawer({ nodeId, anchorRect, onClose }: NodeConfigDrawerProps) {
   const nodes = useWorkflowStore((state) => state.nodes);
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const { manifest, isLoading, error } = useNodeManifest();
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const node = useMemo(() => nodes.find((item) => item.id === nodeId) ?? null, [nodeId, nodes]);
   const nodeType = String((node?.data as { type?: string } | undefined)?.type ?? node?.type ?? '');
@@ -73,6 +80,7 @@ export default function NodeConfigDrawer({ nodeId, onClose }: NodeConfigDrawerPr
   const [dynamicSchemaOverlay, setDynamicSchemaOverlay] = useState<NodeConfigFieldSchema[] | null>(null);
 
   const schema = dynamicSchemaOverlay ?? baseSchema;
+  const [popoverPosition, setPopoverPosition] = useState<{ top: number; left: number } | null>(null);
 
   // Fetch dynamic options when nodeType or baseSchema changes.
   // All setState calls are inside the async IIFE callback, not the effect body.
@@ -103,20 +111,81 @@ export default function NodeConfigDrawer({ nodeId, onClose }: NodeConfigDrawerPr
     [baseConfig, schema],
   );
 
-  const [draftConfig, setDraftConfig] = useState<Record<string, unknown>>(mergedDefaults);
-  // Note: this component is keyed on nodeId in WorkflowCanvas (key={configNodeId}),
-  // so it naturally re-mounts when the selected node changes.
-  // No manual reset effect needed.
+  const applyConfigPatch = (patch: Record<string, unknown>, replace = false) => {
+    if (!nodeId) {
+      return;
+    }
+
+    if (nodeType === 'loop_group') {
+      updateNodeData(nodeId, buildLoopGroupConfigPatch(patch));
+      return;
+    }
+
+    updateNodeData(nodeId, {
+      config: buildMergedConfigPatch(baseConfig ?? {}, patch, replace),
+    });
+  };
+
+  useEffect(() => {
+    if (!nodeId || !anchorRect) {
+      return;
+    }
+
+    const updatePosition = () => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      setPopoverPosition(resolveNodeConfigPopoverPosition(
+        anchorRect,
+        { width: window.innerWidth, height: window.innerHeight },
+        { width: rect?.width ?? 380, height: rect?.height ?? 560 },
+      ));
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    return () => window.removeEventListener('resize', updatePosition);
+  }, [anchorRect, nodeId, schema.length]);
+
+  useEffect(() => {
+    if (!nodeId) {
+      return;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (containerRef.current?.contains(event.target as Node)) {
+        return;
+      }
+      onClose();
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    window.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [nodeId, onClose]);
 
   if (!nodeId || !node) {
     return null;
   }
 
   const meta = getNodeTypeMeta(nodeType);
-  const isOpen = Boolean(nodeId);
 
   return (
-    <div className={`fixed inset-y-0 right-0 z-[70] w-full max-w-xl border-l border-border bg-background shadow-2xl transition-transform duration-200 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+    <div
+      ref={containerRef}
+      className="fixed z-[70] w-[380px] max-w-[calc(100vw-24px)] max-h-[min(70vh,calc(100vh-24px))] overflow-y-auto rounded-xl border border-border bg-background shadow-2xl"
+      style={{
+        top: popoverPosition?.top ?? 24,
+        left: popoverPosition?.left ?? 24,
+      }}
+    >
       <div className="flex h-full flex-col">
         <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
           <div className="min-w-0">
@@ -185,12 +254,11 @@ export default function NodeConfigDrawer({ nodeId, onClose }: NodeConfigDrawerPr
                       <NodeConfigField
                         key={field.key}
                         field={field}
-                        value={draftConfig[field.key]}
+                        value={mergedDefaults[field.key]}
                         onChange={(value) => {
-                          setDraftConfig((previous) => ({
-                            ...previous,
+                          applyConfigPatch({
                             [field.key]: value,
-                          }));
+                          });
                         }}
                       />
                     ))}
@@ -200,24 +268,7 @@ export default function NodeConfigDrawer({ nodeId, onClose }: NodeConfigDrawerPr
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
-                    onClick={() => {
-                      if (nodeType === 'loop_group') {
-                        updateNodeData(nodeId, {
-                          maxIterations: draftConfig.maxIterations,
-                          intervalSeconds: draftConfig.intervalSeconds,
-                          description: draftConfig.description,
-                        });
-                        return;
-                      }
-                      updateNodeData(nodeId, { config: draftConfig });
-                    }}
-                    className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                  >
-                    保存配置
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDraftConfig(buildDefaultConfig(schema))}
+                    onClick={() => applyConfigPatch(buildDefaultConfig(schema), true)}
                     className="rounded-lg border border-border px-4 py-2 text-sm text-foreground transition-colors hover:bg-muted"
                   >
                     恢复默认

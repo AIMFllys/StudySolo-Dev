@@ -33,6 +33,29 @@ export const NodeModelSelector: React.FC<NodeModelSelectorProps> = ({
   const [open, setOpen] = useState(false);
   const [expandedVendor, setExpandedVendor] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 清理延迟定时器
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  // 安全切换厂商面板：带 150ms 延迟，允许鼠标"走对角线"
+  const setVendorSafe = useCallback((vendorName: string | null, immediate = false) => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    if (immediate) {
+      setExpandedVendor(vendorName);
+    } else {
+      timeoutRef.current = setTimeout(() => {
+        setExpandedVendor(vendorName);
+      }, 150); // 150ms 足够抵消因为对角线移动而在别人项上短暂掠过的情况
+    }
+  }, []);
 
   useEffect(() => {
     getUser().then(setUser).catch(() => null);
@@ -44,7 +67,7 @@ export const NodeModelSelector: React.FC<NodeModelSelectorProps> = ({
     function handleClickOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setOpen(false);
-        setExpandedVendor(null);
+        setVendorSafe(null, true);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -57,8 +80,8 @@ export const NodeModelSelector: React.FC<NodeModelSelectorProps> = ({
     if (!canAccessModel(userTier, model)) return;
     updateNodeData(nodeId, { model_route: model.model });
     setOpen(false);
-    setExpandedVendor(null);
-  }, [userTier, updateNodeData, nodeId]);
+    setVendorSafe(null, true);
+  }, [userTier, updateNodeData, nodeId, setVendorSafe]);
 
   const selectedModelInfo = currentModel
     ? models.find((m) => m.model === currentModel)
@@ -79,7 +102,9 @@ export const NodeModelSelector: React.FC<NodeModelSelectorProps> = ({
         onClick={(e) => {
           e.stopPropagation();
           setOpen((v) => !v);
-          if (open) setExpandedVendor(null);
+          if (open) {
+            setVendorSafe(null, true);
+          }
         }}
       >
         {isLoading ? (
@@ -105,7 +130,7 @@ export const NodeModelSelector: React.FC<NodeModelSelectorProps> = ({
         <div
           className="absolute right-0 top-full z-[9999] mt-1 w-44 rounded-lg node-paper-bg border border-dashed border-black/20 dark:border-white/20 shadow-xl py-1 animate-in fade-in slide-in-from-top-1 duration-150"
           onPointerDown={(e) => e.stopPropagation()}
-          onMouseLeave={() => setExpandedVendor(null)}
+          onMouseLeave={() => setVendorSafe(null, false)}
         >
           {vendorEntries.map(([vendorName, vendorModels]) => {
             const isExpanded = expandedVendor === vendorName;
@@ -115,7 +140,10 @@ export const NodeModelSelector: React.FC<NodeModelSelectorProps> = ({
               <div 
                 key={vendorName} 
                 className="relative"
-                onMouseEnter={() => setExpandedVendor(vendorName)}
+                onMouseEnter={() => {
+                  // 如果已经是我，那么立即清除任何可能的离场倒计时（巩固悬停）；否则走 150ms 延时
+                  setVendorSafe(vendorName, isExpanded);
+                }}
               >
                 <button
                   type="button"
@@ -124,7 +152,7 @@ export const NodeModelSelector: React.FC<NodeModelSelectorProps> = ({
                   onClick={(e) => {
                     e.stopPropagation();
                     // Optional: click also toggles in case hover is finicky (e.g. touch/tablet)
-                    setExpandedVendor(isExpanded ? null : vendorName);
+                    setVendorSafe(isExpanded ? null : vendorName, true);
                   }}
                 >
                   <span
@@ -142,10 +170,12 @@ export const NodeModelSelector: React.FC<NodeModelSelectorProps> = ({
 
                 {/* L2: Model list (Flyout / Cascading menu to the right) */}
                 {isExpanded && (
-                  <div className="absolute left-full top-0 ml-1 min-w-[13rem] z-[10000] rounded-lg node-paper-bg border border-dashed border-black/20 dark:border-white/20 shadow-xl py-1 animate-in fade-in zoom-in-95 duration-100">
-                    <div className="px-2.5 py-1.5 text-[9px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest border-b border-dashed border-black/10 dark:border-white/10 mb-1">
-                      {vendorName}
-                    </div>
+                  // 外层加了 pl-1，打造无形的“悬浮安全桥 (CSS Padding Bridge)”，替代 ml-1 以防止物理脱出
+                  <div className="absolute left-full top-0 pl-1 z-[10000]">
+                    <div className="min-w-[13rem] rounded-lg node-paper-bg border border-dashed border-black/20 dark:border-white/20 shadow-xl py-1 animate-in fade-in zoom-in-95 duration-100">
+                      <div className="px-2.5 py-1.5 text-[9px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest border-b border-dashed border-black/10 dark:border-white/10 mb-1">
+                        {vendorName}
+                      </div>
                     {vendorModels.map((model) => {
                       const accessible = canAccessModel(userTier, model);
                       const isActive = model.model === currentModel;
@@ -183,6 +213,7 @@ export const NodeModelSelector: React.FC<NodeModelSelectorProps> = ({
                         </button>
                       );
                     })}
+                    </div>
                   </div>
                 )}
               </div>

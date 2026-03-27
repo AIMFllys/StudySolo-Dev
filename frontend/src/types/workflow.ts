@@ -193,11 +193,19 @@ export interface NodeExecutionTrace {
   outputFormat?: string;
   errorMessage?: string;
   modelRoute?: string;
+  chainIds?: number[];
+}
+
+export interface WorkflowChain {
+  chainId: number;
+  label: string;
+  nodeIds: string[];
 }
 
 export interface WorkflowExecutionSession {
   sessionId: string;
   workflowId: string;
+  workflowName: string;
   startedAt: number;
   finishedAt?: number;
   totalDurationMs?: number;
@@ -205,6 +213,7 @@ export interface WorkflowExecutionSession {
   traces: NodeExecutionTrace[];
   completedCount: number;
   totalCount: number;
+  chains?: WorkflowChain[];
 }
 
 /** 兼容旧数据 — 为缺失字段补充默认值，旧类型统一迁移为 sequential */

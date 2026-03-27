@@ -49,6 +49,7 @@ describe('Property 6: Zustand Store 状态一致性', () => {
       nodes: [],
       edges: [],
       currentWorkflowId: null,
+      currentWorkflowName: null,
       isDirty: false,
     });
   });
@@ -60,7 +61,7 @@ describe('Property 6: Zustand Store 状态一致性', () => {
         fc.array(arbNode, { minLength: 0, maxLength: 10 }),
         fc.array(arbEdge, { minLength: 0, maxLength: 10 }),
         (workflowId, nodes, edges) => {
-          useWorkflowStore.getState().setCurrentWorkflow(workflowId, nodes as unknown as Node[], edges as unknown as Edge[]);
+          useWorkflowStore.getState().setCurrentWorkflow(workflowId, `工作流-${workflowId}`, nodes as unknown as Node[], edges as unknown as Edge[]);
 
           const state = useWorkflowStore.getState();
 
@@ -80,6 +81,7 @@ describe('Property 6: Zustand Store 状态一致性', () => {
 
           // currentWorkflowId must be set correctly
           expect(state.currentWorkflowId).toBe(workflowId);
+          expect(state.currentWorkflowName).toBe(`工作流-${workflowId}`);
 
           // isDirty must be false after setCurrentWorkflow
           expect(state.isDirty).toBe(false);
@@ -105,7 +107,7 @@ describe('Property 6: Zustand Store 状态一致性', () => {
       },
     ] as unknown as Node[];
 
-    useWorkflowStore.getState().setCurrentWorkflow('wf-1', nodes, []);
+    useWorkflowStore.getState().setCurrentWorkflow('wf-1', '工作流 1', nodes, []);
 
     const state = useWorkflowStore.getState();
     expect(state.nodes).toHaveLength(1);
@@ -136,6 +138,7 @@ describe('Property 6: Zustand Store 状态一致性', () => {
       ] as unknown as Node[],
       edges: [],
       currentWorkflowId: null,
+      currentWorkflowName: null,
       isDirty: false,
     });
 
@@ -155,6 +158,45 @@ describe('Property 6: Zustand Store 状态一致性', () => {
     const [first, second] = useWorkflowStore.getState().edges;
     expect((first?.data as { branch?: string } | undefined)?.branch).toBe('A');
     expect((second?.data as { branch?: string } | undefined)?.branch).toBe('B');
+  });
+
+  it('startExecutionSession stores workflowName and chainIds', () => {
+    useWorkflowStore.setState({
+      nodes: [
+        {
+          id: 'start',
+          type: 'summary',
+          position: { x: 0, y: 0 },
+          data: { label: '开始', system_prompt: '', model_route: '', status: 'pending', output: '' },
+        },
+        {
+          id: 'branch-a',
+          type: 'summary',
+          position: { x: 100, y: 0 },
+          data: { label: 'A', system_prompt: '', model_route: '', status: 'pending', output: '' },
+        },
+        {
+          id: 'branch-b',
+          type: 'summary',
+          position: { x: 100, y: 100 },
+          data: { label: 'B', system_prompt: '', model_route: '', status: 'pending', output: '' },
+        },
+      ] as unknown as Node[],
+      edges: [
+        { id: 'e1', source: 'start', target: 'branch-a' },
+        { id: 'e2', source: 'start', target: 'branch-b' },
+      ] as unknown as Edge[],
+      currentWorkflowId: 'wf-chain',
+      currentWorkflowName: '链路测试',
+      isDirty: false,
+    });
+
+    useWorkflowStore.getState().startExecutionSession('wf-chain', '链路测试');
+
+    const session = useWorkflowStore.getState().executionSession;
+    expect(session?.workflowName).toBe('链路测试');
+    expect(session?.chains).toHaveLength(2);
+    expect(session?.traces.find((trace) => trace.nodeId === 'start')?.chainIds).toEqual([1, 2]);
   });
 
   it('setNodes marks isDirty and stores nodes correctly', () => {

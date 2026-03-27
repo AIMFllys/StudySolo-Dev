@@ -20,6 +20,11 @@ class WorkflowUpdate(BaseModel):
     is_public: bool | None = None
 
 
+class WorkflowExecuteRequest(BaseModel):
+    nodes_json: list[dict] | None = None
+    edges_json: list[dict] | None = None
+
+
 # Fields computed/injected at runtime — NOT stored in the ss_workflows table.
 # Must be excluded when generating Supabase select columns via WorkflowMeta.select_cols().
 _WF_META_VIRTUAL_FIELDS: frozenset[str] = frozenset({"owner_name", "is_liked", "is_favorited"})

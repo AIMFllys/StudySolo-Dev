@@ -4,6 +4,7 @@ import type { Connection, Edge, EdgeChange, Node, NodeChange } from '@xyflow/rea
 import type { NodeExecutionTrace, WorkflowExecutionSession, WorkflowNodeData } from '@/types';
 import { isLegacyLoopRegionNode, normalizeEdge } from '@/types';
 import { getNodeTheme } from '@/features/workflow/constants/workflow-meta';
+import { computeWorkflowChains } from '@/features/workflow/utils/compute-chains';
 import { isTraceFinished } from '@/features/workflow/utils/trace-helpers';
 
 type NodeData = WorkflowNodeData & Record<string, unknown>;
@@ -20,6 +21,7 @@ interface WorkflowStore {
   nodes: Node[];
   edges: Edge[];
   currentWorkflowId: string | null;
+  currentWorkflowName: string | null;
   selectedNodeId: string | null;
   lastPrompt: string;
   lastImplicitContext: Record<string, unknown> | null;
@@ -41,14 +43,14 @@ interface WorkflowStore {
   completeClickConnect: (targetNodeId: string, targetHandleId: string) => void;
   cancelClickConnect: () => void;
   setGenerationContext: (prompt: string, implicitContext: Record<string, unknown> | null) => void;
-  setCurrentWorkflow: (id: string, nodes: Node[], edges: Edge[], dirty?: boolean) => void;
+  setCurrentWorkflow: (id: string, name: string, nodes: Node[], edges: Edge[], dirty?: boolean) => void;
   markClean: () => void;
   
   showAllNodeSlips: boolean;
   toggleGlobalNodeSlips: () => void;
 
   executionSession: WorkflowExecutionSession | null;
-  startExecutionSession: (workflowId: string) => void;
+  startExecutionSession: (workflowId: string, workflowName: string) => void;
   registerNodeTrace: (nodeId: string, order: number, isParallel: boolean, parallelGroupId?: string) => void;
   updateNodeTrace: (nodeId: string, updates: Partial<NodeExecutionTrace>) => void;
   appendNodeTraceToken: (nodeId: string, token: string) => void;
@@ -109,6 +111,7 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
   past: [],
   future: [],
   currentWorkflowId: null,
+  currentWorkflowName: null,
   selectedNodeId: null,
   lastPrompt: '',
   lastImplicitContext: null,
@@ -119,8 +122,9 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
 
   toggleGlobalNodeSlips: () => set((state) => ({ showAllNodeSlips: !state.showAllNodeSlips })),
 
-  startExecutionSession: (workflowId) =>
+  startExecutionSession: (workflowId, workflowName) =>
     set((state) => {
+      const chains = computeWorkflowChains(state.nodes, state.edges);
       const traces: NodeExecutionTrace[] = state.nodes
         .filter((node) => node.type !== 'annotation' && node.type !== 'generating')
         .map((node, index) => {
@@ -136,6 +140,9 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
             streamingOutput: '',
             outputFormat: typeof nodeData.output_format === 'string' ? nodeData.output_format : undefined,
             modelRoute: typeof nodeData.model_route === 'string' ? nodeData.model_route : undefined,
+            chainIds: chains
+              .filter((chain) => chain.nodeIds.includes(node.id))
+              .map((chain) => chain.chainId),
           };
         });
 
@@ -143,11 +150,13 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
         executionSession: {
           sessionId: crypto.randomUUID(),
           workflowId,
+          workflowName,
           startedAt: performance.now(),
           overallStatus: 'running',
           traces,
           completedCount: 0,
           totalCount: traces.filter((trace) => trace.nodeType !== 'trigger_input').length,
+          chains,
         },
       };
     }),
@@ -427,10 +436,11 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
       lastImplicitContext,
     }),
 
-  setCurrentWorkflow: (id, nodes, edges, dirty = false) => {
+  setCurrentWorkflow: (id, name, nodes, edges, dirty = false) => {
     const deduped = deduplicateNodes(nodes.filter((node) => !isLegacyLoopRegionNode(node as never)));
     set({
       currentWorkflowId: id,
+      currentWorkflowName: name,
       nodes: deduped,
       edges: edges.map((edge) => normalizeEdge(edge as never) as unknown as Edge),
       selectedNodeId: resolveSelectedNodeId(deduped, null),
