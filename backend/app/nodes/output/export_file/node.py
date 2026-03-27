@@ -77,7 +77,7 @@ class ExportFileNode(BaseNode):
         if node_input.node_config:
             export_format = node_input.node_config.get("format", "docx")
             filename = node_input.node_config.get("filename", "学习笔记")
-        
+
         # Also check label for format hints
         label = (node_input.user_content or "").lower()
         if "pdf" in label:
@@ -101,17 +101,12 @@ class ExportFileNode(BaseNode):
 
             if result.filepath and os.path.exists(result.filepath):
                 size_kb = result.size_bytes / 1024
+                download_url = f"/api/exports/download/{result.filename}"
                 yield f"✅ 文件已生成\n\n"
                 yield f"- **文件名**: {result.filename}\n"
                 yield f"- **格式**: {result.format.upper()}\n"
                 yield f"- **大小**: {size_kb:.1f} KB\n"
-                yield f"- **路径**: `{result.filepath}`\n\n"
-
-                # Generate download link if API is configured
-                if result.download_url:
-                    yield f"[📥 点击下载]({result.download_url})\n"
-                else:
-                    yield f"*文件已保存到服务器，可通过 API 下载。*\n"
+                yield f"- **下载**: [📥 点击下载]({download_url})\n\n"
             else:
                 yield "⚠️ 文件生成失败"
 

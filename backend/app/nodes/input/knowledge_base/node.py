@@ -48,6 +48,14 @@ class KnowledgeBaseNode(BaseNode):
             "step": 0.05,
             "description": "越高越严格，低于阈值的片段将被过滤。",
         },
+        {
+            "key": "document_ids",
+            "type": "multi_select",
+            "label": "指定文档",
+            "default": [],
+            "description": "只从选中的文档中检索。留空表示检索所有文档。",
+            "dynamic_options": True,
+        },
     ]
     output_capabilities = ["preview", "compact", "upload"]
     supports_upload = True
@@ -96,9 +104,11 @@ class KnowledgeBaseNode(BaseNode):
         # Get retrieval config
         top_k = 5
         threshold = 0.7
+        document_ids: list[str] = []
         if node_input.node_config:
             top_k = node_input.node_config.get("top_k", 5)
             threshold = node_input.node_config.get("threshold", 0.7)
+            document_ids = node_input.node_config.get("document_ids", [])
 
         # Perform retrieval
         try:
@@ -109,6 +119,7 @@ class KnowledgeBaseNode(BaseNode):
                 db=db,
                 top_k=top_k,
                 threshold=threshold,
+                document_ids=document_ids if document_ids else None,
             )
 
             if not results:

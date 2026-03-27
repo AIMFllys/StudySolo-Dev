@@ -243,7 +243,7 @@ export const NODE_TYPE_META: Record<NodeType, NodeTypeMeta> = {
     icon: Split,
     description: '基于条件动态路由',
     accentClassName: 'from-orange-500/20 to-amber-500/5 text-orange-100 ring-orange-400/30',
-    requiresModel: false,
+    requiresModel: true,  // Uses LLM to evaluate branch conditions
     inputs: [{ key: '判断条件', description: '根据上游信息或全局选择的分流依据', required: true }],
     outputs: [{ key: '选择路向', description: '动态路由输出状态', required: true }],
   },
@@ -252,7 +252,7 @@ export const NODE_TYPE_META: Record<NodeType, NodeTypeMeta> = {
     icon: Repeat,
     description: '循环处理列表数据',
     accentClassName: 'from-red-500/20 to-orange-500/5 text-red-100 ring-red-400/30',
-    requiresModel: false,
+    requiresModel: true,  // Uses LLM to decompose items
     inputs: [{ key: '输入集合', description: '需要循环处理的列表/数组', required: true }],
     outputs: [{ key: '映射结果', description: '逐个迭代后的整合输出', required: true }],
   },

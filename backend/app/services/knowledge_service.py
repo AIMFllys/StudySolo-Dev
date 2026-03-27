@@ -115,15 +115,27 @@ async def retrieve_knowledge_chunks(
     db: AsyncClient,
     top_k: int = 5,
     threshold: float = 0.7,
+    document_ids: list[str] | None = None,
 ) -> list[RetrievalResult]:
-    """Retrieve relevant chunks from the user's knowledge base."""
-    return await retrieve_chunks(
+    """Retrieve relevant chunks from the user's knowledge base.
+
+    Args:
+        document_ids: Optional list of document IDs to restrict the search to.
+                      When provided, only chunks from these documents are returned.
+                      When None or empty, all user documents are searched.
+    """
+    results = await retrieve_chunks(
         query=query,
         user_id=user_id,
         db=db,
         top_k=top_k,
         threshold=threshold,
     )
+    # Filter by document_ids if specified
+    if document_ids:
+        doc_id_set = set(document_ids)
+        results = [r for r in results if r.document_id in doc_id_set]
+    return results
 
 
 async def query_knowledge_base(
