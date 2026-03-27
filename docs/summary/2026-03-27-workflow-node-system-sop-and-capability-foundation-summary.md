@@ -398,6 +398,38 @@
 - 上传入口已迁移到节点内
 - `features/knowledge` 保留 hooks、types、utils 和可复用列表组件，服务节点内化后的能力，而不是继续维持老页面壳
 
+### 6.5 节点配置动态化与高级表单能力
+
+涉及文件：
+
+- `backend/app/api/nodes.py`
+- `types/workflow.ts`
+- `frontend/src/features/workflow/components/node-config/NodeConfigDrawer.tsx`
+- `frontend/src/features/workflow/components/node-config/NodeConfigField.tsx`
+
+完成内容：
+
+- 新增 `GET /api/nodes/config-options/{node_type}/{field_key}` 后端接口，提供基于当前用户上下文的动态选项获取能力
+- 前端 `NodeConfigFieldSchema` 新增 `multi_select` 类型和 `dynamic_options` 标记
+- 节点配置抽屉（`NodeConfigDrawer`）正式解耦旧硬编码（如 `loop_group` 特判），完全由 manifest 驱动，并在渲染时异步拉取动态上下文
+- 落地 `MultiSelectField` 药丸式多选组件
+- 彻底清理了 `node-config` 目录的 React Hooks 历史 Lint 债务（消除所有的 `set-state-in-effect` 等，达成 0 errors）
+
+### 6.6 末端节点运行闭环（Loop 与 Export）
+
+涉及文件：
+
+- `backend/app/nodes/structure/loop_group/*`
+- `backend/app/nodes/output/export_file/*`
+- `frontend/src/features/workflow/constants/workflow-meta.ts`
+
+完成内容：
+
+- **`loop_group`（循环组）**：完成 `BaseNode` 体系注册，补齐 `config_schema`（`maxIterations`, `intervalSeconds`），移除前端针对循环节点的特殊硬编码表单
+- **`export_file`（导出文件）**：文件生成后由返回系统绝对路径，升级为通过 `/api/exports/download/{filename}` 吐出标准的、受校验的下载链接
+- **元数据对齐**：修复 `logic_switch` 与 `loop_map` 在前端的 `requiresModel` 标记缺失问题，与后端 `is_llm_node` 能力严格对齐
+- **`knowledge_base`（知识库）补充**：基于新增的动态配置表单能力，完成了运行时基于 `document_ids` 的细粒度文档过滤闭环
+
 ---
 
 ## 7. SOP 重构与项目规范同步（已完成）
@@ -535,14 +567,14 @@
    执行数据层、trace drawer 组件树、节点 slip 与 `compact` 渲染规范已经落地。
 
 4. **SOP 重构与节点能力底座** 已完成  
-   manifest、config schema、节点配置入口、知识库节点内化、`write_db` 第一版写入能力、现有节点补全总则已经建立。
+   manifest、config schema（支持动态选项）、节点配置入口、知识库动态过滤、节点文件导出下载以及现有节点补全总则已经建立。
 
 更准确地说，本轮已经把“工作流节点系统整改”从分散修补，推进到了一个可持续迭代的新起点：
 
 - 文档前提统一了
 - AI 到画布的关键链路通了
 - 执行面板不是纸面规划了
-- 节点能力不再只有静态标签
+- 节点能力不再只有静态标签，表单配置具备了动态化能力
 - 知识库开始以节点而不是旧页面为中心
 - 后续逐节点补全已经有了统一 SOP 和能力规格表
 
