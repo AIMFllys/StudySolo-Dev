@@ -179,7 +179,7 @@ export function buildNodeMenuGroups({
           onClick: onToggleSlip,
         },
         {
-          label: isGlobalSlipsHidden ? '显示所有全局详情' : '隐藏所有全局详情',
+          label: isGlobalSlipsHidden ? '显示全局运行详情' : '隐藏全局运行详情',
           icon: isGlobalSlipsHidden ? <Eye size={14} className="text-blue-500" /> : <EyeOff size={14} className="text-blue-500" />,
           onClick: onToggleGlobalSlips,
         },
@@ -225,12 +225,12 @@ export function buildSlipMenuGroups({
     {
       items: [
         {
-          label: '隐藏此纸条 (运行详情)',
+          label: '隐藏运行详情',
           icon: <EyeOff size={14} />,
           onClick: onHideSlip,
         },
         {
-          label: isGlobalSlipsHidden ? '全局显示所有纸条' : '全局隐藏所有纸条',
+          label: isGlobalSlipsHidden ? '显示全局运行详情' : '隐藏全局运行详情',
           icon: isGlobalSlipsHidden ? <Eye size={14} className="text-blue-500" /> : <EyeOff size={14} className="text-blue-500" />,
           onClick: onHideGlobalSlips,
         },

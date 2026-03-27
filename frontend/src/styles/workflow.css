@@ -203,11 +203,11 @@
 
 /* ─── Selection glow ─── */
 .workflow-canvas .react-flow__node.selected > div {
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5), 0 0 20px rgba(99, 102, 241, 0.15);
+  box-shadow: none;
 }
 
 .light .workflow-canvas .react-flow__node.selected > div {
-  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.45), 0 0 16px rgba(79, 70, 229, 0.1);
+  box-shadow: none;
 }
 
 /* ─── Connection drag line ─── */

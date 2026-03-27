@@ -12,6 +12,9 @@ interface NodeModelSelectorProps {
   nodeThemeColor: string;
 }
 
+// 提取清洗文本：去除半角和全角的括号及其后面的文字
+const formatModelName = (name: string) => name.replace(/\s*[（(].*?[）)]/g, '').trim();
+
 /**
  * Track B — Workflow Node Model Selector (2-level: Vendor → Model)
  *
@@ -92,7 +95,7 @@ export const NodeModelSelector: React.FC<NodeModelSelectorProps> = ({
               className="w-1.5 h-1.5 rounded-full inline-block transition-colors"
               style={{ backgroundColor: selectedModelInfo.brandColor }}
             />
-            <span className="opacity-70 group-hover:opacity-100">{selectedModelInfo.displayName}</span>
+            <span className="opacity-70 group-hover:opacity-100">{formatModelName(selectedModelInfo.displayName)}</span>
           </>
         )}
       </button>
@@ -164,7 +167,7 @@ export const NodeModelSelector: React.FC<NodeModelSelectorProps> = ({
                             className="w-1.5 h-1.5 rounded-full shrink-0"
                             style={{ backgroundColor: model.brandColor }}
                           />
-                          <span className="flex-1 truncate">{model.displayName}</span>
+                          <span className="flex-1 truncate">{formatModelName(model.displayName)}</span>
                           {model.isPremium && (
                             <span className={`text-[8px] border px-1 rounded-sm shrink-0 ${
                               accessible

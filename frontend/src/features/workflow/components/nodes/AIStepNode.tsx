@@ -127,7 +127,7 @@ function AIStepNode({ data, selected, type, id }: NodeProps) {
         />
       </div>
 
-      {/* 底部悬挂纸条 */}
+      {/* 底部运行详情 */}
       {isSlipVisible && (
         <NodeResultSlip
           nodeId={id}

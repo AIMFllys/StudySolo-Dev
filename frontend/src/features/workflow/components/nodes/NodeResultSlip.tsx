@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronRight, CheckCircle2, AlertCircle, Loader2, Clock3 } from 'lucide-react';
 import { NodeStatus } from '@/types';
@@ -53,41 +53,67 @@ export const NodeResultSlip: React.FC<NodeResultSlipProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [slipMenuPos, setSlipMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const slipRef = useRef<HTMLDivElement>(null);
   const parsedInput = useMemo(() => parseInputSnapshot(inputSnapshot), [inputSnapshot]);
 
-  const handleContextMenu = (e: React.MouseEvent) => {
+  // Native capture-phase right-click: beats ReactFlow's node wrapper handler
+  const captureContextMenu = useCallback((e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    e.stopImmediatePropagation();
     onFocusSlip?.();
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(
-        new CustomEvent('canvas:show-slip-menu', {
-          detail: { x: e.clientX, y: e.clientY, nodeId },
-        })
-      );
-    }
-  };
+    setSlipMenuPos({ x: e.clientX, y: e.clientY });
+  }, [onFocusSlip]);
+
+  useEffect(() => {
+    const el = slipRef.current;
+    if (!el) return;
+    el.addEventListener('contextmenu', captureContextMenu, true); // capture phase
+    return () => el.removeEventListener('contextmenu', captureContextMenu, true);
+  }, [captureContextMenu]);
 
   const shadowClass = isSelected ? 'ring-2 ring-primary/40 shadow-xl shadow-primary/10' : '';
 
   // ── Pending: show a silent "idle" tab — never return null ──────────────────
   if (!status || status === 'pending') {
     return (
-      <div 
-        className={`node-result-slip mt-3 w-full bg-black/5 dark:bg-white/5 border border-dashed border-black/15 dark:border-white/15 rounded-md shadow-sm backdrop-blur-sm ${shadowClass}`}
-        onContextMenu={handleContextMenu}
-        onPointerDown={(e) => {
-          onFocusSlip?.();
-          // Allow ReactFlow to drag it naturally without e.stopPropagation()
-        }}
-      >
-        <div className="flex items-center gap-2 px-3 py-1.5 pointer-events-none select-none">
-          <Clock3 className="w-3 h-3 text-black/30 dark:text-white/30" />
-          <span className="font-mono text-[10px] text-black/40 dark:text-white/40 tracking-wider">
-            闲置中
-          </span>
+      <>
+        <div 
+          ref={slipRef}
+          className={`node-result-slip mt-4 w-full bg-stone-50/40 dark:bg-stone-900/40 border border-dashed border-stone-200/60 dark:border-stone-800/60 rounded-md shadow-sm backdrop-blur-sm ${shadowClass}`}
+          onPointerDownCapture={(e) => {
+            e.stopPropagation();
+            onFocusSlip?.();
+          }}
+        >
+          <div className="flex items-center gap-2 px-3 py-1.5 pointer-events-none select-none">
+            <Clock3 className="w-3 h-3 text-black/30 dark:text-white/30" />
+            <span className="font-mono text-[10px] text-black/40 dark:text-white/40 tracking-wider">
+              闲置中
+            </span>
+          </div>
         </div>
-      </div>
+        {slipMenuPos && typeof document !== 'undefined' && createPortal(
+          <NodeContextMenu
+            x={slipMenuPos.x}
+            y={slipMenuPos.y}
+            onClose={() => setSlipMenuPos(null)}
+            groups={buildSlipMenuGroups({
+              isExpanded,
+              onExpandToggle: () => setIsExpanded(!isExpanded),
+              onHideSlip: () => {
+                const nodes = useWorkflowStore.getState().nodes;
+                const node = nodes.find(n => n.id === nodeId);
+                const hideSlip = (node?.data as any)?.hideSlip || false;
+                useWorkflowStore.getState().updateNodeData(nodeId, { hideSlip: !hideSlip });
+              },
+              onHideGlobalSlips: () => useWorkflowStore.getState().toggleGlobalNodeSlips(),
+              isGlobalSlipsHidden: !useWorkflowStore.getState().showAllNodeSlips,
+            })}
+          />,
+          document.body
+        )}
+      </>
     );
   }
 
@@ -128,9 +154,10 @@ export const NodeResultSlip: React.FC<NodeResultSlipProps> = ({
 
   return (
     <div 
-      className={`node-result-slip mt-3 w-full rounded-md overflow-hidden bg-white/80 dark:bg-black/50 backdrop-blur-md shadow-sm border border-black/10 dark:border-white/10 relative z-50 transition-colors ${shadowClass}`}
-      onContextMenu={handleContextMenu}
-      onPointerDown={(e) => {
+      ref={slipRef}
+      className={`node-result-slip mt-4 w-full rounded-md overflow-hidden bg-white/80 dark:bg-black/50 backdrop-blur-md shadow-sm border border-black/10 dark:border-white/10 relative z-50 transition-colors ${shadowClass}`}
+      onPointerDownCapture={(e) => {
+        e.stopPropagation();
         onFocusSlip?.();
       }}
     >
