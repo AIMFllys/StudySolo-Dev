@@ -1,7 +1,8 @@
 import { CheckCircle2, Circle, Loader } from 'lucide-react';
 import { parsePlanResponse, type ParsedPlan, type PlanStep } from '@/features/workflow/utils/parse-plan-xml';
 import { useState, useMemo } from 'react';
-import { useActionExecutor, type CanvasAction } from '@/features/workflow/hooks/use-action-executor';
+import { useActionExecutor } from '@/features/workflow/hooks/use-action-executor';
+import { planStepsToActions } from '@/features/workflow/utils/plan-executor';
 
 interface PlanCardProps {
   rawContent: string;
@@ -33,17 +34,10 @@ export function PlanCard({ rawContent, onApply }: PlanCardProps) {
   const handleApply = async () => {
     if (selectedSteps.size === 0) return;
     setApplying(true);
-    const actions: CanvasAction[] = parsed.recommendations
-      .filter(r => selectedSteps.has(r.id))
-      .map(r => ({
-        operation: r.action as any,
-        payload: {
-          type: r.nodeType,
-          label: r.description,
-          anchor_node_id: r.anchor, // 可用于确定位置
-        }
-      }));
-    
+    const actions = planStepsToActions(
+      parsed.recommendations.filter((r) => selectedSteps.has(r.id)),
+    );
+
     await execute(actions);
     setApplying(false);
     if (onApply) onApply();

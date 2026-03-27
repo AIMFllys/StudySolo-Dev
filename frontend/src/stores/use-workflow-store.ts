@@ -1,8 +1,10 @@
 import { create } from 'zustand';
 import { addEdge, applyEdgeChanges, applyNodeChanges } from '@xyflow/react';
 import type { Connection, Edge, EdgeChange, Node, NodeChange } from '@xyflow/react';
-import type { WorkflowNodeData } from '@/types';
+import type { NodeExecutionTrace, WorkflowExecutionSession, WorkflowNodeData } from '@/types';
 import { isLegacyLoopRegionNode, normalizeEdge } from '@/types';
+import { getNodeTheme } from '@/features/workflow/constants/workflow-meta';
+import { isTraceFinished } from '@/features/workflow/utils/trace-helpers';
 
 type NodeData = WorkflowNodeData & Record<string, unknown>;
 
@@ -44,6 +46,14 @@ interface WorkflowStore {
   
   showAllNodeSlips: boolean;
   toggleGlobalNodeSlips: () => void;
+
+  executionSession: WorkflowExecutionSession | null;
+  startExecutionSession: (workflowId: string) => void;
+  registerNodeTrace: (nodeId: string, order: number, isParallel: boolean, parallelGroupId?: string) => void;
+  updateNodeTrace: (nodeId: string, updates: Partial<NodeExecutionTrace>) => void;
+  appendNodeTraceToken: (nodeId: string, token: string) => void;
+  finalizeExecutionSession: (status: 'completed' | 'error') => void;
+  clearExecutionSession: () => void;
   
   // History Actions
   past: { nodes: Node[], edges: Edge[] }[];
@@ -105,8 +115,134 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
   isDirty: false,
   clickConnectState: { phase: 'idle' } as ClickConnectState,
   showAllNodeSlips: true,
+  executionSession: null,
 
   toggleGlobalNodeSlips: () => set((state) => ({ showAllNodeSlips: !state.showAllNodeSlips })),
+
+  startExecutionSession: (workflowId) =>
+    set((state) => {
+      const traces: NodeExecutionTrace[] = state.nodes
+        .filter((node) => node.type !== 'annotation' && node.type !== 'generating')
+        .map((node, index) => {
+          const nodeData = (node.data as NodeData) ?? {};
+          return {
+            nodeId: node.id,
+            nodeType: node.type ?? String(nodeData.type ?? 'unknown'),
+            nodeName: String(nodeData.label ?? node.id),
+            category: getNodeTheme(node.type ?? String(nodeData.type ?? 'chat_response')).category,
+            status: (nodeData.status as NodeExecutionTrace['status']) ?? 'pending',
+            executionOrder: index + 1,
+            isParallel: false,
+            streamingOutput: '',
+            outputFormat: typeof nodeData.output_format === 'string' ? nodeData.output_format : undefined,
+            modelRoute: typeof nodeData.model_route === 'string' ? nodeData.model_route : undefined,
+          };
+        });
+
+      return {
+        executionSession: {
+          sessionId: crypto.randomUUID(),
+          workflowId,
+          startedAt: performance.now(),
+          overallStatus: 'running',
+          traces,
+          completedCount: 0,
+          totalCount: traces.filter((trace) => trace.nodeType !== 'trigger_input').length,
+        },
+      };
+    }),
+
+  registerNodeTrace: (nodeId, order, isParallel, parallelGroupId) =>
+    set((state) => {
+      if (!state.executionSession) {
+        return state;
+      }
+
+      return {
+        executionSession: {
+          ...state.executionSession,
+          traces: state.executionSession.traces.map((trace) =>
+            trace.nodeId === nodeId
+              ? {
+                  ...trace,
+                  executionOrder: order,
+                  isParallel,
+                  parallelGroupId,
+                  status: 'running',
+                }
+              : trace
+          ),
+        },
+      };
+    }),
+
+  updateNodeTrace: (nodeId, updates) =>
+    set((state) => {
+      if (!state.executionSession) {
+        return state;
+      }
+
+      let completedCount = state.executionSession.completedCount;
+      const traces = state.executionSession.traces.map((trace) => {
+        if (trace.nodeId !== nodeId) {
+          return trace;
+        }
+
+        const nextTrace = { ...trace, ...updates };
+        const becameFinished = !isTraceFinished(trace) && isTraceFinished(nextTrace);
+
+        if (becameFinished && trace.nodeType !== 'trigger_input') {
+          completedCount += 1;
+        }
+
+        return nextTrace;
+      });
+
+      return {
+        executionSession: {
+          ...state.executionSession,
+          traces,
+          completedCount,
+        },
+      };
+    }),
+
+  appendNodeTraceToken: (nodeId, token) =>
+    set((state) => {
+      if (!state.executionSession) {
+        return state;
+      }
+
+      return {
+        executionSession: {
+          ...state.executionSession,
+          traces: state.executionSession.traces.map((trace) =>
+            trace.nodeId === nodeId
+              ? { ...trace, streamingOutput: trace.streamingOutput + token }
+              : trace
+          ),
+        },
+      };
+    }),
+
+  finalizeExecutionSession: (status) =>
+    set((state) => {
+      if (!state.executionSession) {
+        return state;
+      }
+
+      const now = performance.now();
+      return {
+        executionSession: {
+          ...state.executionSession,
+          overallStatus: status,
+          finishedAt: now,
+          totalDurationMs: Math.round(now - state.executionSession.startedAt),
+        },
+      };
+    }),
+
+  clearExecutionSession: () => set({ executionSession: null }),
 
   takeSnapshot: () =>
     set((state) => {

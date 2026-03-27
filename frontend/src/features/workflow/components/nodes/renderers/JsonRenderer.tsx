@@ -11,6 +11,7 @@ import type { NodeRendererProps } from "../index";
 export const JsonRenderer: React.FC<NodeRendererProps> = ({
     output,
     isStreaming,
+    compact = false,
 }) => {
     const formattedJson = useMemo(() => {
         if (!output) return "";
@@ -22,12 +23,38 @@ export const JsonRenderer: React.FC<NodeRendererProps> = ({
         }
     }, [output]);
 
+    const summaryText = useMemo(() => {
+        if (!output) return "";
+        try {
+            const parsed = JSON.parse(output) as Record<string, unknown> | unknown[];
+            if (Array.isArray(parsed)) {
+                return `数组 ${parsed.length} 项`;
+            }
+            return Object.entries(parsed)
+                .slice(0, 3)
+                .map(([key, value]) => {
+                    if (typeof value === 'string') return `${key}: ${value.slice(0, 20)}${value.length > 20 ? '…' : ''}`;
+                    if (Array.isArray(value)) return `${key}: ${value.length}项`;
+                    if (value && typeof value === 'object') return `${key}: 对象`;
+                    return `${key}: ${String(value)}`;
+                })
+                .join(' · ');
+        } catch {
+            const compactText = output.replace(/\s+/g, ' ').trim();
+            return compactText.slice(0, 120);
+        }
+    }, [output]);
+
     if (!output) {
         return (
             <div className="text-gray-400 text-sm italic">
                 {isStreaming ? "分析中..." : "等待执行"}
             </div>
         );
+    }
+
+    if (compact) {
+        return <div className="text-xs leading-5 text-gray-700">{summaryText}</div>;
     }
 
     return (

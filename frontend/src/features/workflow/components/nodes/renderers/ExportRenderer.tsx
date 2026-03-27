@@ -8,11 +8,7 @@
  */
 
 import React, { useMemo } from "react";
-
-interface NodeRendererProps {
-    output: string;
-    isStreaming?: boolean;
-}
+import type { NodeRendererProps } from "../index";
 
 interface ExportInfo {
     filename: string;
@@ -66,7 +62,7 @@ const FORMAT_COLORS: Record<string, { bg: string; text: string; border: string }
     MD: { bg: "#f0fdf4", text: "#16a34a", border: "#bbf7d0" },
 };
 
-export default function ExportRenderer({ output, isStreaming }: NodeRendererProps) {
+export default function ExportRenderer({ output, isStreaming, compact = false }: NodeRendererProps) {
     const exportInfo = useMemo(() => parseExportOutput(output), [output]);
 
     // While streaming, show raw output
@@ -83,6 +79,18 @@ export default function ExportRenderer({ output, isStreaming }: NodeRendererProp
         return (
             <div className="px-4 py-3 text-sm whitespace-pre-wrap text-gray-700">
                 {output}
+            </div>
+        );
+    }
+
+    if (compact) {
+        return (
+            <div className="text-xs text-gray-600">
+                {exportInfo.error
+                    ? `导出失败: ${exportInfo.error}`
+                    : exportInfo.filename
+                        ? `文件已生成: ${exportInfo.filename}`
+                        : '文件已生成'}
             </div>
         );
     }

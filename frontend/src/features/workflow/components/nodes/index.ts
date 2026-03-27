@@ -25,6 +25,7 @@ export interface NodeRendererProps {
     format: string;
     nodeType: string;
     isStreaming: boolean;
+    compact?: boolean;
 }
 
 /**

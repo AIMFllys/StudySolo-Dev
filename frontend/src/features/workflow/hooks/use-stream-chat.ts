@@ -42,6 +42,32 @@ interface GenerateResponse {
   implicit_context: Record<string, unknown>;
 }
 
+function hydrateTriggerInputNodes(nodes: unknown[], userInput: string) {
+  return nodes.map((node) => {
+    if (!node || typeof node !== 'object') {
+      return node;
+    }
+    const typedNode = node as {
+      type?: string;
+      data?: Record<string, unknown>;
+    };
+    if (typedNode.type !== 'trigger_input') {
+      return node;
+    }
+
+    const nextData = {
+      ...(typedNode.data ?? {}),
+      user_content: (typedNode.data?.user_content as string | undefined) || userInput,
+      label: (typedNode.data?.label as string | undefined) || userInput.trim().slice(0, 80) || '用户输入',
+    };
+
+    return {
+      ...typedNode,
+      data: nextData,
+    };
+  });
+}
+
 // ── SSE parser ───────────────────────────────────────────────────────
 
 async function parseSSEStream(
@@ -113,13 +139,14 @@ async function handleBuildIntent(userInput: string, thinkingDepth: ThinkingDepth
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
   const data = await res.json() as GenerateResponse;
+  const hydratedNodes = hydrateTriggerInputNodes(data.nodes, userInput);
   wfStore.replaceWorkflowGraph(
-    data.nodes as Parameters<typeof wfStore.replaceWorkflowGraph>[0],
+    hydratedNodes as Parameters<typeof wfStore.replaceWorkflowGraph>[0],
     data.edges as Parameters<typeof wfStore.replaceWorkflowGraph>[1],
   );
   wfStore.setGenerationContext(userInput, data.implicit_context);
 
-  return `✅ 已生成 ${data.nodes.length} 个节点。`;
+  return `✅ 已生成 ${hydratedNodes.length} 个节点。`;
 }
 
 // ── MODIFY handler ───────────────────────────────────────────────────
@@ -129,7 +156,21 @@ async function handleModifyIntent(
   msgId: string,
 ): Promise<string> {
   try {
-    const p = JSON.parse(rawJson) as { actions?: CanvasAction[]; response?: string };
+    const p = JSON.parse(rawJson) as {
+      actions?: CanvasAction[];
+      response?: string;
+      error?: string;
+      error_detail?: string;
+    };
+    if (p.error) {
+      console.warn('Modify intent failed to produce executable actions', {
+        msgId,
+        error: p.error,
+        detail: p.error_detail,
+        rawJson,
+      });
+      return `⚠️ ${p.response ?? 'AI 没有返回可执行的画布操作。请重试，或改用手动编辑节点。'}`;
+    }
     const actions = p.actions ?? [];
     if (!actions.length) return p.response ?? '（完成）';
 
@@ -137,8 +178,9 @@ async function handleModifyIntent(
     return result.success
       ? `✅ ${p.response || '完成'} (${result.appliedCount}步)`
       : `⚠️ ${result.error}`;
-  } catch {
-    return rawJson; // Parse failed — show raw response
+  } catch (error) {
+    console.warn('Failed to parse MODIFY payload', { msgId, error, rawJson });
+    return '⚠️ AI 返回了不可执行的画布操作。请重试，或改用手动编辑节点。';
   }
 }
 

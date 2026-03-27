@@ -20,7 +20,7 @@ import {
 import type { Node } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import BottomDrawer from '@/features/workflow/components/panel/BottomDrawer';
+import ExecutionTraceDrawer from '@/features/workflow/components/execution/ExecutionTraceDrawer';
 import FloatingToolbar from '@/features/workflow/components/toolbar/FloatingToolbar';
 import type { CanvasTool } from '@/features/workflow/components/toolbar/FloatingToolbar';
 import AnimatedEdge from '@/features/workflow/components/canvas/edges/AnimatedEdge';
@@ -37,7 +37,7 @@ import EdgeContextMenu from '@/features/workflow/components/canvas/EdgeContextMe
 import { useLoopGroupDrop } from '@/features/workflow/hooks/use-loop-group-drop';
 import { NODE_TYPE_META } from '@/features/workflow/constants/workflow-meta';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
-import type { AIStepNodeData, NodeType } from '@/types';
+import type { NodeType } from '@/types';
 
 /* ── Canvas background presets ── */
 const BG_PRESETS = [
@@ -138,7 +138,6 @@ function WorkflowCanvasInner() {
     setSelectedNodeId,
     setNodes,
   } = useWorkflowStore();
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [canvasTool, setCanvasTool] = useState<CanvasTool>('pan');
   const [modal, setModal] = useState<{ title: string; message: string } | null>(null);
   const [placementMode, setPlacementMode] = useState<string | null>(null);
@@ -197,14 +196,6 @@ function WorkflowCanvasInner() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
 
-  const selectedNodeData = useMemo(
-    () =>
-      ((selectedNodeId
-        ? nodes.find((node) => node.id === selectedNodeId)?.data
-        : null) as unknown as AIStepNodeData | null) ?? null,
-    [nodes, selectedNodeId]
-  );
-
   const defaultEdgeOptions = useMemo(
     () => ({
       type: 'default',
@@ -225,9 +216,6 @@ function WorkflowCanvasInner() {
   const handleNodeClick: NodeMouseHandler = useCallback(
     (_event, node) => {
       setSelectedNodeId(node.id);
-      if (typeof window !== 'undefined' && window.innerWidth < 768) {
-        setDrawerOpen(true);
-      }
     },
     [setSelectedNodeId]
   );
@@ -279,10 +267,6 @@ function WorkflowCanvasInner() {
     },
     [setSelectedNodeId]
   );
-
-  const handleDrawerClose = useCallback(() => {
-    setDrawerOpen(false);
-  }, []);
 
   // ── Canvas right-click handler ────────────────────────────────────────────
   const handlePaneContextMenu = useCallback((event: MouseEvent | React.MouseEvent) => {
@@ -719,12 +703,7 @@ function WorkflowCanvasInner() {
 
       <FloatingToolbar />
 
-      <BottomDrawer
-        open={drawerOpen}
-        onClose={handleDrawerClose}
-        nodeId={selectedNodeId}
-        nodeData={selectedNodeData}
-      />
+      <ExecutionTraceDrawer />
 
       {/* Canvas modal for edit/upload messages */}
       {modal && (

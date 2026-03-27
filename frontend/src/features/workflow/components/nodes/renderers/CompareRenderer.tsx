@@ -24,6 +24,7 @@ interface CompareData {
 export const CompareRenderer: React.FC<NodeRendererProps> = ({
     output,
     isStreaming,
+    compact = false,
 }) => {
     const data: CompareData | null = useMemo(() => {
         if (!output) return null;
@@ -42,6 +43,15 @@ export const CompareRenderer: React.FC<NodeRendererProps> = ({
 
     if (!data) {
         return <div className="text-gray-400 text-sm italic">等待执行</div>;
+    }
+
+    if (compact) {
+        return (
+            <div className="text-xs text-gray-600">
+                ⚖️ {data.concepts.length} 个概念 · {data.dimensions.length} 个维度
+                {data.summary ? ` · ${data.summary.slice(0, 60)}${data.summary.length > 60 ? '…' : ''}` : ''}
+            </div>
+        );
     }
 
     // Color palette for concept columns

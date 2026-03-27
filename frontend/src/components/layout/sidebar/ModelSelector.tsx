@@ -64,7 +64,7 @@ function ChatModelSelectorUI({
   isLoading,
   isError,
   onRetry,
-}: ChatModelSelectorProps & { open: boolean; setOpen: (v: boolean) => void; containerRef: React.RefObject<HTMLDivElement> }) {
+}: ChatModelSelectorProps & { open: boolean; setOpen: (v: boolean) => void; containerRef: React.RefObject<HTMLDivElement | null> }) {
   const tierOrder: Record<string, number> = { free: 0, pro: 1, pro_plus: 2, ultra: 3 };
   const userLevel = tierOrder[userTier ?? 'free'] ?? 0;
 
@@ -190,7 +190,7 @@ function LegacyModelSelectorUI({
   open,
   setOpen,
   containerRef,
-}: LegacyModelSelectorProps & { open: boolean; setOpen: (v: boolean) => void; containerRef: React.RefObject<HTMLDivElement> }) {
+}: LegacyModelSelectorProps & { open: boolean; setOpen: (v: boolean) => void; containerRef: React.RefObject<HTMLDivElement | null> }) {
   const handleSelect = (model: AIModelOption) => {
     if (!canAccessModel(userTier, model)) return;
     onChange(model);

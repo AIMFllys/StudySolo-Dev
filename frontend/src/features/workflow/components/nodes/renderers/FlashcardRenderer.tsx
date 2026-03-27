@@ -16,6 +16,7 @@ interface Flashcard {
 export const FlashcardRenderer: React.FC<NodeRendererProps> = ({
     output,
     isStreaming,
+    compact = false,
 }) => {
     const [flippedCards, setFlippedCards] = useState<Set<number>>(new Set());
 
@@ -44,6 +45,16 @@ export const FlashcardRenderer: React.FC<NodeRendererProps> = ({
 
     if (cards.length === 0) {
         return <div className="text-gray-400 text-sm italic">等待执行</div>;
+    }
+
+    if (compact) {
+        const firstCard = cards[0];
+        return (
+            <div className="text-xs text-gray-600">
+                共 {cards.length} 张闪卡
+                {firstCard ? ` · 示例：${firstCard.question.slice(0, 40)}${firstCard.question.length > 40 ? '…' : ''}` : ''}
+            </div>
+        );
     }
 
     return (

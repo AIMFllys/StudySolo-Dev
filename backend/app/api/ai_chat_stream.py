@@ -2,6 +2,7 @@
 
 import json
 import logging
+from typing import Any
 
 from fastapi import APIRouter, Depends
 from sse_starlette.sse import EventSourceResponse
@@ -22,6 +23,11 @@ _DEPTH_INSTRUCTIONS: dict[str, str] = {
     "balanced": "Please answer with useful detail and clear structure.",
     "deep": "Please analyze in depth from multiple angles before answering.",
 }
+_MODIFY_FORMAT_RETRIES = 2
+_MODIFY_FORMAT_ERROR = (
+    "上一条输出不是合法 JSON。现在只允许返回一个裸 JSON 对象，"
+    "首字符必须是 {，不得包含 Markdown 代码块、解释文字或额外前后缀。"
+)
 
 def _resolve_source_subtype(body: AIChatRequest) -> str:
     if body.mode == "plan":
@@ -29,6 +35,54 @@ def _resolve_source_subtype(body: AIChatRequest) -> str:
     if body.mode == "create":
         return "modify"
     return "chat"
+
+
+def _normalize_modify_actions(parsed: dict[str, Any]) -> list[dict[str, Any]]:
+    actions_data = parsed.get("tool_calls") or parsed.get("actions", [])
+    formatted_actions: list[dict[str, Any]] = []
+    for action in actions_data:
+        payload = action.get("params", action.get("payload", {}))
+        formatted_actions.append(
+            {
+                "operation": action.get("tool", action.get("operation", "")).upper(),
+                "target_node_id": payload.get("target_node_id") or action.get("target_node_id"),
+                "payload": payload,
+            }
+        )
+    return formatted_actions
+
+
+async def _call_modify_with_retry(
+    body: AIChatRequest,
+    base_messages: list[dict[str, str]],
+) -> tuple[dict[str, Any] | None, str | None, str | None, str | None]:
+    messages = list(base_messages)
+    last_raw: str | None = None
+    last_model_used: str | None = None
+
+    for attempt in range(_MODIFY_FORMAT_RETRIES + 1):
+        raw, _, model_used = await _call_with_model(
+            body.selected_model_key,
+            body.selected_platform,
+            body.selected_model,
+            messages,
+        )
+        last_raw = raw
+        last_model_used = model_used
+        try:
+            parsed = _extract_json_obj(raw)
+            return parsed, raw, model_used, None
+        except Exception as exc:  # noqa: BLE001
+            if attempt >= _MODIFY_FORMAT_RETRIES:
+                return None, raw, model_used, str(exc)
+
+            messages = [
+                *messages,
+                {"role": "assistant", "content": raw},
+                {"role": "user", "content": f"{_MODIFY_FORMAT_ERROR}\n错误：{exc}"},
+            ]
+
+    return None, last_raw, last_model_used, "unknown modify parsing error"
 
 
 async def _chat_stream_generator(
@@ -109,24 +163,24 @@ async def _chat_stream_generator(
                 ]
 
                 try:
-                    raw, _, model_used = await _call_with_model(
-                        body.selected_model_key,
-                        body.selected_platform,
-                        body.selected_model,
-                        create_msgs,
-                    )
-                    parsed = _extract_json_obj(raw)
-                    actions_data = parsed.get("tool_calls") or parsed.get("actions", [])
-                    formatted_actions = []
-                    for action in actions_data:
-                        payload = action.get("params", action.get("payload", {}))
-                        formatted_actions.append(
-                            {
-                                "operation": action.get("tool", action.get("operation", "")).upper(),
-                                "target_node_id": payload.get("target_node_id") or action.get("target_node_id"),
-                                "payload": payload,
-                            }
-                        )
+                    parsed, raw, model_used, parse_error = await _call_modify_with_retry(body, create_msgs)
+                    if not parsed:
+                        request_status = "failed"
+                        yield {
+                            "data": json.dumps(
+                                {
+                                    "intent": "MODIFY",
+                                    "done": True,
+                                    "response": "未能生成可执行的画布操作。请重试，或改用手动编辑节点。",
+                                    "error": "INVALID_CREATE_JSON",
+                                    "error_detail": parse_error,
+                                },
+                                ensure_ascii=False,
+                            )
+                        }
+                        return
+
+                    formatted_actions = _normalize_modify_actions(parsed)
                     yield {
                         "data": json.dumps(
                             {

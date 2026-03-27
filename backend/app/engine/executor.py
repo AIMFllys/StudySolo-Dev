@@ -327,7 +327,7 @@ async def _execute_single_node(
     node_instance = NodeClass()
 
     node_input = NodeInput(
-        user_content=node_data.get("label", ""),
+        user_content=node_data.get("user_content") or node_data.get("label", ""),
         upstream_outputs=upstream_outputs,
         implicit_context=implicit_context,
         node_config=node_data.get("config"),
@@ -479,7 +479,7 @@ async def execute_workflow(
             }
 
             node_input = NodeInput(
-                user_content=node_data.get("label", ""),
+                user_content=node_data.get("user_content") or node_data.get("label", ""),
                 upstream_outputs=upstream_outputs,
                 implicit_context=implicit_context,
                 node_config=node_data.get("config"),
@@ -545,7 +545,7 @@ async def execute_workflow(
                 # Construct node input for the snapshot
                 node_data = node_cfg.get("data", {})
                 node_input = NodeInput(
-                    user_content=node_data.get("label", ""),
+                    user_content=node_data.get("user_content") or node_data.get("label", ""),
                     upstream_outputs=upstream_outputs,
                     implicit_context=implicit_context,
                     node_config=node_data.get("config"),

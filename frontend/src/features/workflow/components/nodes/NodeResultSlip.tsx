@@ -25,6 +25,7 @@ function parseInputSnapshot(raw: string | undefined): {
   userContent?: string;
   upstreamOutputs?: Record<string, string>;
   nodeConfig?: unknown;
+  rawText?: string;
 } | null {
   if (!raw) return null;
   try {
@@ -35,7 +36,7 @@ function parseInputSnapshot(raw: string | undefined): {
       nodeConfig: parsed.node_config,
     };
   } catch {
-    return null;
+    return { rawText: raw };
   }
 }
 
@@ -54,7 +55,24 @@ export const NodeResultSlip: React.FC<NodeResultSlipProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [slipMenuPos, setSlipMenuPos] = useState<{ x: number; y: number } | null>(null);
   const slipRef = useRef<HTMLDivElement>(null);
+  const wasRunningRef = useRef(false);
   const parsedInput = useMemo(() => parseInputSnapshot(inputSnapshot), [inputSnapshot]);
+  const nodeNameMap = useWorkflowStore(
+    (state) => Object.fromEntries(
+      state.nodes.map((node) => [node.id, String((node.data as { label?: string })?.label ?? node.id)]),
+    ),
+  );
+
+  useEffect(() => {
+    if (status === 'running') {
+      wasRunningRef.current = true;
+      setIsExpanded(true);
+      return;
+    }
+    if (status === 'done' && wasRunningRef.current) {
+      setIsExpanded(true);
+    }
+  }, [status]);
 
   // Native capture-phase right-click: beats ReactFlow's node wrapper handler
   const captureContextMenu = useCallback((e: MouseEvent) => {
@@ -89,7 +107,7 @@ export const NodeResultSlip: React.FC<NodeResultSlipProps> = ({
           <div className="flex items-center gap-2 px-3 py-1.5 pointer-events-none select-none">
             <Clock3 className="w-3 h-3 text-black/30 dark:text-white/30" />
             <span className="font-mono text-[10px] text-black/40 dark:text-white/40 tracking-wider">
-              闲置中
+              等待执行
             </span>
           </div>
         </div>
@@ -148,6 +166,7 @@ export const NodeResultSlip: React.FC<NodeResultSlipProps> = ({
   };
 
   const hasInput = parsedInput && (
+    parsedInput.rawText ||
     parsedInput.userContent ||
     (parsedInput.upstreamOutputs && Object.keys(parsedInput.upstreamOutputs).length > 0)
   );
@@ -215,11 +234,20 @@ export const NodeResultSlip: React.FC<NodeResultSlipProps> = ({
                       <div className="mt-0.5 space-y-1 max-h-32 overflow-y-auto custom-scrollbar">
                         {Object.entries(parsedInput!.upstreamOutputs).map(([uid, val]) => (
                           <pre key={uid} className="font-mono text-[10px] bg-black/5 dark:bg-white/5 p-2 rounded border border-black/5 dark:border-white/5 text-black/70 dark:text-white/70 whitespace-pre-wrap break-words">
-                            <span className="text-black/30 dark:text-white/30">[{uid.slice(0, 6)}]</span>{' '}
+                            <span className="text-black/30 dark:text-white/30">[{nodeNameMap[uid] ?? uid.slice(0, 6)}]</span>{' '}
                             {String(val).slice(0, 500)}{String(val).length > 500 ? '…' : ''}
                           </pre>
                         ))}
                       </div>
+                    </div>
+                  )}
+
+                  {parsedInput!.rawText && (
+                    <div>
+                      <span className="font-mono text-[9px] text-black/30 dark:text-white/30 uppercase tracking-widest">原始输入</span>
+                      <pre className="mt-0.5 font-mono text-[10px] bg-black/5 dark:bg-white/5 p-2 rounded border border-black/5 dark:border-white/5 text-black/70 dark:text-white/70 whitespace-pre-wrap break-words">
+                        {parsedInput.rawText}
+                      </pre>
                     </div>
                   )}
                 </div>

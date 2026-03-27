@@ -91,7 +91,7 @@ export function UserDetailPanels({
           <div className="flex gap-3">
             <AdminSelect
               value={selectedTier}
-              options={TIER_OPTIONS}
+              options={[...TIER_OPTIONS]}
               onChange={(event) => onSelectTier(event.target.value as TierValue)}
               className="flex-1"
             />

@@ -11,6 +11,7 @@ import type { NodeRendererProps } from "../index";
 export const PassthroughRenderer: React.FC<NodeRendererProps> = ({
     output,
     isStreaming,
+    compact = false,
 }) => {
     if (isStreaming) {
         return (
@@ -25,7 +26,7 @@ export const PassthroughRenderer: React.FC<NodeRendererProps> = ({
         return (
             <div className="flex items-center gap-2 text-green-600 text-sm">
                 <span>✅</span>
-                <span>已完成</span>
+                <span>{compact ? '已处理' : '已完成'}</span>
             </div>
         );
     }

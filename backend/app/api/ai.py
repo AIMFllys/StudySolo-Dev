@@ -17,11 +17,11 @@ from app.models.ai import (
     NodeData,
     NodePosition,
     PlannerOutput,
-    SYSTEM_PROMPTS,
     NodeType,
     WorkflowNodeSchema,
     WorkflowEdgeSchema,
 )
+from app.nodes._base import BaseNode
 from app.services.ai_router import call_llm, AIRouterError
 from app.services.usage_ledger import bind_usage_request, create_usage_request, finalize_usage_request
 from app.core.config_loader import get_config
@@ -276,7 +276,7 @@ async def _generate_workflow_core(
 
     # ── Stage 1: AI_Analyzer ─────────────────────────────────────────────
     analyzer_messages = [
-        {"role": "system", "content": SYSTEM_PROMPTS[NodeType.ai_analyzer]},
+        {"role": "system", "content": BaseNode.get_system_prompt_for_type("ai_analyzer")},
         {"role": "user", "content": safe_input},
     ]
 
@@ -298,7 +298,7 @@ async def _generate_workflow_core(
 
     # ── Stage 2: AI_Planner ──────────────────────────────────────────────
     planner_messages = [
-        {"role": "system", "content": SYSTEM_PROMPTS[NodeType.ai_planner]},
+        {"role": "system", "content": BaseNode.get_system_prompt_for_type("ai_planner")},
         {
             "role": "user",
             "content": (
@@ -331,7 +331,7 @@ async def _generate_workflow_core(
                 data=NodeData(
                     label=node.data.label,
                     type=node.type,
-                    system_prompt=SYSTEM_PROMPTS.get(node_type_enum, ""),
+                    system_prompt=BaseNode.get_system_prompt_for_type(node_type_enum.value),
                     model_route=node.data.model_route or f"{node_type_enum.value}/default",
                     status="pending",
                     output="",
@@ -353,6 +353,7 @@ async def _generate_workflow_core(
             data=NodeData(
                 label=trigger_label,
                 type="trigger_input",
+                user_content=body.user_input,  # Full input for downstream nodes
             ),
         )
         enriched_nodes.insert(0, trigger_node)

@@ -57,7 +57,7 @@ describe('Task 5.1: Branch labels auto-assignment', () => {
   });
 
   it('does not assign branch labels for non-logic_switch nodes', () => {
-    const sourceType = 'chat_response';
+    const sourceType: string = 'chat_response';
     const shouldBranch = sourceType === 'logic_switch';
     expect(shouldBranch).toBe(false);
   });

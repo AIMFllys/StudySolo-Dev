@@ -128,6 +128,7 @@ const TreeNode: React.FC<{
 export const MindMapRenderer: React.FC<NodeRendererProps> = ({
     output,
     isStreaming,
+    compact = false,
 }) => {
     const data: MindMapNode | null = useMemo(() => {
         if (!output) return null;
@@ -159,6 +160,14 @@ export const MindMapRenderer: React.FC<NodeRendererProps> = ({
 
     if (!data) {
         return <div className="text-gray-400 text-sm italic">等待执行</div>;
+    }
+
+    if (compact) {
+        return (
+            <div className="text-xs text-gray-600">
+                🧠 {data.root ?? '思维导图'} · 共 {totalNodes} 个节点
+            </div>
+        );
     }
 
     return (

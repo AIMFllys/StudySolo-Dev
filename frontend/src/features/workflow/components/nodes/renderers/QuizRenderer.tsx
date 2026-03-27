@@ -7,7 +7,7 @@ import { QuizQuestionView } from './QuizQuestionView';
 import { useQuizSession } from './use-quiz-session';
 import { parseQuizQuestions } from './quiz-utils';
 
-export const QuizRenderer: React.FC<NodeRendererProps> = ({ output, isStreaming }) => {
+export const QuizRenderer: React.FC<NodeRendererProps> = ({ output, isStreaming, compact = false }) => {
   const questions = parseQuizQuestions(output);
   const {
     state,
@@ -29,6 +29,9 @@ export const QuizRenderer: React.FC<NodeRendererProps> = ({ output, isStreaming 
   }
   if (questions.length === 0 || !currentQuestion) {
     return <div className="text-sm italic text-gray-400">等待执行</div>;
+  }
+  if (compact) {
+    return <div className="text-xs text-gray-600">共 {questions.length} 道题 · 展开视图可交互作答</div>;
   }
   if (state.completed) {
     return (

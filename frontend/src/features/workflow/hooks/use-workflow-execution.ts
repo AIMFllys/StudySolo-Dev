@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
 import type { WorkflowSSEEvent } from '@/types/workflow-events';
+import { buildParallelGroupId, parseInputSummary } from '@/features/workflow/utils/trace-helpers';
 
 export type ExecutionStatus = 'idle' | 'running' | 'completed' | 'error';
 
@@ -15,14 +16,26 @@ export function useWorkflowExecution() {
   const esRef = useRef<EventSource | null>(null);
   const reconnectCountRef = useRef(0);
   const startTimeMapRef = useRef<Record<string, number>>({});
+  const traceOrderRef = useRef(1);
 
-  const { currentWorkflowId, setSelectedNodeId, updateNodeData } = useWorkflowStore();
+  const {
+    currentWorkflowId,
+    setSelectedNodeId,
+    updateNodeData,
+    startExecutionSession,
+    registerNodeTrace,
+    updateNodeTrace,
+    appendNodeTraceToken,
+    finalizeExecutionSession,
+    clearExecutionSession,
+  } = useWorkflowStore();
 
   const stop = useCallback(() => {
     esRef.current?.close();
     esRef.current = null;
     reconnectCountRef.current = 0;
     startTimeMapRef.current = {};
+    traceOrderRef.current = 1;
   }, []);
 
   const start = useCallback(
@@ -33,6 +46,8 @@ export function useWorkflowExecution() {
       stop();
       setStatus('running');
       setError(null);
+      clearExecutionSession();
+      startExecutionSession(id);
 
       // Pause cloud sync during execution to avoid race condition
       window.dispatchEvent(new Event('workflow:execution-start'));
@@ -50,8 +65,37 @@ export function useWorkflowExecution() {
             // - Parallel nodes: node_input fires per-node just before asyncio.gather,
             //   whereas node_status:running is batched for all parallel nodes first.
             startTimeMapRef.current[data.node_id] = performance.now();
+            const session = useWorkflowStore.getState().executionSession;
+            const runningNodeIds = (session?.traces ?? [])
+              .filter((trace) => trace.status === 'running' && trace.nodeId !== data.node_id)
+              .map((trace) => trace.nodeId);
+            const parallelGroupId = runningNodeIds.length > 0
+              ? buildParallelGroupId([...runningNodeIds, data.node_id])
+              : undefined;
+
+            if (parallelGroupId) {
+              for (const runningNodeId of runningNodeIds) {
+                updateNodeTrace(runningNodeId, {
+                  isParallel: true,
+                  parallelGroupId,
+                });
+              }
+            }
+
+            registerNodeTrace(
+              data.node_id,
+              traceOrderRef.current++,
+              Boolean(parallelGroupId),
+              parallelGroupId,
+            );
             updateNodeData(data.node_id, {
               input_snapshot: data.input_snapshot,
+            });
+            updateNodeTrace(data.node_id, {
+              status: 'running',
+              startedAt: performance.now(),
+              inputSummary: parseInputSummary(data.input_snapshot),
+              rawInputSnapshot: data.input_snapshot,
             });
           } catch { /* ignore malformed SSE */ }
         });
@@ -81,6 +125,16 @@ export function useWorkflowExecution() {
             }
 
             updateNodeData(data.node_id, updates);
+            if (data.status !== 'running') {
+              updateNodeTrace(data.node_id, {
+                status: data.status,
+                errorMessage: data.error,
+                durationMs: typeof updates.execution_time_ms === 'number' ? updates.execution_time_ms : undefined,
+                finishedAt: data.status === 'done' || data.status === 'error'
+                  ? performance.now()
+                  : undefined,
+              });
+            }
           } catch { /* ignore malformed SSE */ }
         });
 
@@ -91,6 +145,7 @@ export function useWorkflowExecution() {
             updateNodeData(data.node_id, (prev) => ({
               output: (prev.output ?? '') + data.token,
             }));
+            appendNodeTraceToken(data.node_id, data.token);
           } catch { /* ignore malformed SSE */ }
         });
 
@@ -101,6 +156,10 @@ export function useWorkflowExecution() {
             updateNodeData(data.node_id, {
               output: data.full_output,
               status: 'done',
+            });
+            updateNodeTrace(data.node_id, {
+              status: 'done',
+              finalOutput: data.full_output,
             });
           } catch { /* ignore malformed SSE */ }
         });
@@ -124,12 +183,15 @@ export function useWorkflowExecution() {
             if (data.status !== 'completed' && data.error) {
               setError(data.error);
             }
+            finalizeExecutionSession(data.status === 'completed' ? 'completed' : 'error');
           } catch {
             setStatus('completed');
+            finalizeExecutionSession('completed');
           } finally {
             es.close();
             esRef.current = null;
             startTimeMapRef.current = {};
+            traceOrderRef.current = 1;
             // Resume cloud sync after execution completes
             window.dispatchEvent(new Event('workflow:execution-end'));
           }
@@ -150,7 +212,18 @@ export function useWorkflowExecution() {
 
       connect(0);
     },
-    [currentWorkflowId, setSelectedNodeId, updateNodeData, stop]
+    [
+      appendNodeTraceToken,
+      clearExecutionSession,
+      currentWorkflowId,
+      finalizeExecutionSession,
+      registerNodeTrace,
+      setSelectedNodeId,
+      startExecutionSession,
+      stop,
+      updateNodeData,
+      updateNodeTrace,
+    ]
   );
 
   return { status, error, start, stop };

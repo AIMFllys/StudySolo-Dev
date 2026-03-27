@@ -12,6 +12,7 @@ import NodeMarkdownOutput from "../NodeMarkdownOutput";
 export const MarkdownRenderer: React.FC<NodeRendererProps> = ({
     output,
     isStreaming,
+    compact = false,
 }) => {
     if (!output) {
         return (
@@ -19,6 +20,11 @@ export const MarkdownRenderer: React.FC<NodeRendererProps> = ({
                 {isStreaming ? "生成中..." : "等待执行"}
             </div>
         );
+    }
+
+    if (compact) {
+        const trimmed = output.replace(/\s+/g, ' ').trim();
+        return <div className="text-xs leading-5 text-gray-700">{trimmed.slice(0, 200)}{trimmed.length > 200 ? '…' : ''}</div>;
     }
 
     return <NodeMarkdownOutput content={output} />;

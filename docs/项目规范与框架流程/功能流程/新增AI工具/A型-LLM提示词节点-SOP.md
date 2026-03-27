@@ -399,6 +399,25 @@ const RENDERER_REGISTRY = {
 };
 ```
 
+### 6.5 渲染器 `compact` 规范（执行面板必做）
+
+`nodes/index.ts` 中的 `NodeRendererProps` 已包含 `compact?: boolean`。新增或改造渲染器时必须同时实现两种视图：
+
+- `compact = false`
+  - 画布节点展开视图 / 详细输出
+  - 可以保留完整 Markdown、交互答题、翻卡等重交互
+- `compact = true`
+  - 执行面板 Trace 精简视图
+  - 必须输出轻量摘要，不显示重交互控件，不依赖大图表或复杂 Canvas
+
+最低要求：
+
+- `MarkdownRenderer`：前 200 字摘要
+- `JsonRenderer`：关键字段摘要
+- `FlashcardRenderer`：卡片数量与首张示例
+- `QuizRenderer`：题目数量摘要
+- 其他专用渲染器：至少返回可读的一行摘要
+
 ---
 
 ## 7. 联调验收
@@ -432,6 +451,14 @@ npx tsc --noEmit
 
 1. 节点输出是否被正确解析（不是原始 JSON 字符串）
 2. `post_process()` 的降级路径是否工作（手动构造一个错误 JSON 测试）
+
+### 7.5 执行面板验收
+
+1. 运行工作流后，右侧执行面板自动弹出
+2. 新节点步骤条目正确显示名称、执行顺序与状态
+3. `running` 状态时步骤自动展开，流式输出实时追加
+4. `done` 状态后可展开查看 Input / Output，且内容与画布节点 slip 一致
+5. `compact = true` 时渲染器不崩溃、不显示不必要的重交互控件
 
 ---
 

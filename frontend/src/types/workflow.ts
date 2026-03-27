@@ -138,6 +138,39 @@ export interface WorkflowEdge {
   data?: WorkflowEdgeData;
 }
 
+export interface NodeExecutionTrace {
+  nodeId: string;
+  nodeType: string;
+  nodeName: string;
+  category: string;
+  status: NodeStatus;
+  executionOrder: number;
+  startedAt?: number;
+  finishedAt?: number;
+  durationMs?: number;
+  isParallel: boolean;
+  parallelGroupId?: string;
+  inputSummary?: string;
+  rawInputSnapshot?: string;
+  streamingOutput: string;
+  finalOutput?: string;
+  outputFormat?: string;
+  errorMessage?: string;
+  modelRoute?: string;
+}
+
+export interface WorkflowExecutionSession {
+  sessionId: string;
+  workflowId: string;
+  startedAt: number;
+  finishedAt?: number;
+  totalDurationMs?: number;
+  overallStatus: 'running' | 'completed' | 'error';
+  traces: NodeExecutionTrace[];
+  completedCount: number;
+  totalCount: number;
+}
+
 /** 兼容旧数据 — 为缺失字段补充默认值，旧类型统一迁移为 sequential */
 export function normalizeEdge(edge: Partial<WorkflowEdge> & { id: string; source: string; target: string }): WorkflowEdge {
   return {
