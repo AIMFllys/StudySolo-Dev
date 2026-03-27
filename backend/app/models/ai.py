@@ -68,12 +68,20 @@ class GenerateWorkflowRequest(BaseModel):
     user_input: str = Field(..., min_length=1, max_length=2000, description="用户自然语言学习目标")
 
 
+class InputSources(BaseModel):
+    """Analyzer's judgment on which input source nodes are needed."""
+    need_knowledge_base: bool = False
+    need_web_search: bool = False
+    reasoning: str = ""
+
+
 class AnalyzerOutput(BaseModel):
     goal: str
     user_defined_steps: list[str] = Field(default_factory=list)
     design_requirements: list[str] = Field(default_factory=list)
     constraints: dict[str, Any] = Field(default_factory=dict)
     extras: dict[str, Any] = Field(default_factory=dict)
+    input_sources: InputSources = Field(default_factory=InputSources)
 
 
 class NodePosition(BaseModel):

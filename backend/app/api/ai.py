@@ -14,6 +14,7 @@ from app.models.ai import (
     GenerateWorkflowRequest,
     GenerateWorkflowResponse,
     ImplicitContext,
+    InputSources,
     NodeData,
     NodePosition,
     PlannerOutput,
@@ -341,38 +342,81 @@ async def _generate_workflow_core(
 
     normalized_edges = _normalize_edges(enriched_nodes, planner_output.edges)
 
-    # ── 自动注入 trigger_input（若 Planner 未生成） ──────────────────
-    has_trigger = any(n.type == "trigger_input" for n in enriched_nodes)
-    if not has_trigger:
+    # ── 自动注入输入源节点（若 Planner 未生成） ──────────────────────
+    input_source_types = {"trigger_input", "knowledge_base", "web_search"}
+    existing_types = {n.type for n in enriched_nodes}
+    injected_source_ids: list[str] = []
+
+    # 始终确保 trigger_input 存在
+    if "trigger_input" not in existing_types:
         trigger_id = "trigger-input-0"
         trigger_label = body.user_input.strip().replace("\n", " ")[:80]
-        trigger_node = WorkflowNodeSchema(
+        enriched_nodes.insert(0, WorkflowNodeSchema(
             id=trigger_id,
             type="trigger_input",
-            position=NodePosition(x=0, y=0),  # auto_layout 会重新计算
+            position=NodePosition(x=0, y=0),
             data=NodeData(
                 label=trigger_label,
                 type="trigger_input",
-                user_content=body.user_input,  # Full input for downstream nodes
+                user_content=body.user_input,
             ),
-        )
-        enriched_nodes.insert(0, trigger_node)
+        ))
+        injected_source_ids.append(trigger_id)
 
-        # 找到所有入度=0 的非 trigger 节点，从 trigger 连接过去
+    # 根据 Analyzer 的 input_sources 判断注入 knowledge_base
+    if (
+        analyzer_output.input_sources.need_knowledge_base
+        and "knowledge_base" not in existing_types
+    ):
+        kb_id = "kb-input-0"
+        enriched_nodes.insert(1, WorkflowNodeSchema(
+            id=kb_id,
+            type="knowledge_base",
+            position=NodePosition(x=0, y=0),
+            data=NodeData(
+                label="📚 知识库检索",
+                type="knowledge_base",
+                config={"top_k": 5, "threshold": 0.7},
+            ),
+        ))
+        injected_source_ids.append(kb_id)
+
+    # 根据 Analyzer 的 input_sources 判断注入 web_search
+    if (
+        analyzer_output.input_sources.need_web_search
+        and "web_search" not in existing_types
+    ):
+        ws_id = "ws-input-0"
+        insert_pos = min(2, len(enriched_nodes))
+        enriched_nodes.insert(insert_pos, WorkflowNodeSchema(
+            id=ws_id,
+            type="web_search",
+            position=NodePosition(x=0, y=0),
+            data=NodeData(
+                label="🌐 联网搜索",
+                type="web_search",
+                config={"max_results": 5, "search_depth": "advanced"},
+            ),
+        ))
+        injected_source_ids.append(ws_id)
+
+    # 将注入的输入源节点连接到入度=0的非输入源节点
+    if injected_source_ids:
         targets_with_incoming = {e.target for e in normalized_edges}
         root_ids = [
             n.id for n in enriched_nodes
-            if n.id != trigger_id and n.id not in targets_with_incoming
+            if n.type not in input_source_types and n.id not in targets_with_incoming
         ]
-        for root_id in root_ids:
-            normalized_edges.insert(
-                0,
-                WorkflowEdgeSchema(
-                    id=f"edge-{trigger_id}-{root_id}",
-                    source=trigger_id,
-                    target=root_id,
-                ),
-            )
+        for source_id in injected_source_ids:
+            for root_id in root_ids:
+                normalized_edges.insert(
+                    0,
+                    WorkflowEdgeSchema(
+                        id=f"edge-{source_id}-{root_id}",
+                        source=source_id,
+                        target=root_id,
+                    ),
+                )
 
     # ── 始终执行自动布局（AI 生成的坐标不可靠） ─────────────────────
     final_nodes = _auto_layout_nodes(enriched_nodes, normalized_edges)
