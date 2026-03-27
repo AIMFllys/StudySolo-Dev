@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import ThemeProvider from "@/components/layout/ThemeProvider";
 import { AuthSessionBridge } from "@/features/auth/components";
+import { ConsentManager } from "@/components/ui/ConsentManager";
 import NextTopLoader from "nextjs-toploader";
 import { Toaster } from "sonner";
 import "./globals.css";
+
 
 /**
  * Font CSS variables — powered by @fontsource (local, no Google CDN).
@@ -43,6 +45,7 @@ export default function RootLayout({
           shadow="0 0 15px rgba(99, 102, 241, 0.6), 0 0 5px rgba(99, 102, 241, 0.4)"
         />
         <ThemeProvider>{children}</ThemeProvider>
+        <ConsentManager />
         <Toaster
           richColors
           position="top-center"

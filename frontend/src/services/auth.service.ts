@@ -81,6 +81,7 @@ export async function register(
   password: string,
   verificationCode: string,
   name?: string,
+  consent?: { agreedToTerms: boolean; agreedToPrivacy: boolean },
 ): Promise<RegisterResult> {
   const res = await authedFetch('/api/auth/register', {
     method: 'POST',
@@ -90,6 +91,8 @@ export async function register(
       password,
       verification_code: verificationCode,
       ...(name ? { name } : {}),
+      agreed_to_terms: consent?.agreedToTerms ?? false,
+      agreed_to_privacy: consent?.agreedToPrivacy ?? false,
     }),
   });
   if (!res.ok) {
@@ -97,6 +100,7 @@ export async function register(
   }
   return res.json();
 }
+
 
 /** Resend email verification link (legacy). */
 export async function resendVerification(email: string): Promise<{ message: string }> {

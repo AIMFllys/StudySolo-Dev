@@ -1,7 +1,8 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Settings as SettingsIcon } from 'lucide-react';
+import { Settings as SettingsIcon, Cookie } from 'lucide-react';
 import {
   useSettingsStore,
   type AccentColor,
@@ -14,6 +15,7 @@ import {
   FONT_OPTIONS,
   THEME_OPTIONS,
 } from '@/features/settings/options';
+
 
 export function SettingsPageView() {
   const {
@@ -210,4 +212,5 @@ export function SettingsPageView() {
       </p>
     </div>
   );
+
 }

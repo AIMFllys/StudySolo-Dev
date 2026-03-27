@@ -82,11 +82,11 @@ async def login(
 
     user_meta = user.user_metadata or {}
 
-    # Query user_profiles for tier
+    # Query user_profiles for tier + consent status
     try:
         profile = (
             await db.from_("user_profiles")
-            .select("tier, nickname, avatar_url")
+            .select("tier, nickname, avatar_url, tos_accepted_at, tos_version, cookie_consent_at")
             .eq("id", str(user.id))
             .maybe_single()
             .execute()
@@ -95,9 +95,13 @@ async def login(
     except Exception:
         row = {}
 
+    from app.models.user import CURRENT_TOS_VERSION  # local import to avoid circular
+
     return {
         "access_token": session.access_token,
         "refresh_token": session.refresh_token,
+        "needs_tos": row.get("tos_accepted_at") is None or row.get("tos_version") != CURRENT_TOS_VERSION,
+        "needs_cookie_consent": row.get("cookie_consent_at") is None,
         "user": UserInfo(
             id=str(user.id),
             email=user.email or "",

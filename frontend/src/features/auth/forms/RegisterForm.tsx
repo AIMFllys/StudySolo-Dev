@@ -31,6 +31,8 @@ export function RegisterForm() {
   const [sendingCode, setSendingCode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
 
   const handleCaptchaVerified = useCallback(async (token: string) => {
     setCaptchaToken(token);
@@ -96,6 +98,11 @@ export function RegisterForm() {
     event.preventDefault();
     setError('');
 
+    if (!agreedToTerms || !agreedToPrivacy) {
+      setError('请阅读并勾选同意服务条款和隐私政策');
+      return;
+    }
+
     if (password.length < 8) {
       setError('密码至少需要8个字符');
       return;
@@ -108,7 +115,10 @@ export function RegisterForm() {
 
     setLoading(true);
     try {
-      await register(email, password, verificationCode, name);
+      await register(email, password, verificationCode, name, {
+        agreedToTerms,
+        agreedToPrivacy,
+      });
       router.push('/login?registered=true&confirmed=true');
     } catch (err) {
       setError(err instanceof Error ? err.message : '注册遇到了问题，请检查填写内容');
@@ -294,10 +304,54 @@ export function RegisterForm() {
             </div>
           ) : null}
 
+          {/* ToS + Privacy agreement — required before submit */}
+          <div className="flex flex-col gap-2 p-3 rounded-lg bg-slate-50 border border-slate-200">
+            <label className="flex items-start gap-2.5 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                className="mt-0.5 w-4 h-4 shrink-0 rounded accent-blue-600 cursor-pointer"
+              />
+              <span className="text-xs text-slate-600 leading-relaxed">
+                我已阅读并同意{' '}
+                <a
+                  href="https://docs.1037solo.com/#/docs/studysolo-terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline underline-offset-2 font-medium"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  服务条款
+                </a>
+              </span>
+            </label>
+            <label className="flex items-start gap-2.5 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={agreedToPrivacy}
+                onChange={(e) => setAgreedToPrivacy(e.target.checked)}
+                className="mt-0.5 w-4 h-4 shrink-0 rounded accent-blue-600 cursor-pointer"
+              />
+              <span className="text-xs text-slate-600 leading-relaxed">
+                我已阅读并同意{' '}
+                <a
+                  href="https://docs.1037solo.com/#/docs/studysolo-privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline underline-offset-2 font-medium"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  隐私政策
+                </a>
+              </span>
+            </label>
+          </div>
+
           <button
             type="submit"
-            disabled={loading}
-            className="group relative mt-2 h-11 w-full bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-blue-600 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-sm flex items-center justify-center gap-2"
+            disabled={loading || !agreedToTerms || !agreedToPrivacy}
+            className="group relative mt-2 h-11 w-full bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center justify-center gap-2"
           >
             {loading ? '网络连接处理中...' : '注册并开启笔记'}
             {!loading && <UserPlus className="w-4 h-4 group-hover:scale-110 transition-transform" />}

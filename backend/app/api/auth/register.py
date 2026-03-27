@@ -15,7 +15,13 @@ from app.api.auth._helpers import (
 )
 from app.api.auth.captcha import consume_captcha_token
 from app.core.deps import get_anon_supabase_client, get_supabase_client
-from app.models.user import ForgotPasswordRequest, SendCodeRequest, UserRegister
+from app.models.user import (
+    CURRENT_PRIVACY_VERSION,
+    CURRENT_TOS_VERSION,
+    ForgotPasswordRequest,
+    SendCodeRequest,
+    UserRegister,
+)
 from app.services.email_service import send_verification_code_to_email, verify_code
 
 logger = logging.getLogger(__name__)
@@ -75,6 +81,14 @@ async def register(
 ):
     """Create a new user via Supabase Auth."""
     del anon_db
+
+    # Guard: consent must be explicitly accepted
+    if not body.agreed_to_terms or not body.agreed_to_privacy:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="必须同意服务条款和隐私政策才能注册",
+        )
+
     client_ip = resolve_client_ip(request)
     email_bucket = f"register:{body.email.lower()}"
     ip_bucket = f"register-ip:{client_ip}"
@@ -134,6 +148,20 @@ async def register(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="注册失败，请检查邮箱格式或密码强度（至少 6 位）",
         )
+
+    # Persist consent timestamps — best-effort (user created successfully)
+    try:
+        now = datetime.now(timezone.utc).isoformat()
+        await db.from_("user_profiles").update(
+            {
+                "tos_accepted_at": now,
+                "tos_version": CURRENT_TOS_VERSION,
+                "privacy_accepted_at": now,
+                "privacy_version": CURRENT_PRIVACY_VERSION,
+            }
+        ).eq("id", str(result.user.id)).execute()
+    except Exception:
+        logger.warning("Failed to write consent timestamps for user %s", result.user.id)
 
     return {
         "message": "注册成功，可以直接登录",

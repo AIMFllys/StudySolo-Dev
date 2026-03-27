@@ -1,7 +1,8 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { PanelLeft, PanelRight } from 'lucide-react';
+import { PanelLeft, PanelRight, Cookie } from 'lucide-react';
 import { FeedbackChannel } from '@/features/settings/components';
 import {
   useSettingsStore,
@@ -15,6 +16,11 @@ import {
   FONT_OPTIONS,
   THEME_OPTIONS,
 } from '@/features/settings/options';
+import {
+  fetchConsentStatus,
+  updateCookieConsent,
+  type CookieConsentLevel,
+} from '@/services/consent.service';
 
 function handleChange(name: string, action: () => void) {
   action();
@@ -38,6 +44,28 @@ export default function SettingsPanel() {
     sidebarPosition,
     setSidebarPosition,
   } = useSettingsStore();
+
+  const [cookieLevel, setCookieLevel] = useState<CookieConsentLevel | null>(null);
+  const [cookieSaving, setCookieSaving] = useState(false);
+
+  useEffect(() => {
+    fetchConsentStatus()
+      .then((s) => setCookieLevel(s.cookie_consent_level))
+      .catch(() => {});
+  }, []);
+
+  async function handleCookieChange(level: CookieConsentLevel) {
+    setCookieSaving(true);
+    try {
+      await updateCookieConsent(level);
+      setCookieLevel(level);
+      toast.success('Cookie 偏好已更新');
+    } catch {
+      toast.error('保存失败，请重试');
+    } finally {
+      setCookieSaving(false);
+    }
+  }
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -137,6 +165,45 @@ export default function SettingsPanel() {
             ))}
           </div>
           <p className="mt-1.5 text-[9px] text-muted-foreground/50">切换后立即生效，无需刷新</p>
+        </Section>
+
+        {/* Cookie Privacy */}
+        <Section title="隐私偏好">
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-1.5">
+              {([
+                { level: 'essential' as CookieConsentLevel, label: '仅必要', desc: '维持登录安全' },
+                { level: 'all' as CookieConsentLevel, label: '全部接受', desc: '改善体验' },
+              ] as const).map(({ level, label, desc }) => (
+                <button
+                  key={level}
+                  onClick={() => handleCookieChange(level)}
+                  disabled={cookieSaving || cookieLevel === level}
+                  className={`node-paper-bg flex flex-1 flex-col items-start gap-1 rounded-lg border-[1.5px] px-2 py-2 text-left transition-all shadow-sm hover:shadow-md disabled:cursor-not-allowed disabled:hover:-translate-y-0 disabled:hover:shadow-sm ${
+                    cookieLevel === level
+                      ? 'border-primary/40'
+                      : 'border-border/50 hover:border-primary/30'
+                  }`}
+                >
+                  <span className={`text-[10px] font-medium ${cookieLevel === level ? 'text-primary' : 'text-foreground'}`}>
+                    {label}
+                  </span>
+                  <span className="text-[9px] text-muted-foreground leading-[1.2]">{desc}</span>
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-1.5 mt-1 px-1">
+              <Cookie className="w-3 h-3 text-muted-foreground/70" />
+              <a
+                href="https://docs.1037solo.com/#/docs/studysolo-cookie"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[9px] text-muted-foreground hover:text-primary transition-colors hover:underline"
+              >
+                查看 Cookie 政策
+              </a>
+            </div>
+          </div>
         </Section>
 
         <div className="mt-6">

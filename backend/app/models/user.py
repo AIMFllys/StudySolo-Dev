@@ -7,12 +7,21 @@ from pydantic import BaseModel, EmailStr
 # Canonical tier values — single source of truth (matches DB CHECK constraint)
 TierType = Literal["free", "pro", "pro_plus", "ultra"]
 
+# Cookie consent levels — matches DB CHECK constraint
+CookieConsentLevel = Literal["essential", "all"]
+
+# Current ToS / Privacy versions — bump when documents are updated
+CURRENT_TOS_VERSION = "1.0"
+CURRENT_PRIVACY_VERSION = "1.0"
+
 
 class UserRegister(BaseModel):
     email: EmailStr
     password: str
     name: str | None = None
-    verification_code: str  # 6-digit code from email
+    verification_code: str          # 6-digit code from email
+    agreed_to_terms: bool           # Must be True — service terms
+    agreed_to_privacy: bool         # Must be True — privacy policy
 
 
 class UserLogin(BaseModel):
@@ -61,3 +70,10 @@ class UserInfo(BaseModel):
     avatar_url: str | None = None
     role: str = "user"          # System role (user/admin) — from JWT
     tier: TierType = "free"     # Subscription tier — from user_profiles table
+
+
+class ConsentUpdate(BaseModel):
+    """Update one or more consent fields for the current user."""
+    cookie_consent_level: CookieConsentLevel | None = None   # Cookie preference
+    agreed_to_terms: bool | None = None                      # Re-sign ToS
+    agreed_to_privacy: bool | None = None                    # Re-sign Privacy

@@ -158,12 +158,33 @@ export function LoginForm() {
           </div>
         ) : null}
 
+        <div className="mt-2 text-center text-xs text-slate-500 font-medium">
+          登录视为您已阅读并同意{' '}
+          <a
+            href="https://docs.1037solo.com/#/docs/studysolo-terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 hover:text-blue-600 hover:underline transition-colors"
+          >
+            服务条款
+          </a>
+          {' '}和{' '}
+          <a
+            href="https://docs.1037solo.com/#/docs/studysolo-privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 hover:text-blue-600 hover:underline transition-colors"
+          >
+            隐私政策
+          </a>
+        </div>
+
         <button
           type="submit"
           disabled={loading}
-          className="group relative mt-2 h-11 w-full bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-blue-600 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-sm flex items-center justify-center gap-2"
+          className="group relative mt-2 h-11 w-full bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-sm flex items-center justify-center gap-2"
         >
-          {loading ? '正在验证身份...' : '登录空间'}
+          {loading ? '正在验证身份...' : '登录'}
           {!loading && <LogIn className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
         </button>
       </form>
