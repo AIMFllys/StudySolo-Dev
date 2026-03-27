@@ -39,6 +39,7 @@ export interface UserInfo {
   avatar_url?: string;
   role?: string;
   tier?: TierType;
+  tier_expires_at?: string | null;  // ISO 8601 UTC, null means no expiry
 }
 
 /** Send verification code to email. Requires captcha token. */
@@ -179,6 +180,33 @@ export async function getUser(): Promise<UserInfo> {
   const res = await authedFetch('/api/auth/me');
   if (!res.ok) {
     throw new Error(await parseApiError(res, '获取用户信息失败'));
+  }
+  return res.json();
+}
+
+// ---------------------------------------------------------------------------
+// Redemption Code
+// ---------------------------------------------------------------------------
+
+export interface RedeemResult {
+  code: string;
+  type: string;
+  tier: TierType | null;
+  tier_expires_at: string | null;
+  is_student_verified: boolean;
+  duration_days: number | null;
+  message: string;
+}
+
+/** Redeem a code to apply tier upgrade or student verification. */
+export async function redeemCode(code: string): Promise<RedeemResult> {
+  const res = await authedFetch('/api/discounts/redeem', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code }),
+  });
+  if (!res.ok) {
+    throw new Error(await parseApiError(res, '兑换码无效或已过期'));
   }
   return res.json();
 }

@@ -365,4 +365,5 @@ async def me(
         avatar_url=row.get("avatar_url"),
         role=current_user.get("role", "user"),
         tier=row.get("tier", "free"),
+        tier_expires_at=row.get("tier_expires_at"),
     )

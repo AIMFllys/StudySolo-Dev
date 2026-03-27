@@ -7,8 +7,14 @@ import { getUser, getTierLabel, type UserInfo } from '@/services/auth.service';
 export default function UserPanel() {
   const [user, setUser] = useState<UserInfo | null>(null);
 
-  useEffect(() => {
+  const fetchUser = () => {
     getUser().then(setUser).catch(() => null);
+  };
+
+  useEffect(() => {
+    fetchUser();
+    window.addEventListener('studysolo:tier-refresh', fetchUser);
+    return () => window.removeEventListener('studysolo:tier-refresh', fetchUser);
   }, []);
 
   const initials = user?.name

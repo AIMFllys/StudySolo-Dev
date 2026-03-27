@@ -110,8 +110,8 @@ VALUES
     'sku_qiniu_doubao_seed_lite_proxy',
     'doubao_premium',
     'qiniu',
-    'Doubao Seed 2.0 Lite',
-    'DouBao Seed 2.0 Lite（七牛）',
+    'doubao-seed-1.6',
+    'DouBao Seed 1.6（七牛）',
     'proxy',
     'pro',
     true, true, true, false,
@@ -119,7 +119,7 @@ VALUES
     131072,
     0.6000,        -- 0.0006元/K → 0.6元/百万
     3.6000,        -- 0.0036元/K → 3.6元/百万
-    '七牛云模型广场 Doubao Seed 2.0 Lite 2026 参考价',
+    '七牛云模型广场 Doubao Seed 1.6 2026 参考价',
     timezone('utc', now()),
     85
   ),
@@ -162,13 +162,13 @@ VALUES
     135
   ),
 
-  -- GPT-OSS-120B via Qiniu proxy
+  -- GPT-OSS-120B via Qiniu proxy (Mapping to openai/gpt-5.4 available on Qnaigc)
   (
     'sku_qiniu_gpt_oss_120b_proxy',
     'openai_oss',
     'qiniu',
-    'gpt-oss-120b',
-    'GPT-OSS-120B（七牛）',
+    'openai/gpt-5.4',
+    'GPT-5.4（七牛代理）',
     'proxy',
     'pro',
     true, true, true, false,
@@ -176,7 +176,7 @@ VALUES
     131072,
     1.0800,        -- 0.00108元/K → 1.08元/百万
     5.4000,        -- 0.0054元/K → 5.4元/百万
-    '七牛云模型广场 gpt-oss-120b 2026 参考价',
+    '七牛云模型广场 GPT-5.4 2026 参考价',
     timezone('utc', now()),
     175
   )

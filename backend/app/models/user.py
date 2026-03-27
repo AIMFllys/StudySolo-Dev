@@ -70,6 +70,7 @@ class UserInfo(BaseModel):
     avatar_url: str | None = None
     role: str = "user"          # System role (user/admin) — from JWT
     tier: TierType = "free"     # Subscription tier — from user_profiles table
+    tier_expires_at: str | None = None  # ISO 8601 UTC, None = no expiry (free or lifetime)
 
 
 class ConsentUpdate(BaseModel):
