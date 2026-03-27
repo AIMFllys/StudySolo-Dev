@@ -1,11 +1,12 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Settings2, X } from 'lucide-react';
-import type { NodeConfigFieldSchema } from '@/types';
+import type { NodeConfigFieldSchema, NodeConfigFieldSchemaOption } from '@/types';
 import { useWorkflowStore } from '@/stores/use-workflow-store';
 import { getNodeTypeMeta } from '@/features/workflow/constants/workflow-meta';
 import { useNodeManifest } from '@/features/workflow/hooks/use-node-manifest';
+import { authedFetch } from '@/services/api-client';
 import { NodeConfigField } from './NodeConfigField';
 import { KnowledgeNodeLibrary } from './KnowledgeNodeLibrary';
 
@@ -22,35 +23,20 @@ function buildDefaultConfig(schema: NodeConfigFieldSchema[]) {
   );
 }
 
-const LOOP_GROUP_SCHEMA: NodeConfigFieldSchema[] = [
-  {
-    key: 'maxIterations',
-    type: 'number',
-    label: '最大迭代次数',
-    default: 3,
-    min: 1,
-    max: 100,
-    step: 1,
-    description: '循环块最多执行多少轮。',
-  },
-  {
-    key: 'intervalSeconds',
-    type: 'number',
-    label: '轮次间隔（秒）',
-    default: 0,
-    min: 0,
-    max: 300,
-    step: 0.5,
-    description: '每轮执行之间的等待时间。',
-  },
-  {
-    key: 'description',
-    type: 'textarea',
-    label: '循环说明',
-    default: '',
-    description: '记录循环块的用途和约束。',
-  },
-];
+/** Fetch dynamic options for a schema field from the API */
+async function fetchDynamicOptions(
+  nodeType: string,
+  fieldKey: string,
+): Promise<NodeConfigFieldSchemaOption[]> {
+  try {
+    const res = await authedFetch(`/api/nodes/config-options/${nodeType}/${fieldKey}`);
+    if (!res.ok) return [];
+    const data = (await res.json()) as { options: NodeConfigFieldSchemaOption[] };
+    return data.options ?? [];
+  } catch {
+    return [];
+  }
+}
 
 export default function NodeConfigDrawer({ nodeId, onClose }: NodeConfigDrawerProps) {
   const nodes = useWorkflowStore((state) => state.nodes);
@@ -67,25 +53,56 @@ export default function NodeConfigDrawer({ nodeId, onClose }: NodeConfigDrawerPr
     () => ((node?.data as { config?: Record<string, unknown> } | undefined)?.config ?? {}),
     [node?.data],
   );
-  const schema = useMemo(
-    () => (nodeType === 'loop_group' ? LOOP_GROUP_SCHEMA : (manifestItem?.config_schema ?? [])),
-    [manifestItem, nodeType],
-  );
-  const baseConfig = useMemo(
-    () => (nodeType === 'loop_group'
-      ? {
-          maxIterations: (node?.data as Record<string, unknown>)?.maxIterations,
-          intervalSeconds: (node?.data as Record<string, unknown>)?.intervalSeconds,
-          description: (node?.data as Record<string, unknown>)?.description,
-        }
-      : existingConfig),
-    [existingConfig, node?.data, nodeType],
-  );
+
+  // For loop_group, read config from top-level data fields (legacy storage location)
+  const baseConfig = useMemo(() => {
+    if (nodeType === 'loop_group') {
+      return {
+        maxIterations: (node?.data as Record<string, unknown>)?.maxIterations,
+        intervalSeconds: (node?.data as Record<string, unknown>)?.intervalSeconds,
+        description: (node?.data as Record<string, unknown>)?.description,
+      };
+    }
+    return existingConfig;
+  }, [existingConfig, node?.data, nodeType]);
+
+  const [schema, setSchema] = useState<NodeConfigFieldSchema[]>(manifestItem?.config_schema ?? []);
+
+  // When manifest resolves or nodeType changes, update schema and inject dynamic options
+  useEffect(() => {
+    if (!manifestItem) return;
+
+    const baseSchema = manifestItem.config_schema;
+    const hasDynamic = baseSchema.some((f) => f.dynamic_options);
+
+    if (!hasDynamic) {
+      setSchema(baseSchema);
+      return;
+    }
+
+    // Fetch dynamic options for all dynamic fields in parallel
+    void (async () => {
+      const resolved = await Promise.all(
+        baseSchema.map(async (field) => {
+          if (!field.dynamic_options) return field;
+          const options = await fetchDynamicOptions(nodeType, field.key);
+          return { ...field, options };
+        }),
+      );
+      setSchema(resolved);
+    })();
+  }, [manifestItem, nodeType]);
+
   const mergedDefaults = useMemo(
     () => ({ ...buildDefaultConfig(schema), ...baseConfig }),
     [baseConfig, schema],
   );
   const [draftConfig, setDraftConfig] = useState<Record<string, unknown>>(mergedDefaults);
+
+  // Re-initialize draft when node changes
+  useEffect(() => {
+    setDraftConfig({ ...buildDefaultConfig(schema), ...baseConfig });
+  }, [nodeId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!nodeId || !node) {
     return null;
@@ -119,9 +136,9 @@ export default function NodeConfigDrawer({ nodeId, onClose }: NodeConfigDrawerPr
         </div>
 
         <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5">
-          {isLoading && nodeType !== 'loop_group' ? (
+          {isLoading ? (
             <div className="text-sm text-muted-foreground">正在加载节点能力清单...</div>
-          ) : error && nodeType !== 'loop_group' ? (
+          ) : error ? (
             <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {error}
             </div>

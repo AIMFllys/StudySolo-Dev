@@ -71,15 +71,17 @@ export interface NodeConfigFieldSchemaOption {
 
 export interface NodeConfigFieldSchema {
   key: string;
-  type: 'text' | 'textarea' | 'number' | 'select' | 'boolean';
+  type: 'text' | 'textarea' | 'number' | 'select' | 'boolean' | 'multi_select';
   label: string;
-  default?: string | number | boolean;
+  default?: string | number | boolean | string[];
   description?: string;
   placeholder?: string;
   min?: number;
   max?: number;
   step?: number;
   options?: NodeConfigFieldSchemaOption[];
+  /** If true, options should be fetched dynamically from the API */
+  dynamic_options?: boolean;
 }
 
 export interface NodeManifestItem {

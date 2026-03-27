@@ -8,9 +8,57 @@ interface NodeConfigFieldProps {
   onChange: (value: unknown) => void;
 }
 
-export function NodeConfigField({ field, value, onChange }: NodeConfigFieldProps) {
-  const commonClassName = 'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary/40';
+const commonClassName =
+  'w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-primary/40';
 
+function MultiSelectField({
+  field,
+  value,
+  onChange,
+}: NodeConfigFieldProps) {
+  const selected: string[] = Array.isArray(value) ? (value as string[]) : [];
+  const options = field.options ?? [];
+
+  function toggle(optionValue: string) {
+    if (selected.includes(optionValue)) {
+      onChange(selected.filter((v) => v !== optionValue));
+    } else {
+      onChange([...selected, optionValue]);
+    }
+  }
+
+  if (options.length === 0) {
+    return (
+      <p className="text-xs text-muted-foreground italic">
+        {field.dynamic_options ? '（选项将根据您的数据动态加载）' : '暂无可选项'}
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((option) => {
+        const isSelected = selected.includes(option.value);
+        return (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => toggle(option.value)}
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+              isSelected
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground'
+            }`}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+export function NodeConfigField({ field, value, onChange }: NodeConfigFieldProps) {
   return (
     <label className="block space-y-1.5">
       <div className="flex items-center justify-between gap-3">
@@ -75,6 +123,10 @@ export function NodeConfigField({ field, value, onChange }: NodeConfigFieldProps
           />
           <span className="text-sm text-foreground">启用</span>
         </div>
+      ) : null}
+
+      {field.type === 'multi_select' ? (
+        <MultiSelectField field={field} value={value} onChange={onChange} />
       ) : null}
     </label>
   );
