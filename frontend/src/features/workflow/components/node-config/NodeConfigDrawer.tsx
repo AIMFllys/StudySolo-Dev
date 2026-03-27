@@ -66,22 +66,25 @@ export default function NodeConfigDrawer({ nodeId, onClose }: NodeConfigDrawerPr
     return existingConfig;
   }, [existingConfig, node?.data, nodeType]);
 
-  const [schema, setSchema] = useState<NodeConfigFieldSchema[]>(manifestItem?.config_schema ?? []);
+  // Base schema from manifest (sync, no setState needed)
+  const baseSchema = useMemo(() => manifestItem?.config_schema ?? [], [manifestItem]);
 
-  // When manifest resolves or nodeType changes, update schema and inject dynamic options
+  // Dynamic options overlay — resolved asynchronously
+  const [dynamicSchemaOverlay, setDynamicSchemaOverlay] = useState<NodeConfigFieldSchema[] | null>(null);
+
+  const schema = dynamicSchemaOverlay ?? baseSchema;
+
+  // Fetch dynamic options when nodeType or baseSchema changes.
+  // All setState calls are inside the async IIFE callback, not the effect body.
   useEffect(() => {
-    if (!manifestItem) return;
+    let cancelled = false;
 
-    const baseSchema = manifestItem.config_schema;
-    const hasDynamic = baseSchema.some((f) => f.dynamic_options);
-
-    if (!hasDynamic) {
-      setSchema(baseSchema);
-      return;
-    }
-
-    // Fetch dynamic options for all dynamic fields in parallel
     void (async () => {
+      const hasDynamic = baseSchema.some((f) => f.dynamic_options);
+      if (!hasDynamic) {
+        if (!cancelled) setDynamicSchemaOverlay(null);
+        return;
+      }
       const resolved = await Promise.all(
         baseSchema.map(async (field) => {
           if (!field.dynamic_options) return field;
@@ -89,20 +92,21 @@ export default function NodeConfigDrawer({ nodeId, onClose }: NodeConfigDrawerPr
           return { ...field, options };
         }),
       );
-      setSchema(resolved);
+      if (!cancelled) setDynamicSchemaOverlay(resolved);
     })();
-  }, [manifestItem, nodeType]);
+
+    return () => { cancelled = true; };
+  }, [nodeType, baseSchema]);
 
   const mergedDefaults = useMemo(
     () => ({ ...buildDefaultConfig(schema), ...baseConfig }),
     [baseConfig, schema],
   );
-  const [draftConfig, setDraftConfig] = useState<Record<string, unknown>>(mergedDefaults);
 
-  // Re-initialize draft when node changes
-  useEffect(() => {
-    setDraftConfig({ ...buildDefaultConfig(schema), ...baseConfig });
-  }, [nodeId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [draftConfig, setDraftConfig] = useState<Record<string, unknown>>(mergedDefaults);
+  // Note: this component is keyed on nodeId in WorkflowCanvas (key={configNodeId}),
+  // so it naturally re-mounts when the selected node changes.
+  // No manual reset effect needed.
 
   if (!nodeId || !node) {
     return null;
