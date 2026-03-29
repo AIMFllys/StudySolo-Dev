@@ -6,11 +6,11 @@ const techStack = [
         icon: '🎨',
         color: 'var(--brand-blue)',
         items: [
-            { name: 'Next.js 16.1', desc: 'App Router · SSR/SSG/ISR · Turbopack' },
-            { name: 'React 19.2', desc: '最新并发特性 · Server Components' },
+            { name: 'Next.js 16', desc: 'App Router · SSR/CSR · 渲染混合优化' },
+            { name: 'React 19', desc: '最新核心功能 · 高吞吐量能力' },
             { name: '@xyflow/react 12.x', desc: '工作流可视化画布 · 拖拽连线缩放' },
-            { name: 'Shadcn/UI + Tailwind v4', desc: 'OKLCH 色彩空间 · CSS-first' },
-            { name: 'Zustand 5.x', desc: '状态管理 · 配合 localforage 离线缓存' },
+            { name: 'Tailwind CSS v4', desc: 'OKLCH 色彩空间 · CSS-first 工程框架' },
+            { name: 'Zustand 5', desc: '轻量化状态管理 · 支持撤销/恢复回溯' },
         ]
     },
     {
@@ -18,10 +18,10 @@ const techStack = [
         icon: '⚙️',
         color: 'var(--brand-purple)',
         items: [
-            { name: 'FastAPI (Python 3.11+)', desc: 'ASGI 异步 · Pydantic V2 自动验证' },
-            { name: 'Supabase Pro', desc: 'PostgreSQL + RLS + pgvector + Auth' },
-            { name: 'SSE + WebSocket', desc: '流式推送 · 实时状态同步' },
-            { name: 'Gunicorn + Uvicorn', desc: '多 Worker ASGI 服务' },
+            { name: 'FastAPI (Python 3.11+)', desc: 'ASGI 高效异步 · 原生流式发送模型' },
+            { name: 'Supabase Pro', desc: 'PostgreSQL + 数据多租户隔离 RLS' },
+            { name: 'Server-Sent Events', desc: '轻量化 SSE 长链接单向下发状态' },
+            { name: 'DAG 执行器', desc: '依赖图解析调度 · 执行上下文传递' },
         ]
     },
     {
@@ -29,10 +29,10 @@ const techStack = [
         icon: '🧠',
         color: 'var(--brand-cyan)',
         items: [
-            { name: '火山引擎 doubao-2.0-pro', desc: '简单任务 · 200W Token/日免费池' },
-            { name: '阿里云百炼 qwen3-turbo', desc: '复杂推理 · 高质量长文生成' },
-            { name: 'OpenAI SDK 统一调用', desc: '两家均兼容 · 零适配成本' },
-            { name: '容灾降级', desc: 'timeout/rate limit → 自动切换' },
+            { name: '多模型智能选取', desc: '八家云服务商 · 17+ 模型 SKU 一键换频' },
+            { name: '多级容灾降级调度', desc: '主调/代理通道失败时自动接管无冷启动' },
+            { name: '知识库向量绑定', desc: '针对独立节点赋予用户自定义检索外挂知识' },
+            { name: '分类意图分析器', desc: '在不同会话环境自动感知调整功能工作模式' },
         ]
     },
     {
@@ -89,16 +89,15 @@ const Architecture: React.FC = () => {
                             {`用户浏览器
     │
     ▼
-阿里云 ECS（2核4G · 宝塔面板）
+阿里云 ECS（多层防护 · 专属面板）
     │
-    ├── Nginx 反向代理（SSL · WAF · 限流）
-    │     ├── /         → Next.js 前端  (PM2 · port 3377)
-    │     └── /api/     → FastAPI 后端  (Gunicorn · port 2038)
+    ├── Nginx 反向代理层（基础防御 · 限流保护网关）
+    │     ├── /         → Next.js 生产应用进程  (PM2 · 2037)
+    │     └── /api/     → FastAPI 后端 Python  (Gunicorn · 2038)
     │
-    └── 外部服务
-          ├── Supabase Pro（PostgreSQL + Auth + pgvector + RLS）
-          ├── 🔥 火山引擎 doubao-2.0-pro（简单任务 · 免费池）
-          └── ☁️ 阿里云百炼 qwen3-turbo（复杂推理）`}
+    └── 外部基建与能力驱动中心
+          ├── Supabase Pro（PostgreSQL + Auth + Row Level Security）
+          └── 全域模型池（多厂家对接：DeepSeek、智谱、Kimi、通义、火山引擎...）`}
                         </pre>
                     </div>
                 </div>

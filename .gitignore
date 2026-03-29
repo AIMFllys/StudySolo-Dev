@@ -76,6 +76,9 @@ Desktop.ini
 /docs/技术指导/StudySolo概念图（初版）/**
 /docs/技术指导/服务器与宝塔部署完整指南.md
 
+# Deploy configs (server-specific, should not be tracked)
+scripts/deploy/nginx.conf
+
 # Test artifacts
 .hypothesis/
 .coverage

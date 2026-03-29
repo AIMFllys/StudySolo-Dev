@@ -13,17 +13,17 @@ interface WorkflowNode {
 }
 
 const initialNodes: WorkflowNode[] = [
-    { id: 1, status: 'pending', label: '开始触发 / 抓取', subtitle: '用户手动执行触发', type: 'trigger', x: 60, y: 160, color: '#6366F1', icon: 'play_circle' },
-    { id: 2, status: 'pending', label: '处理内容 (LLM)', subtitle: '正在分析网页结构...', type: 'llm', x: 380, y: 160, color: '#10B981', icon: 'psychology' },
-    { id: 3, status: 'pending', label: '保存数据库', subtitle: '可选数据分支', type: 'action', x: 740, y: 60, color: '#94A3B8', icon: 'save' },
-    { id: 4, status: 'pending', label: '保存到 Notion', subtitle: '结构化知识库同步', type: 'action', x: 740, y: 260, color: '#F59E0B', icon: 'save_alt' },
+    { id: 1, status: 'pending', label: '联网检索 (Search)', subtitle: '搜集最新资讯与文献', type: 'trigger', x: 60, y: 160, color: '#6366F1', icon: 'travel_explore' },
+    { id: 2, status: 'pending', label: '多模型协同 (LLM)', subtitle: '交叉比对分析数据...', type: 'llm', x: 380, y: 160, color: '#10B981', icon: 'psychology' },
+    { id: 3, status: 'pending', label: '知识图谱 (Graph)', subtitle: '生成可视化结构导图', type: 'action', x: 740, y: 60, color: '#8B5CF6', icon: 'account_tree' },
+    { id: 4, status: 'pending', label: '文件导出 (Export)', subtitle: '输出 PDF 学习报告', type: 'action', x: 740, y: 260, color: '#F59E0B', icon: 'picture_as_pdf' },
 ];
 
 const logMessages = [
-    { id: 1, title: '初始化智能体', time: '200ms', text: 'const agent = new Agent({ model: "qwen3-turbo" });' },
-    { id: 2, title: '抓取网页', time: '1.2s', text: '成功: 204 个数据块提取完毕。文档结构分析中...' },
-    { id: 3, title: '处理内容', time: '处理中...', text: '> key_entities: ["Workflow", "Automation", "AI"]\n> 生成摘要中...' },
-    { id: 4, title: '保存分支同步', time: '400ms', text: '✓ 数据库记录写入成功.\n✓ Notion API 同步完成.' },
+    { id: 1, title: '初始化 DAG 引擎', time: '200ms', text: 'DAG Engine started. Dispatching task to node_web_search...' },
+    { id: 2, title: '联网检索节点', time: '1.2s', text: '成功: 检索到 5 篇权威文献。知识库抽取信息完毕...' },
+    { id: 3, title: '大模型分析节点', time: '处理中...', text: '> 融合知识库与联网数据...\n> [DeepSeek-R1] 深度推理中...' },
+    { id: 4, title: '多端输出完成', time: '800ms', text: '✓ 知识图谱渲染完成.\n✓ PDF 学习报告导出完成.' },
 ];
 
 const WorkflowDemo: React.FC = () => {
@@ -329,7 +329,7 @@ const WorkflowDemo: React.FC = () => {
 
                                                 {isDone && node.type === 'llm' && (
                                                     <div style={{ marginTop: '0.5rem', background: 'rgba(0,0,0,0.3)', padding: '6px', borderRadius: '4px', fontSize: '0.65rem', color: '#a78bfa', fontFamily: 'var(--font-mono)' }}>
-                                                        &gt; 提炼完成: 204 items
+                                                        &gt; 推理完成: Token 耗时 1.8s
                                                     </div>
                                                 )}
                                             </div>
@@ -410,9 +410,9 @@ const WorkflowDemo: React.FC = () => {
                                             }}>
                                                 {isProcessing && log.id === 3 ? (
                                                     <React.Fragment>
-                                                        <div style={{ color: '#94a3b8', marginBottom: '0.5rem' }}>正在分析数据结构...</div>
-                                                        <div style={{ color: '#fff' }}>&gt; key_entities: <span style={{ color: '#60a5fa' }}>["Workflow", "Automation"]</span></div>
-                                                        <div style={{ color: '#6366f1', marginTop: '0.25rem' }}>&gt; 生成提纲中<span style={{ display: 'inline-block', width: '4px', height: '10px', background: '#6366f1', marginLeft: '4px', animation: 'blink 1s infinite' }} /></div>
+                                                        <div style={{ color: '#94a3b8', marginBottom: '0.5rem' }}>融合知识库与联网数据...</div>
+                                                        <div style={{ color: '#fff' }}>&gt; 路由平台: <span style={{ color: '#60a5fa' }}>[DeepSeek-R1, Qwen-Max]</span></div>
+                                                        <div style={{ color: '#6366f1', marginTop: '0.25rem' }}>&gt; 深度推理中<span style={{ display: 'inline-block', width: '4px', height: '10px', background: '#6366f1', marginLeft: '4px', animation: 'blink 1s infinite' }} /></div>
                                                     </React.Fragment>
                                                 ) : (
                                                     log.text

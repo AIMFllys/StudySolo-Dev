@@ -1,0 +1,67 @@
+# ============================================
+# StudySolo Nginx Configuration Template
+# ============================================
+# Copy and adapt for your server environment.
+# Replace <YOUR_DOMAIN> and certificate paths with your own values.
+# ============================================
+
+server {
+    listen 80;
+    server_name <YOUR_DOMAIN>;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name <YOUR_DOMAIN>;
+
+    # SSL certificates (adjust paths for your setup)
+    ssl_certificate     /path/to/fullchain.pem;
+    ssl_certificate_key /path/to/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options    "nosniff" always;
+    add_header X-Frame-Options           "DENY" always;
+
+    # Backend API (including SSE support)
+    location ^~ /api/ {
+        proxy_pass         http://127.0.0.1:2038;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_buffering    off;
+        proxy_cache        off;
+        proxy_read_timeout 300s;
+    }
+
+    # Next.js hashed static assets — long-term immutable cache
+    location /_next/static/ {
+        proxy_pass         http://127.0.0.1:2037;
+        proxy_http_version 1.1;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    # Frontend (Next.js SSR) — no cache for HTML pages
+    location / {
+        proxy_pass         http://127.0.0.1:2037;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_set_header   Upgrade           $http_upgrade;
+        proxy_set_header   Connection        "upgrade";
+        proxy_read_timeout 86400s;
+
+        # Disable cache for HTML — ensures fresh content after each deploy
+        proxy_cache        off;
+        proxy_no_cache     1;
+        proxy_cache_bypass 1;
+        add_header Cache-Control "no-store, no-cache, must-revalidate" always;
+    }
+}

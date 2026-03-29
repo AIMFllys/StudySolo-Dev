@@ -186,10 +186,10 @@ const Hero: React.FC<HeroProps> = ({ onStart, onGuide }) => {
                             animationDelay: '100ms',
                             opacity: 0,
                         }}>
-                            一句话
+                            自然语言生成
                             <br />
                             <span className="text-gradient" style={{ display: 'inline-block' }}>
-                                一个完整的学习工作流
+                                专属 AI 学习工作流
                             </span>
                         </h1>
 
@@ -204,11 +204,11 @@ const Hero: React.FC<HeroProps> = ({ onStart, onGuide }) => {
                             animationDelay: '200ms',
                             opacity: 0,
                         }}>
-                            StudySolo 将你的自然语言学习目标，自动拆解为结构化工作流节点，
-                            依次调用 AI 完成<strong style={{ color: 'var(--brand-blue)' }}>大纲生成</strong>、
-                            <strong style={{ color: 'var(--brand-purple)' }}>知识精炼</strong>、
-                            <strong style={{ color: 'var(--brand-emerald)' }}>重点提取</strong>，
-                            形成完整的学习记忆闭环。
+                            StudySolo 能将你的学习目标，自动拆解为专业的结构化工作流。
+                            DAG 引擎调度<strong style={{ color: 'var(--brand-blue)' }}>18种学习节点</strong>，
+                            <strong style={{ color: 'var(--brand-purple)' }}>多模型智能路由</strong>与
+                            <strong style={{ color: 'var(--brand-emerald)' }}>SSE 流式追踪</strong>，
+                            帮你实现从零到一的体系化知识构建。
                         </p>
 
                         {/* CTA Buttons */}
@@ -262,10 +262,10 @@ const Hero: React.FC<HeroProps> = ({ onStart, onGuide }) => {
                             opacity: 0,
                         }}>
                             {[
-                                { icon: '🧠', text: '双模型智能路由' },
-                                { icon: '🔍', text: 'RAG 三层漏斗检索' },
-                                { icon: '👁️', text: '全程可视化工作流' },
-                                { icon: '✋', text: '人机协同随时打断' },
+                                { icon: '🤖', text: '自然语言驱动编排' },
+                                { icon: '🔀', text: '统一模型智能路由' },
+                                { icon: '👁️', text: '全面可视执行追踪' },
+                                { icon: '🛠️', text: '18+ 专业预置节点' },
                             ].map((badge, i) => (
                                 <div key={i} style={{
                                     display: 'flex',
@@ -294,10 +294,10 @@ const Hero: React.FC<HeroProps> = ({ onStart, onGuide }) => {
                             opacity: 0,
                         }}>
                             {[
-                                { number: '200W+', label: '日免费 Token 池' },
-                                { number: '4', label: '大核心创新架构' },
-                                { number: '3', label: '层 RAG 漏斗检索' },
-                                { number: 'SSE', label: '实时流式推送' },
+                                { number: '18', label: '种专属学习节点' },
+                                { number: '8', label: '个全球 AI 模型平台' },
+                                { number: '7', label: '类流式追踪事件' },
+                                { number: '社区', label: '沉淀共建生态' },
                             ].map((stat, i) => (
                                 <div key={i} style={{ textAlign: 'center' }}>
                                     <div className="stat-number" style={{ fontSize: '2rem' }}>{stat.number}</div>
