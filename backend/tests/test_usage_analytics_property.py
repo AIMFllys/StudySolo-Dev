@@ -204,6 +204,8 @@ def _build_fake_db() -> _FakeDB:
 @pytest.fixture(autouse=True)
 def _freeze_usage_clock(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(usage_analytics, "_utcnow", lambda: FIXED_NOW)
+    monkeypatch.setattr("app.services.usage_analytics_helpers.utcnow", lambda: FIXED_NOW)
+    monkeypatch.setattr("app.services.usage_analytics.utcnow", lambda: FIXED_NOW)
 
 
 @pytest.mark.asyncio
