@@ -14,7 +14,8 @@ from app.api.auth._helpers import (
     resolve_client_ip,
 )
 from app.api.auth.captcha import consume_captcha_token
-from app.core.deps import get_anon_supabase_client, get_supabase_client
+from app.core.deps import get_supabase_client
+from app.core.database import get_anon_db
 from app.models.user import (
     CURRENT_PRIVACY_VERSION,
     CURRENT_TOS_VERSION,
@@ -77,10 +78,8 @@ async def register(
     body: UserRegister,
     request: Request,
     db: AsyncClient = Depends(get_supabase_client),
-    anon_db: AsyncClient = Depends(get_anon_supabase_client),
 ):
     """Create a new user via Supabase Auth."""
-    del anon_db
 
     # Guard: consent must be explicitly accepted
     if not body.agreed_to_terms or not body.agreed_to_privacy:
@@ -116,15 +115,21 @@ async def register(
         )
     await clear_rate_limit_failures(db, "register_verify_failure", email_bucket, ip_bucket)
 
+    # Use anon sign_up (not admin.create_user) so Supabase handles identity
+    # linking correctly.  If the email already has an OAuth account, sign_up
+    # will link the email+password identity to the existing user instead of
+    # creating a duplicate auth.users row.
     try:
-        result = await db.auth.admin.create_user(
+        anon_db_client = await get_anon_db()
+        result = await anon_db_client.auth.sign_up(
             {
                 "email": body.email,
                 "password": body.password,
-                "email_confirm": True,
-                "user_metadata": {
-                    "name": body.name or "",
-                    "nickname": body.name or "",
+                "options": {
+                    "data": {
+                        "name": body.name or "",
+                        "nickname": body.name or "",
+                    },
                     "email_redirect_to": f"{FRONTEND_URL}/auth/callback",
                 },
             }
@@ -149,19 +154,36 @@ async def register(
             detail="注册失败，请检查邮箱格式或密码强度（至少 6 位）",
         )
 
-    # Persist consent timestamps — best-effort (user created successfully)
+    # Supabase sign_up does not auto-confirm the email.  Since we already
+    # verified the email via our own verification code, confirm it now via
+    # the admin API so the user can log in immediately.
+    try:
+        await db.auth.admin.update_user_by_id(
+            str(result.user.id),
+            {"email_confirm": True},
+        )
+    except Exception:
+        logger.warning("Failed to confirm email for user %s (non-fatal)", result.user.id)
+
+    # Ensure user_profiles row exists (upsert to avoid conflicts with OAuth-created profiles)
     try:
         now = datetime.now(timezone.utc).isoformat()
-        await db.from_("user_profiles").update(
+        await db.from_("user_profiles").upsert(
             {
+                "id": str(result.user.id),
+                "email": body.email,
+                "nickname": body.name or "",
+                "registered_from": "studysolo",
+                "tier": "free",
                 "tos_accepted_at": now,
                 "tos_version": CURRENT_TOS_VERSION,
                 "privacy_accepted_at": now,
                 "privacy_version": CURRENT_PRIVACY_VERSION,
-            }
-        ).eq("id", str(result.user.id)).execute()
+            },
+            on_conflict="id",
+        ).execute()
     except Exception:
-        logger.warning("Failed to write consent timestamps for user %s", result.user.id)
+        logger.warning("Failed to upsert user_profiles for user %s", result.user.id)
 
     return {
         "message": "注册成功，可以直接登录",

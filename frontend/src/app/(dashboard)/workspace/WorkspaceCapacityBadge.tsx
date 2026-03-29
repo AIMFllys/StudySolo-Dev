@@ -10,10 +10,10 @@ interface WorkspaceCapacityBadgeProps {
 
 // Tier display metadata
 const TIER_INFO: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  free:      { label: '免费版', icon: <User className="h-3 w-3" />,  color: 'text-slate-500 bg-slate-100' },
-  pro:       { label: 'Pro 版', icon: <Gem className="h-3 w-3" />,   color: 'text-blue-600 bg-blue-50' },
-  pro_plus:  { label: 'Pro+ 版', icon: <Zap className="h-3 w-3" />,  color: 'text-indigo-600 bg-indigo-50' },
-  ultra:     { label: 'Ultra 版', icon: <Crown className="h-3 w-3" />, color: 'text-amber-600 bg-amber-50' },
+  free:      { label: '免费版', icon: <User className="h-3 w-3" />,  color: 'text-slate-500 bg-slate-100 dark:text-slate-400 dark:bg-slate-800' },
+  pro:       { label: 'Pro 版', icon: <Gem className="h-3 w-3" />,   color: 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30' },
+  pro_plus:  { label: 'Pro+ 版', icon: <Zap className="h-3 w-3" />,  color: 'text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-900/30' },
+  ultra:     { label: 'Ultra 版', icon: <Crown className="h-3 w-3" />, color: 'text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/30' },
 };
 
 const TIER_WORKFLOW_PLANS = [
@@ -31,9 +31,9 @@ function getProgressColor(ratio: number) {
 }
 
 function getBadgeStyle(ratio: number) {
-  if (ratio >= 1)   return 'text-rose-600 border-rose-200/60 bg-rose-50/80';
-  if (ratio >= 0.8) return 'text-amber-600 border-amber-200/60 bg-amber-50/80';
-  return 'text-slate-600 border-black/5 bg-white/80';
+  if (ratio >= 1)   return 'text-rose-600 border-rose-200/60 bg-rose-50/80 dark:text-rose-400 dark:border-rose-900/60 dark:bg-rose-900/20';
+  if (ratio >= 0.8) return 'text-amber-600 border-amber-200/60 bg-amber-50/80 dark:text-amber-400 dark:border-amber-900/60 dark:bg-amber-900/20';
+  return 'text-slate-600 border-black/5 bg-white/80 dark:text-slate-300 dark:border-white/10 dark:bg-card/80';
 }
 
 function getStatusMessage(ratio: number, isUltra: boolean) {
@@ -87,26 +87,26 @@ export default function WorkspaceCapacityBadge({ quota }: WorkspaceCapacityBadge
       {open && (
         <div
           className="absolute right-0 top-full mt-2 z-50 w-[320px] rounded-2xl
-                     bg-[#faf9f7] border border-black/[0.07]
-                     shadow-[0_8px_32px_rgba(0,0,0,0.12),_inset_0_1px_0_rgba(255,255,255,0.9)]
+                     bg-[#faf9f7] dark:bg-card border border-black/[0.07] dark:border-border
+                     shadow-[0_8px_32px_rgba(0,0,0,0.12),_inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-xl
                      overflow-hidden"
         >
           {/* Paper texture header */}
-          <div className="relative bg-[#f5f3ef] border-b border-black/[0.06] px-5 py-4">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none" />
+          <div className="relative bg-[#f5f3ef] dark:bg-muted border-b border-black/[0.06] dark:border-white/10 px-5 py-4">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/40 dark:from-white/5 to-transparent pointer-events-none" />
             <div className="relative flex items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
-                  <span className="font-serif text-[15px] font-semibold text-slate-800">工作流容量</span>
+                  <span className="font-serif text-[15px] font-semibold text-slate-800 dark:text-slate-200">工作流容量</span>
                   {/* Tier badge */}
                   <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${tierInfo.color}`}>
                     {tierInfo.icon}
                     {tierInfo.label}
                   </span>
                 </div>
-                <p className="text-[12px] text-slate-500">{getStatusMessage(ratio, isUltra)}</p>
+                <p className="text-[12px] text-slate-500 dark:text-slate-400">{getStatusMessage(ratio, isUltra)}</p>
               </div>
-              <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors mt-0.5">
+              <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors mt-0.5">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -117,15 +117,15 @@ export default function WorkspaceCapacityBadge({ quota }: WorkspaceCapacityBadge
             {!isUltra && (
               <div>
                 <div className="flex justify-between items-baseline mb-2">
-                  <span className="text-[12px] text-slate-500 font-medium">
-                    已使用 <strong className="text-slate-700">{quota.workflows_used}</strong> 个
+                  <span className="text-[12px] text-slate-500 dark:text-slate-400 font-medium">
+                    已使用 <strong className="text-slate-700 dark:text-slate-200">{quota.workflows_used}</strong> 个
                     {quota.workflows_addon_qty > 0 && (
-                      <span className="ml-1 text-emerald-600 text-[11px]">(含 +{quota.workflows_addon_qty} 增值包)</span>
+                      <span className="ml-1 text-emerald-600 dark:text-emerald-400 text-[11px]">(含 +{quota.workflows_addon_qty} 增值包)</span>
                     )}
                   </span>
-                  <span className="text-[11px] text-slate-400">共 {quota.workflows_total} 个</span>
+                  <span className="text-[11px] text-slate-400 dark:text-slate-500">共 {quota.workflows_total} 个</span>
                 </div>
-                <div className="h-2 rounded-full bg-slate-100 overflow-hidden border border-black/[0.04]">
+                <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden border border-black/[0.04] dark:border-white/5">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${getProgressColor(ratio)} ${ratio >= 0.8 ? 'animate-pulse' : ''}`}
                     style={{ width: `${progressPct}%` }}
@@ -142,7 +142,7 @@ export default function WorkspaceCapacityBadge({ quota }: WorkspaceCapacityBadge
             {/* Tier comparison */}
             {!isUltra && (
               <div>
-                <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">各等级容量对比</div>
+                <div className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">各等级容量对比</div>
                 <div className="flex flex-col gap-1">
                   {TIER_WORKFLOW_PLANS.map(plan => {
                     const isCurrent = plan.tier === quota.tier;
@@ -151,10 +151,10 @@ export default function WorkspaceCapacityBadge({ quota }: WorkspaceCapacityBadge
                         key={plan.tier}
                         className={`flex items-center justify-between rounded-lg px-3 py-2 text-[12px] transition-colors
                           ${isCurrent
-                            ? 'bg-slate-800 text-white font-medium'
+                            ? 'bg-slate-800 text-white font-medium dark:bg-slate-700'
                             : plan.highlight
-                              ? 'bg-blue-50 border border-blue-100 text-blue-700'
-                              : 'text-slate-600 hover:bg-slate-50'
+                              ? 'bg-blue-50 border border-blue-100 text-blue-700 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300'
+                              : 'text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50'
                           }`}
                       >
                         <div className="flex items-center gap-2">
@@ -166,7 +166,7 @@ export default function WorkspaceCapacityBadge({ quota }: WorkspaceCapacityBadge
                         </div>
                         <div className="flex items-center gap-2 text-right">
                           <span className={`font-semibold ${isCurrent ? 'text-white' : ''}`}>{plan.count}</span>
-                          {!isCurrent && <span className="text-[11px] text-slate-400">{plan.price}</span>}
+                          {!isCurrent && <span className="text-[11px] text-slate-400 dark:text-slate-500">{plan.price}</span>}
                         </div>
                       </div>
                     );
@@ -179,18 +179,18 @@ export default function WorkspaceCapacityBadge({ quota }: WorkspaceCapacityBadge
             {isUltra && (
               <div className="text-center py-3">
                 <Crown className="h-8 w-8 text-amber-500 mx-auto mb-2" />
-                <p className="text-[13px] font-medium text-slate-700">Ultra 版不限工作流数量</p>
+                <p className="text-[13px] font-medium text-slate-700 dark:text-slate-300">Ultra 版不限工作流数量</p>
                 <p className="text-[12px] text-slate-400 mt-1">尽情创建，空间永不受限</p>
               </div>
             )}
 
             {/* CTA section */}
             {!isUltra && (
-              <div className="flex flex-col gap-2 pt-1 border-t border-dashed border-black/[0.06]">
+              <div className="flex flex-col gap-2 pt-1 border-t border-dashed border-black/[0.06] dark:border-white/10">
                 {upgradeTier ? (
                   <a
                     href="/upgrade"
-                    className="flex items-center justify-center gap-2 w-full rounded-xl bg-slate-800 text-white text-[13px] font-medium py-2.5 hover:bg-slate-700 transition-colors group"
+                    className="flex items-center justify-center gap-2 w-full rounded-xl bg-slate-800 dark:bg-slate-700 text-white text-[13px] font-medium py-2.5 hover:bg-slate-700 dark:hover:bg-slate-600 transition-colors group"
                   >
                     <span>升级 {upgradeTier}，工作流扩容至 {upgradeTier === 'Pro' ? '50' : '200'} 个</span>
                     <ChevronRight className="h-4 w-4 opacity-70 group-hover:translate-x-0.5 transition-transform" />
@@ -198,7 +198,7 @@ export default function WorkspaceCapacityBadge({ quota }: WorkspaceCapacityBadge
                 ) : null}
                 <a
                   href="/upgrade#addons"
-                  className="text-center text-[12px] text-slate-500 hover:text-slate-700 transition-colors py-1 underline underline-offset-2 decoration-slate-300"
+                  className="text-center text-[12px] text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors py-1 underline underline-offset-2 decoration-slate-300 dark:decoration-slate-600"
                 >
                   仅需扩容？购买工作流增值包 (+5/+10/+20 个)
                 </a>

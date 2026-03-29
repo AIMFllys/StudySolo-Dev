@@ -24,8 +24,13 @@ export async function GET(request: NextRequest) {
   // Without this, server components on /workspace would get 401 because
   // the backend cookie hasn't been set yet.
   const rawNext = searchParams.get('next')
+  // OAuth logins pass next=/workspace; email verification has no next param.
+  // For OAuth we route through /login so AuthSessionBridge can sync the
+  // Supabase session into backend HttpOnly cookies before entering /workspace.
+  // We also pass oauth=1 so the login page knows this is an OAuth flow
+  // and can handle sync + redirect more reliably.
   const next = rawNext
-    ? `/login?next=${encodeURIComponent(rawNext)}`
+    ? `/login?next=${encodeURIComponent(rawNext)}&oauth=1`
     : '/login?verified=true'
 
   if (!code) {
@@ -62,11 +67,8 @@ export async function GET(request: NextRequest) {
   }
 
   // Ensure user_profiles row exists for OAuth users.
-  // Email-registered users already have a profile (created by the backend
-  // /api/auth/register endpoint), but OAuth users bypass that flow entirely.
-  // We do a best-effort upsert here — failure is non-fatal since the
-  // AuthSessionBridge will sync the session and the backend /me endpoint
-  // can also lazily create the profile if needed.
+  // Uses upsert to avoid race conditions and conflicts with email-registered profiles.
+  // on_conflict=id means: if a profile already exists, do nothing (preserve existing data).
   try {
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -83,29 +85,22 @@ export async function GET(request: NextRequest) {
         meta.preferred_username ||
         ''
 
-      // Check if profile already exists (e.g. user registered via email first)
-      const { data: existing } = await supabase
+      await supabase
         .from('user_profiles')
-        .select('id')
-        .eq('id', user.id)
-        .maybeSingle()
-
-      if (!existing) {
-        // First-time OAuth user — create profile row
-        await supabase.from('user_profiles').insert({
-          id: user.id,
-          email: user.email ?? '',
-          nickname: displayName,
-          avatar_url: meta.avatar_url || meta.picture || '',
-          registered_from: 'studysolo',
-          tier: 'free',
-        })
-      }
-      // Existing users: don't overwrite their nickname/avatar with provider data
+        .upsert(
+          {
+            id: user.id,
+            email: user.email ?? '',
+            nickname: displayName,
+            avatar_url: meta.avatar_url || meta.picture || '',
+            registered_from: 'studysolo',
+            tier: 'free',
+          },
+          { onConflict: 'id', ignoreDuplicates: true }
+        )
     }
   } catch {
     // Non-fatal: profile sync is best-effort.
-    // The user can still use the app; profile will be created on next sync.
     console.warn('[auth/callback] user_profiles upsert failed (non-fatal)')
   }
 

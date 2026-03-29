@@ -1,240 +1,237 @@
-import React from 'react';
-import { useScrollReveal } from '../hooks/useScrollReveal';
+import { useState, useEffect, useRef } from 'react';
+import { useInView } from '../hooks/useInView';
 
-const steps = [
-    {
-        number: '01',
-        icon: '💬',
-        title: '一言生成工作流',
-        subtitle: 'Natural Language Planner',
-        desc: '只需用自然语言向侧边栏描述学习期望（例如："构建一份系统的微积分第一章提纲及复习闭环"），系统立刻在画布上为你勾勒出定制化的学习节点网络架构。',
-        color: 'var(--brand-blue)',
-        gradient: 'linear-gradient(135deg, rgba(59,130,246,0.1), rgba(59,130,246,0.03))',
-    },
-    {
-        number: '02',
-        icon: '🎨',
-        title: '随心修改可控编排',
-        subtitle: 'Canvas Visual Editing',
-        desc: '支持通过自然语言对话指令（例如："增加一个网搜节点"）直接遥控画布变化，更可以直接依靠鼠标自由连线、修改节点配置、输入自定义专属提示词。',
-        color: 'var(--brand-purple)',
-        gradient: 'linear-gradient(135deg, rgba(139,92,246,0.1), rgba(139,92,246,0.03))',
-    },
-    {
-        number: '03',
-        icon: '⚡',
-        title: '流式下发透明执行',
-        subtitle: 'Streaming DAG Execution',
-        desc: '依托自研高吞吐 DAG 引擎，根据前置依赖顺序稳健执行至节点终点。SSE 技术将内部流转 Token、模型调度延时等数据，作为流水线状态透明推送呈现。',
-        color: 'var(--brand-cyan)',
-        gradient: 'linear-gradient(135deg, rgba(6,182,212,0.1), rgba(6,182,212,0.03))',
-    },
-    {
-        number: '04',
-        icon: '🌐',
-        title: '全生态共建与分享',
-        subtitle: 'Share & Co-creation',
-        desc: '你可以自由配置私人的节点并附带专属文档发布到商店街供他人取用，也可以沉淀分享优秀的完整知识链路，或是 Fork 他人的学习蓝图为己所用。',
-        color: 'var(--brand-emerald)',
-        gradient: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(16,185,129,0.03))',
-    },
+const STEPS = [
+  {
+    id: 'intent',
+    step: 'LAYER 0 — INTENT',
+    title: '自然语言描述学习目标',
+    desc: '无需了解 DAG、节点、连线等概念。在侧边栏 AI 面板用自然语言说出学习需求，系统分类为 BUILD / MODIFY / CHAT / ACTION 四种意图，直接驱动后续流程。',
+    detail: '> 用户输入: "帮我系统学习机器学习基础"\n> 意图分类: BUILD\n> 触发规划层...',
+    icon: '▸',
+    color: 'var(--green)',
+  },
+  {
+    id: 'plan',
+    step: 'LAYER 1 — PLAN',
+    title: 'AI 自动生成工作流节点图',
+    desc: 'AI Planner 将学习目标拆解为带有节点类型、连线关系、初始配置的完整节点图。用户也可在画布上拖拽增删节点，支持 Undo/Redo，AI 与手动编辑随时切换。',
+    detail: '> Planner 生成 6 个节点:\n> trigger → analyzer → outline_gen\n> → summary → flashcard → export_file',
+    icon: '⊞',
+    color: 'var(--ice)',
+  },
+  {
+    id: 'execute',
+    step: 'LAYER 2-3 — EXECUTE',
+    title: 'DAG 引擎按依赖顺序执行',
+    desc: '自研 DAG Executor 拓扑排序确定执行顺序，通过 ExecutionContext 黑板模型在节点间传递中间结果。每个节点是独立 AI 智能体，拥有独立 Prompt、模型配置和输出契约。',
+    detail: '> NODE [1/6] trigger_input → DONE\n> NODE [2/6] ai_analyzer → RUNNING\n> Streaming tokens via SSE...',
+    icon: '◈',
+    color: 'var(--orange)',
+  },
+  {
+    id: 'observe',
+    step: 'LAYER 4 — OBSERVE',
+    title: 'SSE 流式推送，全程可观测',
+    desc: '执行面板实时渲染 7 种 SSE 事件：node_input、node_status、node_token、node_done、loop_iteration、save_error、workflow_done。不是黑盒，每一步 AI 在做什么一目了然。',
+    detail: '> event: node_token\n> data: {"node":"ai_analyzer","token":"机"}\n> event: node_done\n> data: {"duration":2341,"tokens":847}',
+    icon: '◉',
+    color: 'var(--green)',
+  },
+  {
+    id: 'share',
+    step: 'COMMUNITY',
+    title: '保存、分享、分叉工作流',
+    desc: '优秀工作流可发布至社区，支持其他用户浏览、收藏、Fork 形成自己的版本。平台用户既是使用者，也是能力构建者。社区积累的工作流模板持续降低学习设计门槛。',
+    detail: '> workflow.publish()\n> status: 已发布至社区\n> forks: 12  likes: 47',
+    icon: '⊹',
+    color: 'var(--ice)',
+  },
 ];
 
-/* Animated step card */
-const StepCard: React.FC<{ step: typeof steps[0]; index: number }> = ({ step, index: i }) => {
-    const { ref, isVisible } = useScrollReveal({ threshold: 0.15 });
-    const isEven = i % 2 === 0;
+export default function HowItWorks() {
+  const [ref, inView] = useInView<HTMLDivElement>(0.1);
+  const [activeStep, setActiveStep] = useState(0);
+  const [lineHeight, setLineHeight] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    return (
-        <div
-            ref={ref}
-            style={{
-                display: 'flex',
-                justifyContent: isEven ? 'flex-start' : 'flex-end',
-                width: '100%',
-                position: 'relative',
-            }}
-        >
-            {/* Center Connector Dot */}
-            <div className="hide-mobile" style={{
-                position: 'absolute',
-                left: '50%',
-                top: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                background: step.gradient,
-                border: `4px solid var(--surface)`,
-                boxShadow: `0 0 0 2px ${step.color}50, 0 0 15px ${step.color}`,
-                zIndex: 2,
-                opacity: isVisible ? 1 : 0,
-                transition: `opacity 0.5s ease ${i * 150 + 200}ms`,
-            }} />
+  useEffect(() => {
+    if (!inView) return;
+    // Auto-advance steps
+    intervalRef.current = setInterval(() => {
+      setActiveStep(prev => (prev + 1) % STEPS.length);
+    }, 2800);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [inView]);
 
-            <div
-                className="glass-card"
-                style={{
-                    width: 'calc(50% - 3rem)',
-                    padding: '2.5rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '1.5rem',
-                    borderLeft: isEven ? `4px solid ${step.color}` : '1px solid var(--border-color)',
-                    borderRight: !isEven ? `4px solid ${step.color}` : '1px solid var(--border-color)',
-                    position: 'relative',
-                    overflow: 'visible',
-                    /* Scroll reveal animation */
-                    opacity: isVisible ? 1 : 0,
-                    transform: isVisible
-                        ? 'translateX(0) translateY(0)'
-                        : `translateX(${isEven ? '-60px' : '60px'}) translateY(20px)`,
-                    transition: `opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1) ${i * 150}ms, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1) ${i * 150}ms`,
-                }}
-            >
-                {/* Small arrow pointing to center line */}
-                <div className="hide-mobile" style={{
-                    position: 'absolute',
-                    top: '50%',
-                    [isEven ? 'right' : 'left']: '-1rem',
-                    transform: 'translateY(-50%)',
-                    width: '1rem',
-                    height: '2px',
-                    background: `${step.color}40`,
-                }} />
+  // Update spine fill
+  useEffect(() => {
+    setLineHeight(((activeStep + 1) / STEPS.length) * 100);
+  }, [activeStep]);
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                    {/* Step number / Icon */}
-                    <div style={{
-                        minWidth: '70px',
-                        height: '70px',
-                        borderRadius: 'var(--radius-xl)',
-                        background: step.gradient,
-                        border: `1px solid ${step.color}30`,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                        boxShadow: `inset 0 0 20px ${step.color}10, 0 8px 16px ${step.color}15`,
-                    }}>
-                        <span style={{ fontSize: '1.8rem' }}>{step.icon}</span>
-                    </div>
+  const handleStepClick = (i: number) => {
+    setActiveStep(i);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+  };
 
-                    <div style={{ flex: 1 }}>
-                        <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.75rem',
-                            marginBottom: '0.5rem',
-                        }}>
-                            <span style={{
-                                fontSize: '0.75rem',
-                                fontWeight: 800,
-                                color: step.color,
-                                fontFamily: 'var(--font-mono)',
-                                padding: '0.2rem 0.6rem',
-                                borderRadius: 'var(--radius-sm)',
-                                background: `${step.color}15`,
-                                letterSpacing: '0.08em',
-                            }}>
-                                STEP {step.number}
-                            </span>
-                            <span style={{
-                                fontSize: '0.85rem',
-                                color: 'var(--text-faint)',
-                                fontWeight: 600,
-                            }}>
-                                {step.subtitle}
-                            </span>
-                        </div>
-                        <h3 style={{
-                            fontSize: '1.4rem',
-                            margin: 0,
-                            color: 'var(--text-primary)',
-                        }}>
-                            {step.title}
-                        </h3>
-                    </div>
-                </div>
-
-                <p style={{
-                    color: 'var(--text-muted)',
-                    lineHeight: 1.85,
-                    fontSize: '1.05rem',
-                    margin: 0,
-                }}>
-                    {step.desc}
-                </p>
-            </div>
+  return (
+    <section className="section" id="how-it-works" ref={ref}>
+      <div className="container">
+        {/* Header */}
+        <div className={`section-header reveal${inView ? ' visible' : ''}`}>
+          <div className="signal-tag">How It Works</div>
+          <h2 className="section-title">五层架构，从意图到结果</h2>
+          <p className="section-desc">
+            StudySolo 设计了清晰的五层架构：意图理解 → AI 规划 → DAG 编排 → 智能体执行 → 实时可观测。每一层有明确的职责边界。
+          </p>
         </div>
-    );
-};
 
-const HowItWorks: React.FC = () => {
-    const { ref: headerRef, isVisible: headerVisible } = useScrollReveal();
-
-    return (
-        <section className="section" id="how-it-works">
-            <div className="container">
-                <div ref={headerRef} style={{
-                    textAlign: 'center', marginBottom: '5rem',
-                    opacity: headerVisible ? 1 : 0,
-                    transform: headerVisible ? 'translateY(0)' : 'translateY(30px)',
-                    transition: 'opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
-                }}>
-                    <span className="section-label">⚙️ 运作方式</span>
-                    <h2 className="section-title">四步生成完整学习工作流</h2>
-                    <p className="section-subtitle">
-                        从一句话到一份完整的学习产出物，StudySolo 用两段式 AI 和可视化工作流将整个过程串联成闭环。
-                    </p>
-                </div>
-
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4rem',
-                    maxWidth: '1000px',
-                    margin: '0 auto',
-                    position: 'relative',
-                    padding: '2rem 0',
-                }}>
-                    {/* Glowing Timeline connector for desktop */}
-                    <div className="hide-mobile" style={{
-                        position: 'absolute',
-                        left: '50%',
-                        top: '0',
-                        bottom: '0',
-                        width: '4px',
-                        background: 'linear-gradient(to bottom, var(--brand-blue) 0%, var(--brand-purple) 30%, var(--brand-cyan) 60%, var(--brand-emerald) 100%)',
-                        opacity: 0.15,
-                        transform: 'translateX(-50%)',
-                        borderRadius: '2px',
-                    }} />
-
-                    {/* Animated light traversing the timeline */}
-                    <div className="hide-mobile" style={{
-                        position: 'absolute',
-                        left: '50%',
-                        top: '0',
-                        width: '4px',
-                        height: '100px',
-                        background: 'linear-gradient(to bottom, transparent, #fff, transparent)',
-                        opacity: 0.6,
-                        transform: 'translateX(-50%)',
-                        animation: 'float 6s linear infinite',
-                        borderRadius: '2px',
-                        boxShadow: '0 0 15px 2px rgba(255,255,255,0.8)',
-                    }} />
-
-                    {steps.map((step, i) => (
-                        <StepCard key={i} step={step} index={i} />
-                    ))}
-                </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem', alignItems: 'start' }}>
+          {/* Left: Timeline */}
+          <div className={`timeline reveal${inView ? ' visible' : ''} reveal-delay-2`}>
+            {/* Spine */}
+            <div className="timeline-spine">
+              <div
+                className="timeline-spine-fill"
+                style={{ height: `${lineHeight}%` }}
+              />
             </div>
-        </section>
-    );
-};
 
-export default HowItWorks;
+            {STEPS.map((step, i) => (
+              <div
+                key={step.id}
+                className={`timeline-item${i === activeStep ? ' active' : ''}`}
+                onClick={() => handleStepClick(i)}
+                style={{ cursor: 'pointer' }}
+              >
+                <div className="timeline-node">
+                  <div className="timeline-dot" />
+                </div>
+                <div className="timeline-body">
+                  <div className="timeline-step">{step.step}</div>
+                  <div className="timeline-title">{step.title}</div>
+                  <p className="timeline-desc">{step.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
 
+          {/* Right: Detail panel */}
+          <div
+            className={`reveal reveal-delay-3${inView ? ' visible' : ''}`}
+            style={{ position: 'sticky', top: '7rem' }}
+          >
+            <div
+              style={{
+                background: 'var(--black)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                overflow: 'hidden',
+                transition: 'border-color 300ms',
+                borderColor: STEPS[activeStep].color === 'var(--green)' ? 'var(--border-green)' : 'var(--border-ice)',
+              }}
+            >
+              {/* Header */}
+              <div style={{
+                padding: '0.6rem 1rem',
+                borderBottom: '1px solid var(--border)',
+                background: 'var(--black-2)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}>
+                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ff5f57' }} />
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#febc2e' }} />
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#28c840' }} />
+                </div>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
+                  studysolo_engine.log
+                </span>
+              </div>
+
+              {/* Content */}
+              <div style={{ padding: '1.5rem' }}>
+                <div style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.68rem',
+                  color: STEPS[activeStep].color,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  marginBottom: '0.75rem',
+                }}>
+                  {STEPS[activeStep].step}
+                </div>
+                <div style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '1.35rem',
+                  fontWeight: 700,
+                  color: 'var(--text-primary)',
+                  letterSpacing: '-0.025em',
+                  marginBottom: '1rem',
+                }}>
+                  {STEPS[activeStep].icon} {STEPS[activeStep].title}
+                </div>
+
+                {/* Terminal detail */}
+                <div style={{
+                  background: '#010408',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '1rem 1.25rem',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.78rem',
+                  color: 'var(--green)',
+                  lineHeight: 1.8,
+                  whiteSpace: 'pre',
+                  marginBottom: '1rem',
+                  minHeight: '100px',
+                }}>
+                  {STEPS[activeStep].detail}
+                  <span className="terminal-cursor">_</span>
+                </div>
+              </div>
+
+              {/* Step indicator dots */}
+              <div style={{
+                padding: '0.75rem 1.5rem',
+                borderTop: '1px solid var(--border)',
+                display: 'flex',
+                gap: '0.5rem',
+                alignItems: 'center',
+              }}>
+                {STEPS.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleStepClick(i)}
+                    style={{
+                      width: i === activeStep ? 20 : 6,
+                      height: 4,
+                      borderRadius: 2,
+                      background: i === activeStep ? STEPS[activeStep].color : 'var(--border)',
+                      border: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 300ms var(--ease-out)',
+                      padding: 0,
+                    }}
+                  />
+                ))}
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
+                  {activeStep + 1}/{STEPS.length}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @media (max-width: 900px) {
+          .timeline-panel-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
+    </section>
+  );
+}

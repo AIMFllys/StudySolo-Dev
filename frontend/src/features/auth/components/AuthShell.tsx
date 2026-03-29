@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { AuthBrandPanel } from './AuthBrandPanel';
 import { AuthLogo } from './AuthLogo';
 import { AuthSocialButtons } from './AuthSocialButtons';
+import ThemeToggle from '@/components/layout/ThemeToggle';
 
 interface AuthShellProps {
   title: string;
@@ -28,7 +29,7 @@ export function AuthShell({
   showSocial = true,
 }: AuthShellProps) {
   return (
-    <div className="h-screen relative flex bg-[#fcfbf9] text-slate-900 antialiased font-sans overflow-hidden">
+    <div className="h-screen relative flex bg-background text-foreground antialiased font-sans overflow-hidden">
       
       {/* 极简网格背景 (全局可见：桌面左侧 + 手机全屏) */}
       <div 
@@ -43,7 +44,7 @@ export function AuthShell({
       {floatingTexts.map((item, index) => (
         <div
           key={index}
-          className={`absolute text-slate-400/80 font-serif text-lg tracking-widest opacity-30 select-none pointer-events-none transform z-0 ${item.rotate} ${item.mobileHidden ? 'hidden md:block' : ''}`}
+          className={`absolute text-muted-foreground/50 font-serif text-lg tracking-widest opacity-30 select-none pointer-events-none transform z-0 ${item.rotate} ${item.mobileHidden ? 'hidden md:block' : ''}`}
           style={{ top: item.top, left: item.left }}
         >
           {item.text}
@@ -56,14 +57,14 @@ export function AuthShell({
 
       {/* 底部信息：引言与备案 (全局可见：桌面靠左，移动端居底) */}
       <div className="absolute bottom-4 w-full md:w-1/2 flex flex-col md:items-start items-center justify-center gap-1 md:pl-16 lg:pl-32 z-10 pb-4 md:pb-8 pointer-events-none">
-        <div className="text-xs md:text-sm text-slate-400 font-serif opacity-70">
+        <div className="text-xs md:text-sm text-muted-foreground font-serif opacity-70">
           &quot;Knowledge is recognizing the connections.&quot;
         </div>
         <a 
           href="https://beian.miit.gov.cn/" 
           target="_blank" 
           rel="noopener noreferrer" 
-          className="text-[10px] md:text-xs text-slate-400/80 hover:text-slate-500 transition-colors pointer-events-auto"
+          className="text-[10px] md:text-xs text-muted-foreground/80 hover:text-foreground transition-colors pointer-events-auto"
         >
           黑ICP备2025046407号-3
         </a>
@@ -75,19 +76,24 @@ export function AuthShell({
       </div>
       
       {/* 表单容器：桌面端白色遮挡网格，移动端透明显示网格背景 */}
-      <div className="w-full md:w-1/2 flex items-center justify-center p-6 md:p-12 relative z-10 overflow-y-auto bg-transparent md:bg-white md:border-l md:border-slate-200/50 md:shadow-[-10px_0_30px_rgba(0,0,0,0.02)]">
+      <div className="w-full md:w-1/2 flex items-center justify-center p-6 md:p-12 relative z-10 overflow-y-auto bg-transparent md:bg-card md:border-l md:border-border/50 md:shadow-[-10px_0_30px_rgba(0,0,0,0.02)]">
         
+        {/* Theme Toggle Top Right */}
+        <div className="absolute top-6 right-6 z-50">
+          <ThemeToggle />
+        </div>
+
         {/* 移动端如果背景透明，用 backdrop-blur 和轻微渐变白底保证表单可读性 */}
-        <div className="absolute inset-0 md:hidden bg-white/70 backdrop-blur-[2px] z-[-1]" />
+        <div className="absolute inset-0 md:hidden bg-card/70 backdrop-blur-[2px] z-[-1]" />
 
         <div className="w-full max-w-[360px] relative z-10 pb-16 md:pb-0">
-          <div className="flex items-center mb-10 md:hidden bg-white/60 w-fit p-3 rounded-xl border border-slate-200 shadow-sm">
+          <div className="flex items-center mb-10 md:hidden bg-card/60 w-fit p-3 rounded-xl border border-border shadow-sm">
             <AuthLogo size="sm" />
           </div>
           
           <div className="mb-8">
-            <h2 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h2>
-            <p className="text-sm font-serif text-slate-600 mt-2">{description}</p>
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">{title}</h2>
+            <p className="text-sm font-serif text-muted-foreground mt-2">{description}</p>
           </div>
 
           {showSocial ? (
@@ -96,16 +102,16 @@ export function AuthShell({
                 <AuthSocialButtons />
               </div>
               <div className="flex items-center gap-3 mb-8 mt-6">
-                <div className="flex-1 border-t border-slate-200/80 md:border-slate-200" />
-                <span className="text-xs text-slate-400 font-medium tracking-wide">或使用邮箱登录</span>
-                <div className="flex-1 border-t border-slate-200/80 md:border-slate-200" />
+                <div className="flex-1 border-t border-border/80 md:border-border" />
+                <span className="text-xs text-muted-foreground font-medium tracking-wide">或使用邮箱登录</span>
+                <div className="flex-1 border-t border-border/80 md:border-border" />
               </div>
             </>
           ) : null}
 
           {children}
           
-          <div className="mt-8 text-center text-sm text-slate-600">
+          <div className="mt-8 text-center text-sm text-muted-foreground">
             {footer}
           </div>
         </div>

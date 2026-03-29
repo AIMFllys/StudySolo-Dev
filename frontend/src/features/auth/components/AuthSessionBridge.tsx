@@ -54,7 +54,23 @@ function BridgeContent() {
       setProgress(30);
       addLog('验证访问权限...');
 
-      const restored = await syncBrowserSessionToBackend();
+      // OAuth flow (from /auth/callback) may need a brief delay for
+      // Supabase client to pick up the session cookies set server-side.
+      const isOAuth = searchParams?.get('oauth') === '1';
+      let restored = false;
+
+      if (isOAuth) {
+        // Retry up to 3 times with increasing delay — gives Supabase
+        // client time to hydrate the session from server-set cookies.
+        for (let attempt = 0; attempt < 3 && !restored && mounted; attempt++) {
+          if (attempt > 0) {
+            await new Promise((res) => setTimeout(res, 500 * attempt));
+          }
+          restored = await syncBrowserSessionToBackend();
+        }
+      } else {
+        restored = await syncBrowserSessionToBackend();
+      }
 
       if (!mounted) return;
 

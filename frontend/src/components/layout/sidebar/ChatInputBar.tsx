@@ -98,7 +98,7 @@ export function ChatInputBar({
               <button 
                 type="button" 
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium transition-all bg-white/40 hover:bg-white/60 border-[1px] border-border/40 hover:border-border/60 text-foreground/80 shadow-sm"
+                className="flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium transition-all bg-white/40 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/10 border-[1px] border-border/40 hover:border-border/60 text-foreground/80 shadow-sm"
               >
                 {(() => { const I = MODE_CONFIG[mode].icon; return <I className="h-3 w-3 text-primary/80" />; })()}
                 {MODE_CONFIG[mode].label}
