@@ -85,7 +85,7 @@ export function LoginForm() {
       footer={
         <>
           还没有专属空间？{' '}
-          <Link href="/register" className="text-blue-600 hover:text-blue-700 font-medium hover:underline underline-offset-4 transition-all">
+          <Link href="/register" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 font-medium hover:underline underline-offset-4 transition-all">
             开始你的学习笔记
           </Link>
         </>
@@ -93,7 +93,7 @@ export function LoginForm() {
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div className="flex flex-col gap-2">
-          <label htmlFor="login-email" className="text-sm font-medium text-slate-700">
+          <label htmlFor="login-email" className="text-sm font-medium text-slate-700 dark:text-slate-300">
             绑定邮箱
           </label>
           <input
@@ -104,12 +104,12 @@ export function LoginForm() {
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             placeholder="name@example.com"
-            className="w-full h-11 px-4 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
+            className="w-full h-11 px-4 bg-white dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
           />
         </div>
 
         <div className="flex flex-col gap-2">
-          <label htmlFor="login-password" className="text-sm font-medium text-slate-700">
+          <label htmlFor="login-password" className="text-sm font-medium text-slate-700 dark:text-slate-300">
             访问密码
           </label>
           <input
@@ -120,7 +120,7 @@ export function LoginForm() {
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="••••••••"
-            className="w-full h-11 px-4 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
+            className="w-full h-11 px-4 bg-white dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
           />
         </div>
 
@@ -131,41 +131,41 @@ export function LoginForm() {
                 type="checkbox"
                 checked={remember}
                 onChange={(event) => setRemember(event.target.checked)}
-                className="peer w-4 h-4 border-slate-300 rounded text-blue-600 focus:ring-blue-500/20 cursor-pointer accent-blue-600"
+                className="peer w-4 h-4 border-slate-300 dark:border-white/10 rounded text-blue-600 dark:text-blue-400 focus:ring-blue-500/20 cursor-pointer accent-blue-600"
               />
             </div>
-            <span className="text-sm text-slate-600 select-none">记住我</span>
+            <span className="text-sm text-slate-600 dark:text-slate-400 select-none">记住我</span>
           </label>
-          <Link href="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700 hover:underline underline-offset-4 font-medium transition-colors">
+          <Link href="/forgot-password" className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:underline underline-offset-4 font-medium transition-colors">
             忘记密码？
           </Link>
         </div>
 
         {justRegistered ? (
-          <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 p-3 rounded-lg flex items-center gap-2">
+          <div className="text-sm text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 p-3 rounded-lg flex items-center gap-2">
             注册成功，请登录你的账号。
           </div>
         ) : null}
 
         {resetSuccess ? (
-          <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 p-3 rounded-lg flex items-center gap-2">
+          <div className="text-sm text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 p-3 rounded-lg flex items-center gap-2">
             密码重置成功，请使用新密码登录。
           </div>
         ) : null}
 
         {error ? (
-          <div className="text-sm text-red-600 bg-red-50 border border-red-200 p-3 rounded-lg break-all">
+          <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 p-3 rounded-lg break-all">
             {error}
           </div>
         ) : null}
 
-        <div className="mt-2 text-center text-xs text-slate-500 font-medium">
+        <div className="mt-2 text-center text-xs text-slate-500 dark:text-slate-400 font-medium">
           登录视为您已阅读并同意{' '}
           <a
             href="https://docs.1037solo.com/#/docs/studysolo-terms"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-500 hover:text-blue-600 hover:underline transition-colors"
+            className="text-blue-500 hover:text-blue-600 dark:text-blue-400 hover:underline transition-colors"
           >
             服务条款
           </a>
@@ -174,7 +174,7 @@ export function LoginForm() {
             href="https://docs.1037solo.com/#/docs/studysolo-privacy"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-500 hover:text-blue-600 hover:underline transition-colors"
+            className="text-blue-500 hover:text-blue-600 dark:text-blue-400 hover:underline transition-colors"
           >
             隐私政策
           </a>

@@ -118,9 +118,9 @@ function BridgeContent() {
           <div className="fixed top-0 bottom-0 left-6 md:left-12 w-[2px] bg-red-400/20 z-0" />
           <div className="fixed top-0 bottom-0 left-[28px] md:left-[52px] w-px bg-red-400/20 z-0" />
 
-          <div className="w-full max-w-sm p-8 flex flex-col gap-6 bg-white relative overflow-hidden backdrop-blur-sm shadow-xl rounded-xl border border-slate-200 z-10">
+          <div className="w-full max-w-sm p-8 flex flex-col gap-6 bg-white dark:bg-white/5 relative overflow-hidden backdrop-blur-sm shadow-xl rounded-xl border border-slate-200 dark:border-white/10 z-10">
             <div className="flex items-center justify-between text-sm border-b border-slate-100 pb-4">
-              <span className="text-slate-700 font-medium">身份验证同步</span>
+              <span className="text-slate-700 dark:text-slate-300 font-medium">身份验证同步</span>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
               </div>
@@ -142,10 +142,10 @@ function BridgeContent() {
                     transition={{ duration: 0.2 }}
                     className={`flex items-start gap-3 ${
                       isSuccess
-                        ? 'text-blue-600'
+                        ? 'text-blue-600 dark:text-blue-400'
                         : isError
                         ? 'text-slate-400'
-                        : 'text-slate-600'
+                        : 'text-slate-600 dark:text-slate-400'
                     }`}
                   >
                     <span className="opacity-40 select-none">-</span>
@@ -162,7 +162,7 @@ function BridgeContent() {
             </div>
 
             <div className="mt-4 flex flex-col gap-2">
-              <div className="flex justify-between text-xs text-slate-500 tracking-wider">
+              <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 tracking-wider">
                 <span>加载进度</span>
                 <span>{progress}%</span>
               </div>

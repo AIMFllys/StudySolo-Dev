@@ -134,7 +134,7 @@ export function RegisterForm() {
       footer={
         <>
           已经有专属笔记本了？{' '}
-          <Link href="/login" className="text-blue-600 hover:text-blue-700 font-medium hover:underline underline-offset-4 transition-all">
+          <Link href="/login" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 font-medium hover:underline underline-offset-4 transition-all">
             直接翻开
           </Link>
         </>
@@ -153,8 +153,8 @@ export function RegisterForm() {
         <div className="flex flex-col gap-4">
           {/* Name */}
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="register-name" className="text-sm font-medium text-slate-700">
-              你希望如何被称呼 <span className="text-red-500">*</span>
+            <label htmlFor="register-name" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              你希望如何被称呼 <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <input
               id="register-name"
@@ -164,14 +164,14 @@ export function RegisterForm() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="你的名字或昵称"
-              className="w-full h-11 px-4 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
+              className="w-full h-11 px-4 bg-white dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
             />
           </div>
 
           {/* Email */}
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="register-email" className="text-sm font-medium text-slate-700">
-              邮箱地址 <span className="text-red-500">*</span>
+            <label htmlFor="register-email" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              邮箱地址 <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <input
               id="register-email"
@@ -181,14 +181,14 @@ export function RegisterForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@example.com"
-              className="w-full h-11 px-4 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
+              className="w-full h-11 px-4 bg-white dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
             />
           </div>
 
           {/* Verification Code */}
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="register-code" className="text-sm font-medium text-slate-700">
-              邮箱数字验证码 <span className="text-red-500">*</span>
+            <label htmlFor="register-code" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              邮箱数字验证码 <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <div className="flex gap-2">
               <input
@@ -200,13 +200,13 @@ export function RegisterForm() {
                 value={verificationCode}
                 onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 placeholder="6 位数字"
-                className="flex-1 h-11 px-4 text-center bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm tracking-[0.2em]"
+                className="flex-1 h-11 px-4 text-center bg-white dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm tracking-[0.2em]"
               />
               <button
                 type="button"
                 onClick={handleRequestCode}
                 disabled={sendingCode || countdown.isActive}
-                className="shrink-0 px-4 h-11 bg-white border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm whitespace-nowrap min-w-[100px] flex items-center justify-center gap-1.5"
+                className="shrink-0 px-4 h-11 bg-white dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 dark:bg-white/10 hover:border-slate-400 dark:hover:border-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm whitespace-nowrap min-w-[100px] flex items-center justify-center gap-1.5"
               >
                 {sendingCode ? (
                   '发送中...'
@@ -231,7 +231,7 @@ export function RegisterForm() {
           </div>
 
           {error ? (
-            <div className="text-sm text-red-600 bg-red-50 border border-red-200 p-3 rounded-lg break-all">
+            <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 p-3 rounded-lg break-all">
               {error}
             </div>
           ) : null}
@@ -240,7 +240,7 @@ export function RegisterForm() {
             type="button"
             onClick={handleProceedToStep2}
             disabled={!verificationCode || verificationCode.length < 6 || !codeSent}
-            className="group relative mt-2 h-11 w-full bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center justify-center gap-2"
+            className="group relative mt-2 h-11 w-full bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center justify-center gap-2"
           >
             下一步：创建密码
           </button>
@@ -252,20 +252,20 @@ export function RegisterForm() {
             <button
               type="button"
               onClick={() => { setStep(1); setError(''); }}
-              className="text-slate-400 hover:text-slate-700 transition-colors p-1 rounded-lg hover:bg-slate-100"
+              className="text-slate-400 hover:text-slate-700 dark:text-slate-300 transition-colors p-1 rounded-lg hover:bg-slate-100"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
             <div className="flex flex-col">
-              <span className="text-sm font-medium text-slate-700">设置密码</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">设置密码</span>
               <span className="text-xs text-slate-400">{email}</span>
             </div>
           </div>
 
           {/* Password */}
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="register-password" className="text-sm font-medium text-slate-700">
-              创建密码 <span className="text-red-500">*</span>
+            <label htmlFor="register-password" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              创建密码 <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <input
               id="register-password"
@@ -276,14 +276,14 @@ export function RegisterForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="最少 8 个字符"
-              className="w-full h-11 px-4 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
+              className="w-full h-11 px-4 bg-white dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
             />
           </div>
 
           {/* Confirm password */}
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="register-confirm-password" className="text-sm font-medium text-slate-700">
-              再次确认 <span className="text-red-500">*</span>
+            <label htmlFor="register-confirm-password" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              再次确认 <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <input
               id="register-confirm-password"
@@ -294,18 +294,18 @@ export function RegisterForm() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="请再次输入上方的密码"
-              className="w-full h-11 px-4 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
+              className="w-full h-11 px-4 bg-white dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
             />
           </div>
 
           {error ? (
-            <div className="text-sm text-red-600 bg-red-50 border border-red-200 p-3 rounded-lg break-all">
+            <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 p-3 rounded-lg break-all">
               {error}
             </div>
           ) : null}
 
           {/* ToS + Privacy agreement — required before submit */}
-          <div className="flex flex-col gap-2 p-3 rounded-lg bg-slate-50 border border-slate-200">
+          <div className="flex flex-col gap-2 p-3 rounded-lg bg-slate-50 dark:bg-white/10 border border-slate-200 dark:border-white/10">
             <label className="flex items-start gap-2.5 cursor-pointer group">
               <input
                 type="checkbox"
@@ -313,13 +313,13 @@ export function RegisterForm() {
                 onChange={(e) => setAgreedToTerms(e.target.checked)}
                 className="mt-0.5 w-4 h-4 shrink-0 rounded accent-blue-600 cursor-pointer"
               />
-              <span className="text-xs text-slate-600 leading-relaxed">
+              <span className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 我已阅读并同意{' '}
                 <a
                   href="https://docs.1037solo.com/#/docs/studysolo-terms"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline underline-offset-2 font-medium"
+                  className="text-blue-600 dark:text-blue-400 hover:underline underline-offset-2 font-medium"
                   onClick={(e) => e.stopPropagation()}
                 >
                   服务条款
@@ -333,13 +333,13 @@ export function RegisterForm() {
                 onChange={(e) => setAgreedToPrivacy(e.target.checked)}
                 className="mt-0.5 w-4 h-4 shrink-0 rounded accent-blue-600 cursor-pointer"
               />
-              <span className="text-xs text-slate-600 leading-relaxed">
+              <span className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 我已阅读并同意{' '}
                 <a
                   href="https://docs.1037solo.com/#/docs/studysolo-privacy"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline underline-offset-2 font-medium"
+                  className="text-blue-600 dark:text-blue-400 hover:underline underline-offset-2 font-medium"
                   onClick={(e) => e.stopPropagation()}
                 >
                   隐私政策
@@ -351,7 +351,7 @@ export function RegisterForm() {
           <button
             type="submit"
             disabled={loading || !agreedToTerms || !agreedToPrivacy}
-            className="group relative mt-2 h-11 w-full bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center justify-center gap-2"
+            className="group relative mt-2 h-11 w-full bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center justify-center gap-2"
           >
             {loading ? '网络连接处理中...' : '注册并开启笔记'}
             {!loading && <UserPlus className="w-4 h-4 group-hover:scale-110 transition-transform" />}

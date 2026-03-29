@@ -56,7 +56,7 @@ export function AuthSocialButtons() {
           type="button"
           disabled={loadingProvider !== null}
           onClick={() => handleOAuthLogin('github')}
-          className="flex-1 flex items-center justify-center gap-2 h-11 bg-slate-900/5 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-900/10 hover:border-slate-400 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm"
+          className="flex-1 flex items-center justify-center gap-2 h-11 bg-slate-900/5 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-900/10 dark:hover:bg-white/10 hover:border-slate-400 dark:hover:border-white/20 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm"
         >
           <GitHubIcon />
           {loadingProvider === 'github' ? '跳转中...' : 'GitHub 登录'}
@@ -67,7 +67,7 @@ export function AuthSocialButtons() {
           type="button"
           disabled={loadingProvider !== null}
           onClick={() => handleOAuthLogin('google')}
-          className="flex-1 flex items-center justify-center gap-2 h-11 bg-white border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm"
+          className="flex-1 flex items-center justify-center gap-2 h-11 bg-white dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 hover:border-slate-400 dark:hover:border-white/20 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-sm"
         >
           <GoogleIcon />
           {loadingProvider === 'google' ? '跳转中...' : 'Google 登录'}
@@ -75,7 +75,7 @@ export function AuthSocialButtons() {
       </div>
 
       {error && (
-        <p className="text-xs text-red-500 text-center">{error}</p>
+        <p className="text-xs text-red-500 dark:text-red-400 text-center">{error}</p>
       )}
     </div>
   );

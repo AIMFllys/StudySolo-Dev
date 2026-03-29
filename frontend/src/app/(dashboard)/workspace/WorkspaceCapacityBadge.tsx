@@ -87,12 +87,12 @@ export default function WorkspaceCapacityBadge({ quota }: WorkspaceCapacityBadge
       {open && (
         <div
           className="absolute right-0 top-full mt-2 z-50 w-[320px] rounded-2xl
-                     bg-[#faf9f7] dark:bg-card border border-black/[0.07] dark:border-border
-                     shadow-[0_8px_32px_rgba(0,0,0,0.12),_inset_0_1px_0_rgba(255,255,255,0.9)] dark:shadow-xl
+                     bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800
+                     shadow-xl
                      overflow-hidden"
         >
           {/* Paper texture header */}
-          <div className="relative bg-[#f5f3ef] dark:bg-muted border-b border-black/[0.06] dark:border-white/10 px-5 py-4">
+          <div className="relative bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700/50 px-5 py-4">
             <div className="absolute inset-0 bg-gradient-to-br from-white/40 dark:from-white/5 to-transparent pointer-events-none" />
             <div className="relative flex items-start justify-between gap-3">
               <div>
@@ -180,17 +180,17 @@ export default function WorkspaceCapacityBadge({ quota }: WorkspaceCapacityBadge
               <div className="text-center py-3">
                 <Crown className="h-8 w-8 text-amber-500 mx-auto mb-2" />
                 <p className="text-[13px] font-medium text-slate-700 dark:text-slate-300">Ultra 版不限工作流数量</p>
-                <p className="text-[12px] text-slate-400 mt-1">尽情创建，空间永不受限</p>
+                <p className="text-[12px] text-slate-400 dark:text-slate-500 mt-1">尽情创建，空间永不受限</p>
               </div>
             )}
 
             {/* CTA section */}
             {!isUltra && (
-              <div className="flex flex-col gap-2 pt-1 border-t border-dashed border-black/[0.06] dark:border-white/10">
+              <div className="flex flex-col gap-2 pt-1 border-t border-dashed border-slate-200 dark:border-slate-800">
                 {upgradeTier ? (
                   <a
                     href="/upgrade"
-                    className="flex items-center justify-center gap-2 w-full rounded-xl bg-slate-800 dark:bg-slate-700 text-white text-[13px] font-medium py-2.5 hover:bg-slate-700 dark:hover:bg-slate-600 transition-colors group"
+                    className="flex items-center justify-center gap-2 w-full rounded-xl bg-slate-800 dark:bg-slate-700 text-white text-[13px] font-medium py-2.5 hover:bg-slate-700 dark:hover:bg-slate-600 transition-colors group border border-transparent dark:border-slate-600"
                   >
                     <span>升级 {upgradeTier}，工作流扩容至 {upgradeTier === 'Pro' ? '50' : '200'} 个</span>
                     <ChevronRight className="h-4 w-4 opacity-70 group-hover:translate-x-0.5 transition-transform" />

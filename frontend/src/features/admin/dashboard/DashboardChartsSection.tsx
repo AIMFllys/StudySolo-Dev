@@ -33,9 +33,10 @@ interface DashboardChartsSectionProps {
 }
 
 const TIME_RANGE_OPTIONS: { value: AdminUsageRange; label: string }[] = [
-  { value: '24h', label: '24H' },
+  { value: '24h', label: '1D' },
   { value: '7d', label: '7D' },
-  { value: '30d', label: '30D' },
+  { value: '30d', label: '1月' },
+  { value: 'all', label: '所有' },
 ];
 
 const tooltipStyle = {
@@ -82,7 +83,7 @@ function ChartShell({
           </div>
           {action}
         </div>
-        <div className="flex-1 min-h-[300px]">
+        <div className="flex-1 min-h-[320px]">
           {children}
         </div>
       </div>
@@ -119,7 +120,7 @@ export function DashboardChartsSection({
   const colorWorkflow = '#14b8a6';
 
   return (
-    <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 xl:grid-rows-[auto_auto_auto]">
       <ChartShell
         title="调用次数趋势"
         description="Assistant 与 Workflow 的真实 Provider 调用次数"
@@ -168,80 +169,135 @@ export function DashboardChartsSection({
         </ResponsiveContainer>
       </ChartShell>
 
-      <ChartShell title="费用趋势" description="人民币 (CNY) 总成本走势">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData}>
-            <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="ts" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} dy={8} />
-            <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-            <Tooltip
-              contentStyle={tooltipStyle}
-              formatter={(value: number) => [formatCny(value), 'Cost']}
-            />
-            <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
-            <Line type="monotone" dataKey="assistant_cost_cny" stroke={colorAssistant} strokeWidth={3} dot={false} name="Assistant Cost" activeDot={{ r: 6 }} />
-            <Line type="monotone" dataKey="workflow_cost_cny" stroke={colorWorkflow} strokeWidth={3} dot={false} name="Workflow Cost" activeDot={{ r: 6 }} />
-          </LineChart>
-        </ResponsiveContainer>
-      </ChartShell>
-
-      <ChartShell title="成本拆分与模型排行" description="账单来源拆分与具体模型成本一览">
-        <div className="grid h-full gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
-          <div className="flex flex-col items-center justify-center h-full">
-            <div className="w-full h-[220px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Tooltip
-                    contentStyle={tooltipStyle}
-                    formatter={(value: number) => [formatCny(value), 'Cost']}
-                  />
-                  <Pie data={pieData} dataKey="value" nameKey="name" outerRadius={80} innerRadius={60} stroke="none">
-                    {pieData.map((entry, index) => (
-                      <Cell key={entry.name} fill={index === 0 ? colorAssistant : colorWorkflow} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
+      {/* Full-width cost trend card */}
+      <div className="xl:col-span-2">
+        <ChartShell
+          title="费用趋势"
+          description="人民币 (CNY) 总成本走势"
+          action={(
+            <div className="flex gap-1 rounded-lg bg-slate-100 p-1 shadow-inner">
+              {TIME_RANGE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => onTimeRangeChange(option.value)}
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                    option.value === timeRange
+                      ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-900/5'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
             </div>
-          </div>
+          )}
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData}>
+              <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="ts" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} dy={8} />
+              <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+              <Tooltip
+                contentStyle={tooltipStyle}
+                formatter={(value: number) => [formatCny(value), 'Cost']}
+              />
+              <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
+              <Line type="monotone" dataKey="assistant_cost_cny" stroke={colorAssistant} strokeWidth={3} dot={false} name="Assistant Cost" activeDot={{ r: 6 }} />
+              <Line type="monotone" dataKey="workflow_cost_cny" stroke={colorWorkflow} strokeWidth={3} dot={false} name="Workflow Cost" activeDot={{ r: 6 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </ChartShell>
+      </div>
 
-          <div className="overflow-hidden rounded-xl border border-slate-200 shadow-sm bg-white">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50/50">
-                    <th className="px-4 py-3 font-semibold text-slate-900">SKU / Model</th>
-                    <th className="px-4 py-3 font-semibold text-slate-900">Calls</th>
-                    <th className="px-4 py-3 font-semibold text-slate-900">Tokens</th>
-                    <th className="px-4 py-3 font-semibold text-slate-900">Cost</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {topModels.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="px-4 py-8 text-center text-sm text-slate-500">
-                        暂无模型账本数据
-                      </td>
+      {/* Full-width bottom card */}
+      <div className="xl:col-span-2">
+        <ChartShell title="成本拆分与模型排行" description="账单来源拆分与具体模型成本一览">
+          <div className="flex h-full gap-8">
+            {/* Left: donut chart + legend */}
+            <div className="flex shrink-0 flex-col items-center justify-center gap-6 w-[260px]">
+              <div className="w-full h-[260px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Tooltip
+                      contentStyle={tooltipStyle}
+                      formatter={(value: number) => [formatCny(value), 'Cost']}
+                    />
+                    <Pie data={pieData} dataKey="value" nameKey="name" outerRadius={100} innerRadius={70} stroke="none" paddingAngle={3}>
+                      {pieData.map((entry, index) => (
+                        <Cell key={entry.name} fill={index === 0 ? colorAssistant : colorWorkflow} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              {/* Legend */}
+              <div className="space-y-2.5 w-full px-2">
+                {pieData.map((entry, index) => (
+                  <div key={entry.name} className="flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-2 text-sm text-slate-600">
+                      <span
+                        className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ background: index === 0 ? colorAssistant : colorWorkflow }}
+                      />
+                      {entry.name}
+                    </span>
+                    <span className="font-mono text-xs font-semibold text-slate-900">{formatCny(entry.value)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="w-px shrink-0 self-stretch bg-slate-100" />
+
+            {/* Right: model ranking table filling all space */}
+            <div className="min-w-0 flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+              <div className="overflow-auto h-full">
+                <table className="w-full text-left text-sm">
+                  <thead className="sticky top-0 z-10">
+                    <tr className="border-b border-slate-200 bg-slate-50">
+                      <th className="px-5 py-3.5 font-semibold text-slate-900">SKU / Model</th>
+                      <th className="px-5 py-3.5 font-semibold text-slate-900 tabular-nums">Calls</th>
+                      <th className="px-5 py-3.5 font-semibold text-slate-900 tabular-nums">Tokens</th>
+                      <th className="px-5 py-3.5 font-semibold text-slate-900 tabular-nums">Cost (CNY)</th>
                     </tr>
-                  ) : (
-                    topModels.map((item) => (
-                      <tr key={item.sku_id ?? `${item.provider}-${item.model}`} className="transition-colors hover:bg-slate-50/50">
-                        <td className="px-4 py-3">
-                          <div className="font-medium text-slate-900">{item.provider}/{item.model}</div>
-                          <div className="mt-0.5 text-xs text-slate-500">{item.vendor} · {item.billing_channel}</div>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {topModels.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-5 py-12 text-center text-sm text-slate-500">
+                          暂无模型账本数据
                         </td>
-                        <td className="px-4 py-3 text-slate-600">{item.provider_call_count.toLocaleString('zh-CN')}</td>
-                        <td className="px-4 py-3 text-slate-600">{item.total_tokens.toLocaleString('zh-CN')}</td>
-                        <td className="px-4 py-3 font-medium text-slate-900">{formatCny(item.total_cost_cny)}</td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      topModels.map((item) => (
+                        <tr
+                          key={item.sku_id ?? `${item.provider}-${item.model}`}
+                          className="transition-colors hover:bg-indigo-50/40"
+                        >
+                          <td className="px-5 py-3.5">
+                            <div className="font-medium text-slate-900">{item.provider}/{item.model}</div>
+                            <div className="mt-0.5 text-xs text-slate-400">{item.vendor} · {item.billing_channel}</div>
+                          </td>
+                          <td className="px-5 py-3.5 font-mono text-sm text-slate-600">
+                            {item.provider_call_count.toLocaleString('zh-CN')}
+                          </td>
+                          <td className="px-5 py-3.5 font-mono text-sm text-slate-600">
+                            {item.total_tokens.toLocaleString('zh-CN')}
+                          </td>
+                          <td className="px-5 py-3.5 font-mono text-sm font-semibold text-slate-900">
+                            {formatCny(item.total_cost_cny)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
-        </div>
-      </ChartShell>
+        </ChartShell>
+      </div>
     </div>
   );
 }

@@ -20,14 +20,14 @@ interface WorkflowListProps {
 }
 
 const STATUS_MAP: Record<string, { label: string; className: string }> = {
-  draft: { label: '草稿', className: 'bg-slate-100 text-slate-600 border border-slate-200/60' },
-  running: { label: '运行中', className: 'bg-blue-50 text-blue-600 border border-blue-100' },
-  completed: { label: '已完成', className: 'bg-emerald-50 text-emerald-600 border border-emerald-100' },
-  error: { label: '错误', className: 'bg-rose-50 text-rose-600 border border-rose-100' },
+  draft: { label: '草稿', className: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60' },
+  running: { label: '运行中', className: 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800/50' },
+  completed: { label: '已完成', className: 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/50' },
+  error: { label: '错误', className: 'bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-800/50' },
 };
 
 function statusLabel(status: string) {
-  return STATUS_MAP[status] ?? { label: status, className: 'bg-slate-100 text-slate-600 border border-slate-200/60' };
+  return STATUS_MAP[status] ?? { label: status, className: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60' };
 }
 
 export default function WorkflowList({ initialWorkflows, remaining }: WorkflowListProps) {
@@ -215,7 +215,7 @@ export default function WorkflowList({ initialWorkflows, remaining }: WorkflowLi
                   autoFocus
                   defaultValue={workflow.tags?.join(', ') || ''}
                   placeholder="自定义标签..."
-                  className="w-24 pointer-events-auto bg-white border border-primary/40 rounded px-1.5 py-0.5 outline-none shadow-sm text-slate-700"
+                  className="w-24 pointer-events-auto bg-white dark:bg-slate-800 border border-primary/40 rounded px-1.5 py-0.5 outline-none shadow-sm text-slate-700 dark:text-slate-300"
                   onBlur={(e) => handleEditSubmit(workflow.id, 'tags', e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleEditSubmit(workflow.id, 'tags', e.currentTarget.value);
@@ -226,7 +226,7 @@ export default function WorkflowList({ initialWorkflows, remaining }: WorkflowLi
               ) : (
                  workflow.tags && workflow.tags.length > 0 ? (
                    workflow.tags.map((t, idx) => (
-                     <span key={idx} className="shrink-0 bg-slate-100/80 text-slate-600 border border-slate-200/50 rounded-full px-2.5 py-0.5 font-medium pointer-events-none">
+                     <span key={idx} className="shrink-0 bg-slate-100/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 dark:text-slate-300 border border-slate-200/50 dark:border-slate-700/50 rounded-full px-2.5 py-0.5 font-medium pointer-events-none">
                        {t}
                      </span>
                    ))

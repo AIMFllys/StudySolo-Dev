@@ -35,7 +35,7 @@ export function AuthShell({
       <div 
         className="absolute inset-0 opacity-[0.6] pointer-events-none z-0"
         style={{
-          backgroundImage: 'linear-gradient(to right, #e2e8f0 1px, transparent 1px), linear-gradient(to bottom, #e2e8f0 1px, transparent 1px)',
+          backgroundImage: 'linear-gradient(to right, var(--color-border) 1px, transparent 1px), linear-gradient(to bottom, var(--color-border) 1px, transparent 1px)',
           backgroundSize: '1.5rem 1.5rem',
         }}
       />
@@ -102,9 +102,9 @@ export function AuthShell({
                 <AuthSocialButtons />
               </div>
               <div className="flex items-center gap-3 mb-8 mt-6">
-                <div className="flex-1 border-t border-border/80 md:border-border" />
+                <div className="flex-1 border-t border-border/80 dark:border-border/40 md:border-border" />
                 <span className="text-xs text-muted-foreground font-medium tracking-wide">或使用邮箱登录</span>
-                <div className="flex-1 border-t border-border/80 md:border-border" />
+                <div className="flex-1 border-t border-border/80 dark:border-border/40 md:border-border" />
               </div>
             </>
           ) : null}

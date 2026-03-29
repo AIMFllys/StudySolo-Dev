@@ -1,6 +1,6 @@
 export type UsageSourceType = 'assistant' | 'workflow';
 export type UsageSourceFilter = UsageSourceType | 'all';
-export type UsageRange = '24h' | '7d' | '30d';
+export type UsageRange = '24h' | '7d' | '30d' | 'all';
 export type AdminUsageRange = UsageRange;
 export type UsageWindow = '5m' | '60m';
 

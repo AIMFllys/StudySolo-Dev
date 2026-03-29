@@ -79,7 +79,7 @@ export function ChatInputBar({
         </div>
       ) : null}
 
-      <div className="node-paper-bg flex flex-col rounded-xl border-[1.5px] border-border/50 shadow-sm focus-within:border-primary/40 focus-within:shadow-md transition-all">
+      <div className="node-paper-bg dark:bg-slate-900 flex flex-col rounded-xl border-[1.5px] border-border/50 shadow-sm focus-within:border-primary/40 focus-within:shadow-md transition-all">
         <textarea
           ref={textareaRef}
           className="min-h-[40px] max-h-[120px] w-full resize-none bg-transparent px-3.5 py-3 text-[13px] text-foreground/90 placeholder:text-muted-foreground/50 focus:outline-none font-serif"
@@ -98,15 +98,15 @@ export function ChatInputBar({
               <button 
                 type="button" 
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium transition-all bg-white/40 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/10 border-[1px] border-border/40 hover:border-border/60 text-foreground/80 shadow-sm"
+                className="flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium transition-all bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border-[1px] border-border/40 hover:border-border/60 text-foreground/80 shadow-sm"
               >
                 {(() => { const I = MODE_CONFIG[mode].icon; return <I className="h-3 w-3 text-primary/80" />; })()}
                 {MODE_CONFIG[mode].label}
               </button>
               
               {dropdownOpen && (
-                <div className="absolute bottom-full left-0 mb-2 w-64 rounded-xl border-[1.5px] border-border/50 node-paper-bg shadow-lg overflow-hidden py-1 z-50 origin-bottom-left animate-in fade-in zoom-in-95 duration-100">
-                  <div className="px-3 py-1.5 border-b-[1px] border-border/30 mb-1">
+                <div className="absolute bottom-full left-0 mb-2 w-64 rounded-xl border-[1.5px] border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg overflow-hidden py-1 z-50 origin-bottom-left animate-in fade-in zoom-in-95 duration-100">
+                  <div className="px-3 py-1.5 border-b-[1px] border-slate-100 dark:border-slate-800 mb-1">
                     <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 font-sans">选择对话模式</span>
                   </div>
                   {(Object.entries(MODE_CONFIG) as [AIMode, typeof MODE_CONFIG[AIMode]][]).map(([key, cfg]) => {
@@ -117,9 +117,9 @@ export function ChatInputBar({
                         key={key} 
                         type="button" 
                         onClick={() => { setMode(key); setDropdownOpen(false); }}
-                        className={`w-full text-left flex items-start gap-2.5 px-3 py-2 transition-colors ${active ? 'bg-primary/5' : 'hover:bg-muted/30'}`}
+                        className={`w-full text-left flex items-start gap-2.5 px-3 py-2 transition-colors ${active ? 'bg-primary/5 dark:bg-primary/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                       >
-                        <div className={`mt-0.5 p-1 rounded-md ${active ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                        <div className={`mt-0.5 p-1 rounded-md ${active ? 'bg-primary/10 dark:bg-primary/30 text-primary' : 'bg-slate-100 dark:bg-slate-800 text-muted-foreground'}`}>
                           <Icon className="h-3.5 w-3.5" />
                         </div>
                         <div className="flex-1">
@@ -137,7 +137,7 @@ export function ChatInputBar({
               <>
                 <div className="h-3 w-px bg-border/30 mx-1" />
                 <button type="button" onClick={cycleDepth}
-                  className={`flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] font-medium transition-all hover:bg-white/5 ${DEPTH_CONFIG[thinkingDepth].color}`}
+                  className={`flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] font-medium transition-all hover:bg-slate-100 dark:hover:bg-slate-800 ${DEPTH_CONFIG[thinkingDepth].color}`}
                   title={`思考深度: ${DEPTH_CONFIG[thinkingDepth].label}`}>
                   <Route className="h-3 w-3" />{DEPTH_CONFIG[thinkingDepth].label}
                 </button>
