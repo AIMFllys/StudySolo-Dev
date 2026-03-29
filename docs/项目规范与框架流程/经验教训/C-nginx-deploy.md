@@ -32,3 +32,21 @@
 **根因**: 服务器默认 Python 3.6，FastAPI 0.115+ 需要 3.8+
 **修复**: 通过宝塔面板安装 Python 3.11，重建 venv
 **防御规则**: 部署文档必须明确 Python 最低版本，国内用清华镜像加速安装
+
+## C-07: 宝塔展示配置 ≠ Nginx 最终生效配置
+**日期**: 2026-03-29
+**根因**: 在宝塔面板里反复修改站点配置，但真正生效的规则还会受到 `include /www/server/panel/vhost/nginx/extension/...`、`include /www/server/panel/vhost/rewrite/...` 以及缓存层的共同影响。只看面板内容，无法确认最终接流量的是哪一份配置。
+**修复**: 所有线上 Nginx 排查必须先执行 `nginx -T`，只认展开后的最终配置；同时结合 `curl -I 实际 URL` 验证响应头，不再只看面板。
+**防御规则**: 宝塔环境下，`nginx -T` 是唯一可信配置源；面板配置、README、记忆都只能作参考，不能代替最终配置核验。
+
+## C-08: proxy_cache 会让首页继续吃旧 HTML
+**日期**: 2026-03-29
+**根因**: 首页 `/` 被 `proxy_cache cache_one` 命中，虽然 Next.js 已重新构建并输出了新的 `window.__ENV__` 注入脚本，但裸 `/` 仍返回旧 HTML；只有带查询参数的 URL 才拿到新页面，形成“代码已更新、首页仍白屏”的假象。
+**修复**: 清空 `/www/server/nginx/proxy_cache_dir/*` 后执行 `nginx -s reload`，再用 `curl -I /` 与 `curl -I '/?_t=时间戳'` 对比 `X-Cache` / `ETag` / `Content-Length`，确认旧首页缓存失效。
+**防御规则**: 生产环境凡是出现“改了代码但首页行为不变”，先查缓存命中而不是先怀疑构建失败；必须区分“裸 URL 缓存结果”和“带查询参数的新鲜结果”。
+
+## C-09: Nginx 期待的静态目录必须和服务器真实目录完全一致
+**日期**: 2026-03-29
+**根因**: `introduce` 线上真实目录最初是 `/www/wwwroot/studyflow.1037solo.com/introduce/index.html + assets/ + images/`，但生效中的 Nginx 却按 `/introduce/dist/...` 查找文件。结果 `/introduce/assets/*.js` 命中静态资源失败，`/introduce/` fallback 又掉回主应用 `location /`，最终由 Next.js 返回 404。
+**修复**: 先用 `ls -lah` 核对服务器真实目录，再让“配置匹配目录”或“目录匹配配置”二选一。本次通过补齐 `/www/wwwroot/studyflow.1037solo.com/introduce/dist/` 并同步静态产物，使目录结构与生效 Nginx 规则对齐。
+**防御规则**: 生产排障必须同时验证三件事：`nginx -T`、`curl -I 实际 URL`、`ls -lah 实际目录`。静态子应用一旦出现 404/500，不要先猜 alias/try_files，先确认线上真实目录是否与配置完全同构。

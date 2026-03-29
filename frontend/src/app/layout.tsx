@@ -24,8 +24,9 @@ export const metadata: Metadata = {
   description:
     "Generate complete learning workflows with AI, from outlines to key concepts.",
   icons: {
-    icon: "/StudySolo.png",
-    apple: "/StudySolo.png",
+    icon: [{ url: "/StudySolo.png", type: "image/png" }],
+    shortcut: [{ url: "/StudySolo.png", type: "image/png" }],
+    apple: [{ url: "/StudySolo.png", type: "image/png" }],
   },
 };
 
