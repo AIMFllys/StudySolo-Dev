@@ -47,27 +47,29 @@ export function TraceStepItem({ trace, nodeNameMap }: TraceStepItemProps) {
       <div className={`absolute -left-[5px] top-2 h-[10px] w-[10px] rounded-full ${dotClassName}`} />
 
       <div className="pb-5">
-        <div className="mb-2 flex items-start justify-between gap-3">
-          <div>
+        <div className="mb-2 flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
             <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               步骤 {trace.executionOrder}
             </div>
             <div className={titleClassName}>
               <span className="mr-2 text-muted-foreground">→</span>
-              {trace.nodeName}
+              <span className="break-words">{trace.nodeName}</span>
             </div>
             {trace.inputSummary && (
               <div className={summaryClassName}>{trace.inputSummary}</div>
             )}
             {trace.chainIds && trace.chainIds.length > 0 ? (
-              <div className="mt-2 text-[10px] uppercase tracking-wider text-muted-foreground">
-                {trace.chainIds.map((chainId) => `线路 ${chainId}`).join(' / ')}
+              <div className="mt-2 flex flex-wrap gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+                {trace.chainIds.map((chainId) => (
+                  <span key={chainId}>线路 {chainId}</span>
+                ))}
               </div>
             ) : null}
           </div>
-          <div className="flex items-center gap-2">
-            {duration ? <span className="text-[10px] text-muted-foreground">{duration}</span> : null}
-            <span className={`rounded-full px-2 py-0.5 text-[10px] ${badge.badgeClassName}`}>{badge.label}</span>
+          <div className="flex shrink-0 items-center gap-2">
+            {duration ? <span className="text-[10px] text-muted-foreground whitespace-nowrap">{duration}</span> : null}
+            <span className={`rounded-full px-2 py-0.5 text-[10px] whitespace-nowrap ${badge.badgeClassName}`}>{badge.label}</span>
           </div>
         </div>
 

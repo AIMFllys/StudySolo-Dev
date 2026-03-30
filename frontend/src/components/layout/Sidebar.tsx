@@ -27,6 +27,7 @@ import InvitationList from './sidebar/InvitationList';
 import RightPanelContent from './sidebar/RightPanelContent';
 import KnowledgeBasePanel from './sidebar/KnowledgeBasePanel';
 import ResizableHandle from './ResizableHandle';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import type { WorkflowMeta } from '@/types/workflow';
 
 interface SidebarProps { workflows: WorkflowMeta[] }
@@ -42,6 +43,7 @@ export default function Sidebar({ workflows }: SidebarProps) {
   const isCollapsed = activeSidebarPanel === null;
   const isRight = useSettingsStore((s) => s.sidebarPosition) === 'right';
   const [editingWorkflowId, setEditingWorkflowId] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
 
   function handleRename(workflowId: string) { setEditingWorkflowId(workflowId); closeContextMenu(); }
   async function handleRenameSubmit(workflowId: string, nextName: string) {
@@ -51,7 +53,9 @@ export default function Sidebar({ workflows }: SidebarProps) {
     await onRenameWorkflow(workflowId, nextName);
   }
   function handleDelete(workflowId: string) {
-    void onDeleteWorkflow(workflowId, workflows.find((w) => w.id === workflowId)?.name ?? '未命名工作流');
+    const wf = workflows.find((w) => w.id === workflowId);
+    setDeleteConfirm({ id: workflowId, name: wf?.name ?? '未命名工作流' });
+    closeContextMenu();
   }
 
   return (
@@ -118,6 +122,21 @@ export default function Sidebar({ workflows }: SidebarProps) {
           onTogglePublish={(id) => { const wf = workflows.find((w) => w.id === id); if (!wf) return; closeContextMenu(); updateWorkflow(id, { is_public: !wf.is_public }).then(afterVisibilityChange).then(() => toast.success(wf.is_public ? '已取消公开' : '工作流已公开')).catch((e: unknown) => toast.error(e instanceof Error ? e.message : '发布操作失败')); }}
         />
       )}
+
+      <ConfirmDialog
+        open={deleteConfirm !== null}
+        title="确认删除工作流"
+        description={`确认删除工作流"${deleteConfirm?.name ?? ''}"？该操作不可恢复，所有节点和执行记录将被永久删除。`}
+        confirmLabel="删除"
+        variant="danger"
+        onConfirm={() => {
+          if (deleteConfirm) {
+            void onDeleteWorkflow(deleteConfirm.id, deleteConfirm.name);
+          }
+          setDeleteConfirm(null);
+        }}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </>
   );
 }

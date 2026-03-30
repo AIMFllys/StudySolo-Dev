@@ -12,6 +12,7 @@ import {
 } from '@/stores/use-panel-store';
 import { PANEL_CONFIG, IMMOVABLE_UPPER, getPanelLabel } from './sidebar-constants';
 import SidebarActivityContextMenu from './sidebar/SidebarActivityContextMenu';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface SidebarActivityBarProps {
   logoutAndRedirect: () => Promise<void>;
@@ -27,6 +28,7 @@ export function SidebarActivityBar({ logoutAndRedirect, isRight }: SidebarActivi
   const [activityContextMenu, setActivityContextMenu] = useState<{
     panel: SidebarPanel; anchorRect: DOMRect;
   } | null>(null);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const handleActivityContextMenu = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>, panel: SidebarPanel) => {
@@ -66,7 +68,7 @@ export function SidebarActivityBar({ logoutAndRedirect, isRight }: SidebarActivi
 
   return (
     <>
-      <div className="flex h-full w-12 shrink-0 flex-col items-center bg-background py-2">
+      <div className="flex h-full w-12 shrink-0 flex-col items-center bg-background py-2 overflow-y-auto scrollbar-hide">
         {rightPanelDockedToSidebar && renderButton('execution')}
         {renderButton('user-panel')}
         <div className="my-1 h-px w-6 bg-border/50" />
@@ -79,17 +81,28 @@ export function SidebarActivityBar({ logoutAndRedirect, isRight }: SidebarActivi
             <div className="absolute inset-0 rounded-xl bg-amber-500/10 opacity-0 transition-opacity group-hover:animate-pulse group-hover:opacity-100" />
             <Crown className="h-[18px] w-[18px] stroke-[1.5] group-hover:stroke-[2]" />
           </Link>
+          {renderButton('wallet')}
           {renderButton('settings')}
           <a href="https://docs.1037solo.com/#/docs/studysolo-intro" target="_blank" rel="noopener noreferrer"
             className="flex h-10 w-10 mx-auto items-center justify-center rounded-xl text-muted-foreground border-[1.5px] border-transparent transition-all hover:bg-muted/40 hover:text-foreground" title="使用手册">
             <BookOpenText className="h-[18px] w-[18px] stroke-[1.5] hover:stroke-[2]" />
           </a>
-          <button onClick={() => void logoutAndRedirect()}
+          <button onClick={() => setShowLogoutConfirm(true)}
             className="flex h-10 w-10 mx-auto items-center justify-center rounded-xl text-muted-foreground border-[1.5px] border-transparent transition-all hover:bg-rose-50/50 dark:hover:bg-rose-950/20 hover:text-rose-500" title="退出登录">
             <LogOut className="h-[18px] w-[18px] stroke-[1.5] hover:stroke-[2]" />
           </button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={showLogoutConfirm}
+        title="确认退出登录"
+        description="退出后需要重新登录才能访问工作流和学习数据。"
+        confirmLabel="退出登录"
+        variant="danger"
+        onConfirm={() => { setShowLogoutConfirm(false); void logoutAndRedirect(); }}
+        onCancel={() => setShowLogoutConfirm(false)}
+      />
 
       {activityContextMenu && (
         <SidebarActivityContextMenu

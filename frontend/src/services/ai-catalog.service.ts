@@ -22,6 +22,7 @@ export interface ChatModelOption {
   isPremium: boolean;
   isAccessible: boolean;
   skuId: string | null;
+  supportsThinking: boolean;
 }
 
 // Track A: Fetch curated chat panel model list from dedicated endpoint

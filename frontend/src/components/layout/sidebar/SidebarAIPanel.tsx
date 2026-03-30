@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronDown, History, MoreHorizontal, Plus, Trash2, X } from 'lucide-react';
-import { ModelSelector } from './ModelSelector';
 import { ChatMessages } from './ChatMessages';
 import { ChatInputBar } from './ChatInputBar';
 import { useCanvasContext } from '@/features/workflow/hooks/use-canvas-context';
@@ -177,15 +176,6 @@ export function SidebarAIPanel() {
           <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground font-serif">
             AI 对话
           </span>
-          <ModelSelector
-            value={selectedChatModel}
-            options={chatModels}
-            onChange={setSelectedChatModel}
-            userTier={userTier}
-            isLoading={isModelsLoading}
-            isError={modelsError}
-            onRetry={fetchChatModels}
-          />
         </div>
 
         <div className="flex items-center gap-1">
@@ -312,12 +302,18 @@ export function SidebarAIPanel() {
         setMode={setMode}
         thinkingDepth={thinkingDepth}
         setThinkingDepth={setThinkingDepth}
-        selectedModel={selectedModel}
         loading={loading}
         streaming={streaming}
         error={error}
         setError={setError}
         onSend={() => void handleSend()}
+        chatModel={selectedChatModel}
+        chatModels={chatModels}
+        onModelChange={setSelectedChatModel}
+        userTier={userTier}
+        isModelsLoading={isModelsLoading}
+        modelsError={modelsError}
+        onModelsRetry={fetchChatModels}
       />
     </div>
   );

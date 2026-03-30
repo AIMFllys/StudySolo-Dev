@@ -60,12 +60,17 @@ async def get_chat_models(
         sku_ids: list[str] = entry.get("sku_ids", [])
         is_recommended = entry.get("is_recommended", False)
 
-        # Vendor resolution: config.yaml vendor → DB SKU vendor → default
+        # Vendor & capability resolution via primary SKU
         vendor = entry.get("vendor", "")
-        if not vendor and sku_ids:
+        supports_thinking = False
+        primary_sku = None
+        if sku_ids:
             try:
                 primary_sku = await get_sku_by_id(sku_ids[0])
-                vendor = primary_sku.vendor if primary_sku else "deepseek"
+                if primary_sku:
+                    if not vendor:
+                        vendor = primary_sku.vendor
+                    supports_thinking = primary_sku.supports_thinking
             except Exception as exc:
                 logger.warning(
                     "[chat_models] SKU lookup failed for sku_id=%s key=%s: %s",
@@ -85,6 +90,7 @@ async def get_chat_models(
             "isPremium": required_tier != "free",
             "isAccessible": user_tier_level >= required_level,
             "skuId": sku_ids[0] if sku_ids else None,
+            "supportsThinking": supports_thinking,
         })
 
     return {"models": models}

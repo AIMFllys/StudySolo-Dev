@@ -1,15 +1,15 @@
 'use client';
 
 /**
- * ChatInputBar — 输入栏: 模式切换 + 思考深度 + 发送.
- *
- * 从 SidebarAIPanel 抽离, 保持单文件 ≤ 300 行。
+ * ChatInputBar — 输入栏: 模式切换 + 思考深度 + 模型选择 + 发送.
  */
 
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { Loader2, ArrowRight, Square, Brain, Route, MessageCircle, Wand2 } from 'lucide-react';
+import { ModelSelector } from './ModelSelector';
 import type { AIMode, ThinkingDepth } from './SidebarAIPanel';
-import type { AIModelOption } from '@/features/workflow/constants/ai-models';
+import type { ChatModelOption } from '@/services/ai-catalog.service';
+import type { TierType } from '@/services/auth.service';
 
 const MODE_CONFIG: Record<AIMode, { icon: typeof Brain; label: string; hint: string; desc: string }> = {
   plan: { icon: Brain, label: '规划模式', hint: '深入分析目标并输出学习路径', desc: '不直接修改画布，仅提供深度分析和架构规划建议' },
@@ -30,18 +30,27 @@ interface ChatInputBarProps {
   setMode: (m: AIMode) => void;
   thinkingDepth: ThinkingDepth;
   setThinkingDepth: (d: ThinkingDepth) => void;
-  selectedModel: AIModelOption;
   loading: boolean;
   streaming: boolean;
   error: string | null;
   setError: (e: string | null) => void;
   onSend: () => void;
+  // Model selector props (Track A)
+  chatModel: ChatModelOption | null;
+  chatModels: ChatModelOption[];
+  onModelChange: (m: ChatModelOption) => void;
+  userTier: TierType;
+  isModelsLoading: boolean;
+  modelsError: boolean;
+  onModelsRetry: () => void;
 }
 
 export function ChatInputBar({
   input, setInput, mode, setMode,
-  thinkingDepth, setThinkingDepth, selectedModel,
+  thinkingDepth, setThinkingDepth,
   loading, streaming, error, setError, onSend,
+  chatModel, chatModels, onModelChange, userTier,
+  isModelsLoading, modelsError, onModelsRetry,
 }: ChatInputBarProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -68,6 +77,8 @@ export function ChatInputBar({
     setThinkingDepth(thinkingDepth === 'fast' ? 'balanced' : thinkingDepth === 'balanced' ? 'deep' : 'fast');
   }, [thinkingDepth, setThinkingDepth]);
 
+  const supportsThinking = chatModel?.supportsThinking ?? false;
+
   return (
     <div className="shrink-0 p-3 pt-1">
       {error && !loading ? (
@@ -92,18 +103,18 @@ export function ChatInputBar({
         />
 
         <div className="flex items-center justify-between px-2 pb-2">
-          {/* Mode Dropdown (Antigravity Style) */}
+          {/* Left: Mode + Thinking Depth */}
           <div className="flex items-center gap-1.5" ref={dropdownRef}>
             <div className="relative">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 className="flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium transition-all bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border-[1px] border-border/40 hover:border-border/60 text-foreground/80 shadow-sm"
               >
                 {(() => { const I = MODE_CONFIG[mode].icon; return <I className="h-3 w-3 text-primary/80" />; })()}
                 {MODE_CONFIG[mode].label}
               </button>
-              
+
               {dropdownOpen && (
                 <div className="absolute bottom-full left-0 mb-2 w-64 rounded-xl border-[1.5px] border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg overflow-hidden py-1 z-50 origin-bottom-left animate-in fade-in zoom-in-95 duration-100">
                   <div className="px-3 py-1.5 border-b-[1px] border-slate-100 dark:border-slate-800 mb-1">
@@ -113,9 +124,9 @@ export function ChatInputBar({
                     const active = mode === key;
                     const Icon = cfg.icon;
                     return (
-                      <button 
-                        key={key} 
-                        type="button" 
+                      <button
+                        key={key}
+                        type="button"
                         onClick={() => { setMode(key); setDropdownOpen(false); }}
                         className={`w-full text-left flex items-start gap-2.5 px-3 py-2 transition-colors ${active ? 'bg-primary/5 dark:bg-primary/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                       >
@@ -133,7 +144,7 @@ export function ChatInputBar({
               )}
             </div>
 
-            {selectedModel.supportsThinking && (
+            {supportsThinking && (
               <>
                 <div className="h-3 w-px bg-border/30 mx-1" />
                 <button type="button" onClick={cycleDepth}
@@ -145,8 +156,17 @@ export function ChatInputBar({
             )}
           </div>
 
-          {/* Status + Send */}
+          {/* Right: Model selector + Status + Send */}
           <div className="flex items-center gap-1.5">
+            <ModelSelector
+              value={chatModel}
+              options={chatModels}
+              onChange={onModelChange}
+              userTier={userTier}
+              isLoading={isModelsLoading}
+              isError={modelsError}
+              onRetry={onModelsRetry}
+            />
             <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${streaming ? 'text-primary bg-primary/10' : 'text-muted-foreground/40'}`}>
               {streaming ? '● 流式' : '○ 就绪'}
             </span>

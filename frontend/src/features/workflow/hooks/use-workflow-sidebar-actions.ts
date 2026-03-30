@@ -48,16 +48,7 @@ export function useWorkflowSidebarActions(
   );
 
   const onDeleteWorkflow = useCallback(
-    async (workflowId: string, currentName: string) => {
-      closeContextMenu();
-
-      const confirmed = window.confirm(
-        `确认删除工作流“${currentName}”？该操作不可恢复。`
-      );
-      if (!confirmed) {
-        return;
-      }
-
+    async (workflowId: string, _currentName: string) => {
       setProcessingWorkflowId(workflowId);
       try {
         await deleteWorkflow(workflowId);
@@ -74,7 +65,7 @@ export function useWorkflowSidebarActions(
         setProcessingWorkflowId(null);
       }
     },
-    [closeContextMenu, pathname, router]
+    [pathname, router]
   );
 
   return {
