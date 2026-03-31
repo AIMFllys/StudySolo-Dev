@@ -86,7 +86,7 @@ export function AdminNoticesPageView() {
   }
 
   async function handleDelete(noticeId: string, title: string) {
-    const confirmed = window.confirm(`确认删除公告“${title}”吗？删除后不可恢复。`);
+    const confirmed = window.confirm(`确认删除公告"${title}"吗？删除后不可恢复。`);
     if (!confirmed) return;
 
     setActionLoading(noticeId);
@@ -101,14 +101,14 @@ export function AdminNoticesPageView() {
   }
 
   return (
-    <div className="mx-auto min-h-full max-w-[1600px] space-y-6 px-8 py-8 md:px-12">
+    <div className="mx-auto min-h-full max-w-[1600px] space-y-5 px-6 py-6">
       <PageHeader
         title="公告管理"
         description={data ? `共 ${data.total.toLocaleString('zh-CN')} 条公告` : '查看和维护站内公告'}
         action={
           <button
             onClick={() => router.push('/admin-analysis/notices/create')}
-            className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-indigo-500 hover:shadow disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+            className="flex items-center gap-2 rounded-md bg-[#3ecf8e] px-4 py-2 text-[13px] font-medium text-[#171717] transition-all hover:bg-[#2db87a] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3ecf8e]"
           >
             <span className="material-symbols-outlined text-[18px]">add</span>
             新建公告
@@ -131,14 +131,14 @@ export function AdminNoticesPageView() {
       </div>
 
       {error ? (
-        <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 shadow-sm">
+        <div className="flex items-center justify-between rounded-md border border-red-800/40 bg-red-950/30 p-4 text-[13px] text-red-400">
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-[20px] text-red-500">error</span>
+            <span className="material-symbols-outlined text-[20px] text-red-400">error</span>
             <span>{error}</span>
           </div>
           <button 
             onClick={() => void fetchNotices()} 
-            className="flex items-center gap-1 text-xs font-semibold text-red-700 hover:text-red-800 transition-colors"
+            className="flex items-center gap-1 text-[12px] font-medium text-red-400 hover:text-red-300 transition-colors"
           >
             <span className="material-symbols-outlined text-[16px]">refresh</span>
             重试

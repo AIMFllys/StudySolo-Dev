@@ -5,40 +5,36 @@ export interface BadgeStyle {
 
 export type BadgeMap = Record<string, BadgeStyle>;
 
-/** Look up a badge style from a map, with a paper-theme fallback. */
 export function resolveBadgeStyle(
   map: BadgeMap,
   key: string | null | undefined,
   fallbackLabel?: string,
 ): BadgeStyle {
-  if (key && map[key]) {
-    return map[key];
-  }
-
+  if (key && map[key]) return map[key];
   return {
     label: fallbackLabel ?? key ?? '未知',
-    className: 'border border-slate-200 bg-slate-50 text-slate-500',
+    className: 'bg-[#232323] text-[#8f8f8f] ring-[#2e2e2e]',
   };
 }
 
 export const TIER_BADGE: BadgeMap = {
-  free: { label: '免费版', className: 'border border-stone-300 bg-stone-100 text-stone-700' },
-  pro: { label: '专业版', className: 'border border-blue-200 bg-blue-50 text-blue-800' },
-  pro_plus: { label: '专业增强版', className: 'border border-indigo-200 bg-indigo-50 text-indigo-800' },
-  ultra: { label: '旗舰版', className: 'border border-amber-200 bg-amber-50 text-amber-800' },
+  free: { label: '免费版', className: 'bg-[#232323] text-[#8f8f8f] ring-[#2e2e2e]' },
+  pro: { label: '专业版', className: 'bg-blue-950/50 text-blue-400 ring-blue-800/40' },
+  pro_plus: { label: '增强版', className: 'bg-indigo-950/50 text-indigo-400 ring-indigo-800/40' },
+  ultra: { label: '旗舰版', className: 'bg-amber-950/50 text-amber-400 ring-amber-800/40' },
 };
 
 export const NOTICE_TYPE_BADGE: BadgeMap = {
-  system: { label: '系统公告', className: 'border border-blue-200 bg-blue-50 text-blue-800' },
-  feature: { label: '功能更新', className: 'border border-emerald-200 bg-emerald-50 text-emerald-800' },
-  promotion: { label: '活动推广', className: 'border border-amber-200 bg-amber-50 text-amber-800' },
-  education: { label: '教育资讯', className: 'border border-violet-200 bg-violet-50 text-violet-800' },
-  changelog: { label: '版本变更', className: 'border border-cyan-200 bg-cyan-50 text-cyan-800' },
-  maintenance: { label: '维护通知', className: 'border border-red-200 bg-red-50 text-red-700' },
+  system: { label: '系统公告', className: 'bg-blue-950/50 text-blue-400 ring-blue-800/40' },
+  feature: { label: '功能更新', className: 'bg-emerald-950/50 text-emerald-400 ring-emerald-800/40' },
+  promotion: { label: '活动推广', className: 'bg-amber-950/50 text-amber-400 ring-amber-800/40' },
+  education: { label: '教育资讯', className: 'bg-violet-950/50 text-violet-400 ring-violet-800/40' },
+  changelog: { label: '版本变更', className: 'bg-cyan-950/50 text-cyan-400 ring-cyan-800/40' },
+  maintenance: { label: '维护通知', className: 'bg-red-950/50 text-red-400 ring-red-800/40' },
 };
 
 export const NOTICE_STATUS_BADGE: BadgeMap = {
-  draft: { label: '草稿', className: 'border border-stone-300 bg-stone-100 text-stone-700' },
-  published: { label: '已发布', className: 'border border-emerald-200 bg-emerald-50 text-emerald-800' },
-  archived: { label: '已归档', className: 'border border-slate-300 bg-slate-100 text-slate-700' },
+  draft: { label: '草稿', className: 'bg-[#232323] text-[#8f8f8f] ring-[#2e2e2e]' },
+  published: { label: '已发布', className: 'bg-emerald-950/50 text-emerald-400 ring-emerald-800/40' },
+  archived: { label: '已归档', className: 'bg-[#232323] text-[#666] ring-[#2e2e2e]' },
 };

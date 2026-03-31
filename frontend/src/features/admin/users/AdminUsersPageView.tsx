@@ -59,23 +59,23 @@ export function AdminUsersPageView() {
   }, [fetchUserList]);
 
   return (
-    <div className="mx-auto min-h-full max-w-[1600px] space-y-8 px-8 py-8 md:px-12">
+    <div className="mx-auto min-h-full max-w-[1600px] space-y-5 px-6 py-6">
       <PageHeader
         title="用户管理"
         description={data ? `共 ${data.total.toLocaleString('zh-CN')} 位注册用户` : '按邮箱、等级和状态筛选用户'}
       />
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm ring-1 ring-slate-900/5 transition-all hover:shadow-md">
+      <section className="rounded-md border border-[#2e2e2e] bg-[#171717] p-5 transition-all">
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[2fr,1fr,1fr,auto]">
           <div className="relative">
-            <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-slate-400">
+            <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-[#666]">
               search
             </span>
             <input
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
               placeholder="按邮箱检索..."
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-900 transition-all placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
+              className="w-full rounded-md border border-[#2e2e2e] bg-[#171717] py-2.5 pl-10 pr-4 text-[13px] text-[#ededed] transition-all placeholder:text-[#666] focus:border-[#3ecf8e] focus:bg-[#171717] focus:outline-none focus:ring-4 focus:ring-[#3ecf8e]/10"
             />
           </div>
           <AdminSelect
@@ -99,7 +99,7 @@ export function AdminUsersPageView() {
               setSearch(searchInput.trim());
               setPage(1);
             }}
-            className="flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-indigo-500 transition-all hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+            className="flex items-center justify-center gap-2 rounded-md bg-[#3ecf8e] px-6 py-2.5 text-[13px] font-medium text-[#171717] transition-all hover:bg-[#2db87a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3ecf8e]"
           >
             查询记录
           </button>
@@ -107,14 +107,14 @@ export function AdminUsersPageView() {
       </section>
 
       {error ? (
-        <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 p-4 shadow-sm">
+        <div className="flex items-center justify-between rounded-md border border-red-800/40 bg-red-950/30 p-4">
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-red-500">error</span>
-            <span className="text-sm font-semibold tracking-wide text-red-800">系统错误：{error}</span>
+            <span className="material-symbols-outlined text-red-400">error</span>
+            <span className="text-[13px] font-medium tracking-wide text-red-400">系统错误：{error}</span>
           </div>
           <button
             onClick={() => void fetchUserList()}
-            className="rounded-lg px-3 py-1.5 text-xs font-bold text-red-700 transition-colors hover:bg-red-100"
+            className="rounded-lg px-3 py-1.5 text-[12px] font-medium text-red-400 transition-colors hover:bg-red-950/50"
           >
             重新加载
           </button>
@@ -124,7 +124,7 @@ export function AdminUsersPageView() {
       {!loading && !data ? (
         <EmptyState title="暂无用户数据" description="当前无法获取用户列表，请稍后重试。" />
       ) : (
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr),360px]">
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,2fr),360px]">
           <UsersTable
             data={data}
             loading={loading}

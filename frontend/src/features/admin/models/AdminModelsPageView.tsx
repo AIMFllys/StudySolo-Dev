@@ -63,7 +63,7 @@ const TIER_LABELS: Record<string, string> = {
 };
 
 const INPUT_CLASS =
-  'w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-900 transition-all focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500';
+  'w-full rounded-md border border-[#2e2e2e] bg-[#232323] px-2.5 py-1.5 text-[13px] text-[#ededed] outline-none transition-colors focus:border-[#3ecf8e] focus:ring-1 focus:ring-[#3ecf8e]/30';
 
 export function AdminModelsPageView() {
   const [items, setItems] = useState<CatalogSku[]>([]);
@@ -126,26 +126,23 @@ export function AdminModelsPageView() {
   const confirmDraft = confirmSkuId ? drafts[confirmSkuId] : null;
 
   return (
-    <div className="mx-auto min-h-full max-w-[1600px] space-y-6 px-8 py-8 md:px-12">
+    <div className="mx-auto min-h-full max-w-[1600px] space-y-5 px-6 py-6">
       <PageHeader
         title="模型目录管理"
         description={`平台 SKU 目录与计费元数据，当前 ${items.length} 个 SKU`}
       />
 
       {error && (
-        <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 shadow-sm">
-          <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-[20px] text-red-500">error</span>
+        <div className="flex items-center justify-between rounded-md border border-red-800/40 bg-red-950/30 p-3 text-[13px] text-red-400">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[18px]">error</span>
             <span>{error}</span>
           </div>
-          <button onClick={() => void fetchCatalog()} className="flex items-center gap-1 text-xs font-semibold text-red-700 hover:text-red-800 transition-colors">
-            <span className="material-symbols-outlined text-[16px]">refresh</span>
-            重试
-          </button>
+          <button onClick={() => void fetchCatalog()} className="text-[12px] font-medium text-red-400 hover:text-red-300 transition-colors">重试</button>
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <KpiCard label="已启用" value={String(summary.enabled)} sub={`共 ${items.length} 个 SKU`} />
         <KpiCard label="可见" value={String(summary.visible)} />
         <KpiCard label="用户可选" value={String(summary.selectable)} />
@@ -153,87 +150,80 @@ export function AdminModelsPageView() {
         <KpiCard label="Proxy" value={String(summary.proxy)} />
       </div>
 
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm ring-1 ring-slate-900/5">
-        <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50/50 px-6 py-4">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px] text-slate-400">model_training</span>
-            <h2 className="text-sm font-semibold tracking-wide text-slate-900">平台级模型 SKU 目录</h2>
-          </div>
-          <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-semibold text-slate-600 shadow-sm ring-1 ring-inset ring-slate-200">
-            共 {items.length} 条
-          </span>
+      <section className="overflow-hidden rounded-md border border-[#2e2e2e] bg-[#171717]">
+        <div className="flex items-center justify-between border-b border-[#2e2e2e] px-4 py-3">
+          <h2 className="text-[13px] font-medium text-[#ededed]">平台级模型 SKU 目录</h2>
+          <span className="text-[11px] text-[#666]">共 {items.length} 条</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/50">
+              <tr className="border-b border-[#2e2e2e]">
                 {['SKU / 模型', '平台 / 厂商', '展示名 / 等级', '账单通道', '价格 (¥/百万Token)', '开关', '操作'].map((h) => (
-                  <th key={h} className="px-5 py-3.5 text-[11px] font-bold tracking-wider text-slate-500 uppercase whitespace-nowrap">{h}</th>
+                  <th key={h} className="px-4 py-2.5 text-[11px] font-medium tracking-wider text-[#666] uppercase whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#2e2e2e]">
               {loading ? (
                 <TableSkeletonRows rows={6} cols={7} />
               ) : items.length === 0 ? (
-                <tr><td colSpan={7} className="p-8"><EmptyState title="暂无模型目录" description="当前没有可展示的模型 SKU。" /></td></tr>
+                <tr><td colSpan={7} className="p-6"><EmptyState title="暂无模型目录" description="当前没有可展示的模型 SKU。" /></td></tr>
               ) : (
                 items.map((item) => {
                   const draft = drafts[item.sku_id] ?? buildDraft(item);
                   const dirty = isDraftDirty(draft, item);
                   const saving = savingId === item.sku_id;
                   return (
-                    <tr key={item.sku_id} className="align-top transition-colors hover:bg-slate-50/50">
-                      <td className="px-5 py-3.5">
-                        <div className="font-mono text-xs font-semibold text-slate-900">{item.sku_id}</div>
-                        <div className="mt-1 font-mono text-[11px] text-slate-400">{item.model_id}</div>
+                    <tr key={item.sku_id} className="align-top transition-colors hover:bg-[#1f1f1f]">
+                      <td className="px-4 py-3">
+                        <div className="font-mono text-[12px] font-medium text-[#ededed]">{item.sku_id}</div>
+                        <div className="mt-1 font-mono text-[11px] text-[#555]">{item.model_id}</div>
                       </td>
-                      <td className="px-5 py-3.5 text-sm text-slate-700">
+                      <td className="px-4 py-3 text-[13px] text-[#8f8f8f]">
                         <div>{item.provider}</div>
-                        <div className="mt-1 text-xs text-slate-400">{item.vendor} · {item.family_name}</div>
+                        <div className="mt-1 text-[11px] text-[#555]">{item.vendor} · {item.family_name}</div>
                       </td>
-                      <td className="px-5 py-3.5">
-                        <div className="space-y-2">
+                      <td className="px-4 py-3">
+                        <div className="space-y-1.5">
                           <input value={draft.display_name} onChange={(e) => updateDraft(item.sku_id, { display_name: e.target.value })} className={INPUT_CLASS} />
                           <select value={draft.required_tier} onChange={(e) => updateDraft(item.sku_id, { required_tier: e.target.value as TierType })} className={INPUT_CLASS}>
                             {Object.entries(TIER_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                           </select>
                         </div>
                       </td>
-                      <td className="px-5 py-3.5 text-sm text-slate-600">
+                      <td className="px-4 py-3 text-[13px] text-[#8f8f8f]">
                         <div>{item.billing_channel}</div>
-                        <div className="mt-1 text-xs text-slate-400">{item.task_family}</div>
+                        <div className="mt-1 text-[11px] text-[#555]">{item.task_family}</div>
                       </td>
-                      <td className="px-5 py-3.5">
-                        <div className="grid gap-2">
-                          <label className="text-[10px] text-slate-400">输入</label>
-                          <input type="number" step="0.0001" value={draft.input_price_cny_per_million} onChange={(e) => updateDraft(item.sku_id, { input_price_cny_per_million: Number(e.target.value) })} className={`${INPUT_CLASS} text-xs`} />
-                          <label className="text-[10px] text-slate-400">输出</label>
-                          <input type="number" step="0.0001" value={draft.output_price_cny_per_million} onChange={(e) => updateDraft(item.sku_id, { output_price_cny_per_million: Number(e.target.value) })} className={`${INPUT_CLASS} text-xs`} />
-                          <input value={draft.price_source} onChange={(e) => updateDraft(item.sku_id, { price_source: e.target.value })} placeholder="价格来源" className={`${INPUT_CLASS} text-xs`} />
+                      <td className="px-4 py-3">
+                        <div className="grid gap-1.5">
+                          <label className="text-[10px] text-[#555]">输入</label>
+                          <input type="number" step="0.0001" value={draft.input_price_cny_per_million} onChange={(e) => updateDraft(item.sku_id, { input_price_cny_per_million: Number(e.target.value) })} className={`${INPUT_CLASS} text-[12px]`} />
+                          <label className="text-[10px] text-[#555]">输出</label>
+                          <input type="number" step="0.0001" value={draft.output_price_cny_per_million} onChange={(e) => updateDraft(item.sku_id, { output_price_cny_per_million: Number(e.target.value) })} className={`${INPUT_CLASS} text-[12px]`} />
+                          <input value={draft.price_source} onChange={(e) => updateDraft(item.sku_id, { price_source: e.target.value })} placeholder="价格来源" className={`${INPUT_CLASS} text-[12px]`} />
                         </div>
                       </td>
-                      <td className="px-5 py-3.5">
-                        <div className="grid gap-2 text-xs text-slate-600">
+                      <td className="px-4 py-3">
+                        <div className="grid gap-1.5 text-[12px] text-[#8f8f8f]">
                           {([['is_enabled', '启用'], ['is_visible', '可见'], ['is_user_selectable', '用户可选'], ['is_fallback_only', '仅 fallback']] as const).map(([key, label]) => (
                             <label key={key} className="flex items-center gap-2 cursor-pointer">
-                              <input type="checkbox" checked={draft[key]} onChange={(e) => updateDraft(item.sku_id, { [key]: e.target.checked })} className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+                              <input type="checkbox" checked={draft[key]} onChange={(e) => updateDraft(item.sku_id, { [key]: e.target.checked })} className="rounded border-[#3e3e3e] bg-[#232323] text-[#3ecf8e] focus:ring-[#3ecf8e]/30" />
                               {label}
                             </label>
                           ))}
                         </div>
                       </td>
-                      <td className="px-5 py-3.5">
+                      <td className="px-4 py-3">
                         <button
                           onClick={() => setConfirmSkuId(item.sku_id)}
                           disabled={!dirty || saving}
-                          className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
+                          className="flex items-center gap-1.5 rounded-md bg-[#3ecf8e] px-3 py-1.5 text-[12px] font-medium text-[#171717] transition-colors hover:bg-[#2db87a] disabled:cursor-not-allowed disabled:opacity-30"
                         >
                           {saving ? (
                             <><span className="material-symbols-outlined animate-spin text-[14px]">progress_activity</span>保存中</>
-                          ) : (
-                            <><span className="material-symbols-outlined text-[14px]">save</span>保存</>
-                          )}
+                          ) : '保存'}
                         </button>
                       </td>
                     </tr>
@@ -257,7 +247,7 @@ export function AdminModelsPageView() {
         onCancel={() => setConfirmSkuId(null)}
       >
         {confirmDraft && confirmItem && (
-          <div className="mt-2 max-h-40 overflow-y-auto rounded-lg bg-slate-50 p-3 text-xs text-slate-600 space-y-1">
+          <div className="mt-2 max-h-40 overflow-y-auto rounded-md bg-[#232323] p-3 text-[12px] text-[#8f8f8f] space-y-1 font-mono">
             {confirmDraft.display_name !== confirmItem.display_name && <div>展示名: {confirmItem.display_name} → {confirmDraft.display_name}</div>}
             {confirmDraft.required_tier !== confirmItem.required_tier && <div>等级: {confirmItem.required_tier} → {confirmDraft.required_tier}</div>}
             {confirmDraft.is_enabled !== confirmItem.is_enabled && <div>启用: {String(confirmItem.is_enabled)} → {String(confirmDraft.is_enabled)}</div>}

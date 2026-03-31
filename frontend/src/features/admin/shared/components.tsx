@@ -3,17 +3,23 @@
 import type { ChangeEvent, ReactNode } from 'react';
 import { motion } from 'framer-motion';
 
-const FADE_UP = {
-  initial: { opacity: 0, y: 18 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, amount: 0.2 },
-  transition: { duration: 0.35, ease: 'easeOut' as const },
-};
+// ── Shared color tokens (Supabase-inspired dark theme) ──────
+// bg-primary:    #171717  (cards, panels)
+// bg-surface:    #1c1c1c  (page background — set in layout)
+// bg-elevated:   #232323  (hover, elevated surfaces)
+// border:        #2e2e2e  (subtle borders)
+// border-bright: #3e3e3e  (interactive borders)
+// text-primary:  #ededed
+// text-secondary:#8f8f8f
+// text-muted:    #666666
+// accent:        #3ecf8e  (emerald/green)
 
 export interface AdminSelectOption {
   value: string;
   label: string;
 }
+
+// ── PageHeader ──────────────────────────────────────────────
 
 interface PageHeaderProps {
   title: string;
@@ -21,30 +27,21 @@ interface PageHeaderProps {
   action?: ReactNode;
 }
 
-export function PageHeader({
-  title,
-  description,
-  action,
-}: PageHeaderProps) {
+export function PageHeader({ title, description, action }: PageHeaderProps) {
   return (
-    <motion.div
-      {...FADE_UP}
-      className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
-    >
-      <div className="space-y-1.5">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          {title}
-        </h1>
-        {description ? (
-          <p className="text-sm text-slate-500 max-w-2xl leading-relaxed">
-            {description}
-          </p>
-        ) : null}
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <h1 className="text-xl font-semibold tracking-tight text-[#ededed]">{title}</h1>
+        {description && (
+          <p className="mt-1 text-[13px] text-[#8f8f8f] leading-relaxed max-w-xl">{description}</p>
+        )}
       </div>
-      {action ? <div className="shrink-0">{action}</div> : null}
-    </motion.div>
+      {action && <div className="shrink-0">{action}</div>}
+    </div>
   );
 }
+
+// ── KpiCard ─────────────────────────────────────────────────
 
 interface KpiCardProps {
   label: string;
@@ -54,26 +51,15 @@ interface KpiCardProps {
 
 export function KpiCard({ label, value, sub }: KpiCardProps) {
   return (
-    <motion.section
-      {...FADE_UP}
-      whileHover={{ y: -3 }}
-      transition={{ duration: 0.2, ease: 'easeOut' }}
-      className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm ring-1 ring-slate-900/5 transition-all hover:shadow-md hover:ring-slate-900/10"
-    >
-      <div className="relative z-10 flex flex-col h-full justify-between">
-        <p className="mb-4 text-sm font-medium tracking-wide text-slate-500">
-          {label}
-        </p>
-        <div>
-          <p className="text-3xl font-bold text-slate-900 md:text-4xl tracking-tight">{value}</p>
-          {sub ? (
-            <p className="mt-2 text-xs font-medium text-slate-400">{sub}</p>
-          ) : null}
-        </div>
-      </div>
-    </motion.section>
+    <div className="rounded-md border border-[#2e2e2e] bg-[#171717] p-4">
+      <p className="text-[11px] font-medium uppercase tracking-wider text-[#666]">{label}</p>
+      <p className="mt-2 text-2xl font-semibold tracking-tight text-[#ededed]">{value}</p>
+      {sub && <p className="mt-1 text-[11px] text-[#666]">{sub}</p>}
+    </div>
   );
 }
+
+// ── AdminSelect ─────────────────────────────────────────────
 
 interface AdminSelectProps {
   value: string;
@@ -82,31 +68,26 @@ interface AdminSelectProps {
   className?: string;
 }
 
-export function AdminSelect({
-  value,
-  options,
-  onChange,
-  className = '',
-}: AdminSelectProps) {
+export function AdminSelect({ value, options, onChange, className = '' }: AdminSelectProps) {
   return (
-    <label className={`relative block min-w-[180px] ${className}`}>
+    <label className={`relative block min-w-[160px] ${className}`}>
       <select
         value={value}
         onChange={onChange}
-        className="peer w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 py-2.5 pr-11 text-sm font-medium text-slate-700 shadow-sm outline-none ring-1 ring-transparent transition-all hover:border-slate-300 hover:bg-slate-50 focus:border-indigo-500 focus:ring-indigo-500 focus:ring-offset-1"
+        className="peer w-full appearance-none rounded-md border border-[#2e2e2e] bg-[#171717] px-3 py-2 pr-9 text-[13px] font-medium text-[#ededed] outline-none transition-colors hover:border-[#3e3e3e] focus:border-[#3ecf8e] focus:ring-1 focus:ring-[#3ecf8e]/30"
       >
-        {options.map((option) => (
-          <option key={`${option.value || 'empty'}-${option.label}`} value={option.value}>
-            {option.label}
-          </option>
+        {options.map((opt) => (
+          <option key={`${opt.value || 'empty'}-${opt.label}`} value={opt.value}>{opt.label}</option>
         ))}
       </select>
-      <span className="material-symbols-outlined pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[20px] text-slate-400 transition-transform peer-focus:-translate-y-[55%] peer-focus:text-indigo-500">
+      <span className="material-symbols-outlined pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[16px] text-[#666] peer-focus:text-[#3ecf8e]">
         expand_more
       </span>
     </label>
   );
 }
+
+// ── TableSkeletonRows ───────────────────────────────────────
 
 interface TableSkeletonRowsProps {
   rows: number;
@@ -116,11 +97,11 @@ interface TableSkeletonRowsProps {
 export function TableSkeletonRows({ rows, cols }: TableSkeletonRowsProps) {
   return (
     <>
-      {Array.from({ length: rows }).map((_, rowIndex) => (
-        <tr key={rowIndex} className="border-b border-slate-100 last:border-0">
-          {Array.from({ length: cols }).map((_, colIndex) => (
-            <td key={colIndex} className="px-5 py-4">
-              <div className="h-4 w-20 animate-pulse rounded bg-slate-100" />
+      {Array.from({ length: rows }).map((_, ri) => (
+        <tr key={ri} className="border-b border-[#2e2e2e] last:border-0">
+          {Array.from({ length: cols }).map((_, ci) => (
+            <td key={ci} className="px-4 py-3">
+              <div className="h-3.5 w-20 animate-pulse rounded bg-[#232323]" />
             </td>
           ))}
         </tr>
@@ -128,6 +109,8 @@ export function TableSkeletonRows({ rows, cols }: TableSkeletonRowsProps) {
     </>
   );
 }
+
+// ── Pagination ──────────────────────────────────────────────
 
 interface PaginationProps {
   page: number;
@@ -137,35 +120,27 @@ interface PaginationProps {
   onPageChange: (page: number) => void;
 }
 
-export function Pagination({
-  page,
-  totalPages,
-  total,
-  loading,
-  onPageChange,
-}: PaginationProps) {
-  if (totalPages <= 1 && total == null) {
-    return null;
-  }
+export function Pagination({ page, totalPages, total, loading, onPageChange }: PaginationProps) {
+  if (totalPages <= 1 && total == null) return null;
 
   return (
-    <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50/50 px-6 py-4 rounded-b-2xl">
-      <span className="text-xs font-medium text-slate-500">
-        第 <span className="text-slate-900 font-semibold">{page}</span> / {totalPages} 页
-        {total != null ? ` · 共 ${total.toLocaleString('zh-CN')} 条记录` : ''}
+    <div className="flex items-center justify-between border-t border-[#2e2e2e] px-4 py-3">
+      <span className="text-[12px] text-[#666]">
+        第 <span className="text-[#ededed] font-medium">{page}</span> / {totalPages} 页
+        {total != null ? ` · 共 ${total.toLocaleString('zh-CN')} 条` : ''}
       </span>
-      <div className="flex gap-2">
+      <div className="flex gap-1.5">
         <button
           disabled={page <= 1 || loading}
           onClick={() => onPageChange(page - 1)}
-          className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-md border border-[#2e2e2e] bg-[#171717] px-3 py-1.5 text-[12px] font-medium text-[#8f8f8f] transition-colors hover:border-[#3e3e3e] hover:text-[#ededed] disabled:cursor-not-allowed disabled:opacity-40"
         >
           上一页
         </button>
         <button
           disabled={page >= totalPages || loading}
           onClick={() => onPageChange(page + 1)}
-          className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-md border border-[#2e2e2e] bg-[#171717] px-3 py-1.5 text-[12px] font-medium text-[#8f8f8f] transition-colors hover:border-[#3e3e3e] hover:text-[#ededed] disabled:cursor-not-allowed disabled:opacity-40"
         >
           下一页
         </button>
@@ -174,6 +149,8 @@ export function Pagination({
   );
 }
 
+// ── StatusBadge ─────────────────────────────────────────────
+
 interface StatusBadgeProps {
   label: string;
   className?: string;
@@ -181,13 +158,13 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ label, className = '' }: StatusBadgeProps) {
   return (
-    <span
-      className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${className}`}
-    >
+    <span className={`inline-flex items-center rounded px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${className}`}>
       {label}
     </span>
   );
 }
+
+// ── EmptyState ──────────────────────────────────────────────
 
 interface EmptyStateProps {
   title: string;
@@ -196,18 +173,17 @@ interface EmptyStateProps {
 
 export function EmptyState({ title, description }: EmptyStateProps) {
   return (
-    <motion.div
-      {...FADE_UP}
-      className="flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-dashed border-slate-300 bg-slate-50/50 px-6 py-16 text-center"
-    >
-      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50 shadow-sm ring-1 ring-indigo-500/10">
-        <span className="material-symbols-outlined text-indigo-500">inbox</span>
+    <div className="flex flex-col items-center justify-center rounded-md border border-dashed border-[#2e2e2e] px-6 py-14 text-center">
+      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-md bg-[#232323]">
+        <span className="material-symbols-outlined text-[20px] text-[#666]">inbox</span>
       </div>
-      <p className="text-base font-semibold text-slate-900">{title}</p>
-      <p className="mt-2 text-sm text-slate-500 max-w-sm">{description}</p>
-    </motion.div>
+      <p className="text-[13px] font-medium text-[#8f8f8f]">{title}</p>
+      <p className="mt-1 text-[12px] text-[#666] max-w-xs">{description}</p>
+    </div>
   );
 }
+
+// ── ToastStack ──────────────────────────────────────────────
 
 interface Toast {
   id: number;
@@ -220,47 +196,33 @@ interface ToastStackProps {
   onDismiss: (id: number) => void;
 }
 
+const TOAST_STYLES = {
+  success: 'border-emerald-800/50 bg-emerald-950/80 text-emerald-300',
+  error: 'border-red-800/50 bg-red-950/80 text-red-300',
+  info: 'border-blue-800/50 bg-blue-950/80 text-blue-300',
+};
+
+const TOAST_ICONS = { success: 'check_circle', error: 'error', info: 'info' };
+
 export function ToastStack({ toasts, onDismiss }: ToastStackProps) {
-  if (toasts.length === 0) {
-    return null;
-  }
-
-  const colorMap = {
-    success: 'border-emerald-200 bg-white text-emerald-800 shadow-emerald-500/5 ring-emerald-500/20',
-    error: 'border-red-200 bg-white text-red-800 shadow-red-500/5 ring-red-500/20',
-    info: 'border-blue-200 bg-white text-blue-800 shadow-blue-500/5 ring-blue-500/20',
-  };
-
-  const iconMap = {
-    success: 'check_circle',
-    error: 'error',
-    info: 'info',
-  };
+  if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
-      {toasts.map((toast) => (
+    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+      {toasts.map((t) => (
         <motion.div
-          key={toast.id}
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          key={t.id}
+          initial={{ opacity: 0, y: 16, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.2 }}
-          className={`flex items-start gap-3 rounded-xl border p-4 shadow-lg ring-1 ring-inset ${colorMap[toast.kind] ?? colorMap.info} min-w-[300px]`}
+          exit={{ opacity: 0, scale: 0.96 }}
+          transition={{ duration: 0.15 }}
+          className={`flex items-start gap-2.5 rounded-md border p-3 shadow-lg backdrop-blur-sm min-w-[280px] ${TOAST_STYLES[t.kind] ?? TOAST_STYLES.info}`}
         >
-          <span className="material-symbols-outlined mt-0.5 text-[20px] opacity-80">
-            {iconMap[toast.kind]}
-          </span>
-          <span className="flex-1 text-sm font-medium leading-relaxed">{toast.message}</span>
-          <button
-            onClick={() => onDismiss(toast.id)}
-            className="material-symbols-outlined -mr-1 -mt-1 rounded-lg p-1 text-[18px] opacity-50 transition-all hover:bg-black/5 hover:opacity-100"
-          >
-            close
-          </button>
+          <span className="material-symbols-outlined mt-0.5 text-[18px] opacity-80">{TOAST_ICONS[t.kind]}</span>
+          <span className="flex-1 text-[13px] font-medium leading-relaxed">{t.message}</span>
+          <button onClick={() => onDismiss(t.id)} className="material-symbols-outlined rounded p-0.5 text-[16px] opacity-50 transition-opacity hover:opacity-100">close</button>
         </motion.div>
       ))}
     </div>
   );
 }
-

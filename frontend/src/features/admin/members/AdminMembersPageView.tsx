@@ -52,7 +52,7 @@ export function AdminMembersPageView() {
   }, [fetchAll]);
 
   return (
-    <div className="mx-auto min-h-full max-w-[1600px] space-y-6 px-8 py-8">
+    <div className="mx-auto min-h-full max-w-[1600px] space-y-5 px-6 py-6">
       <PageHeader
         title="会员管理"
         description={
@@ -61,14 +61,14 @@ export function AdminMembersPageView() {
       />
 
       {error ? (
-        <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 shadow-sm">
+        <div className="flex items-center justify-between rounded-md border border-red-800/40 bg-red-950/30 p-4 text-[13px] text-red-400">
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-[20px] text-red-500">error</span>
+            <span className="material-symbols-outlined text-[20px] text-red-400">error</span>
             <span>{error}</span>
           </div>
           <button 
             onClick={() => void fetchAll()} 
-            className="flex items-center gap-1 text-xs font-semibold text-red-700 hover:text-red-800 transition-colors"
+            className="flex items-center gap-1 text-[12px] font-medium text-red-400 hover:text-red-300 transition-colors"
           >
             <span className="material-symbols-outlined text-[16px]">refresh</span>
             重试
@@ -93,11 +93,11 @@ export function AdminMembersPageView() {
         </div>
       ) : null}
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm ring-1 ring-slate-900/5">
+      <section className="rounded-md border border-[#2e2e2e] bg-[#171717] p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[22px] text-indigo-500">star</span>
-            <h2 className="text-lg font-bold text-slate-900">付费会员列表</h2>
+            <span className="material-symbols-outlined text-[22px] text-[#3ecf8e]">star</span>
+            <h2 className="text-lg font-semibold text-[#ededed]">付费会员列表</h2>
           </div>
           <AdminSelect
             value={tierFilter}
@@ -109,61 +109,61 @@ export function AdminMembersPageView() {
           />
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-slate-200">
+        <div className="overflow-x-auto rounded-md border border-[#2e2e2e]">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/80">
+              <tr className="border-b border-[#2e2e2e] bg-[#171717]">
                 {['邮箱', '会员等级', '订阅状态', '订阅开始', '订阅结束'].map((header) => (
-                  <th key={header} className="px-6 py-4 text-[11px] font-bold tracking-wider text-slate-500 uppercase whitespace-nowrap">
+                  <th key={header} className="px-6 py-4 text-[11px] font-medium tracking-wider text-[#666] uppercase whitespace-nowrap">
                     {header}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#2e2e2e]">
               {loading ? (
                 Array.from({ length: 5 }).map((_, row) => (
                   <tr key={row}>
                     {Array.from({ length: 5 }).map((_, col) => (
                       <td key={col} className="px-6 py-5">
-                        <div className="h-4 w-24 animate-pulse rounded bg-slate-100" />
+                        <div className="h-4 w-24 animate-pulse rounded bg-[#232323]" />
                       </td>
                     ))}
                   </tr>
                 ))
               ) : memberList && memberList.members.length > 0 ? (
                 memberList.members.map((member) => (
-                  <tr key={member.user_id} className="align-top transition-colors hover:bg-slate-50/50">
+                  <tr key={member.user_id} className="align-top transition-colors hover:bg-[#1f1f1f]">
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#232323] text-[#8f8f8f]">
                           <span className="material-symbols-outlined text-[16px]">person</span>
                         </div>
-                        <span className="text-sm font-medium text-slate-900">{member.email ?? '—'}</span>
+                        <span className="text-[13px] font-medium text-[#ededed]">{member.email ?? '—'}</span>
                       </div>
                     </td>
                     <td className="px-6 py-5">
                       <TierBadge tier={member.tier} />
                     </td>
                     <td className="px-6 py-5">
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider ${
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium uppercase tracking-wider ${
                         member.subscription_status === 'active' 
-                          ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20'
+                          ? 'bg-emerald-950/30 text-emerald-400'
                           : member.subscription_status === 'canceled'
-                          ? 'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20'
-                          : 'bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-500/10'
+                          ? 'bg-amber-950/30 text-amber-400'
+                          : 'bg-[#171717] text-[#8f8f8f]'
                       }`}>
                         {member.subscription_status ?? '—'}
                       </span>
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap">
-                      <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                      <div className="flex items-center gap-1.5 text-[12px] text-[#8f8f8f]">
                         <span className="material-symbols-outlined text-[14px]">calendar_today</span>
                         {formatDate(member.subscription_start)}
                       </div>
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap">
-                      <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                      <div className="flex items-center gap-1.5 text-[12px] text-[#8f8f8f]">
                         <span className="material-symbols-outlined text-[14px]">event</span>
                         {formatDate(member.subscription_end)}
                       </div>

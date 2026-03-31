@@ -25,36 +25,36 @@ const DEFERRED_ITEMS = [
 
 export function AdminBillingPageView() {
   return (
-    <div className="mx-auto min-h-full max-w-6xl space-y-8 px-8 py-8 md:px-12">
+    <div className="mx-auto min-h-full max-w-6xl space-y-5 px-6 py-6">
       <PageHeader
         title="计费中心"
         description="计费与收入统计不在 Wave 1 范围内，本阶段仅保留中文占位页与后续实施约束。"
       />
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-5 md:grid-cols-3">
         {DEFERRED_ITEMS.map((item) => (
           <section
             key={item.label}
-            className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm ring-1 ring-slate-900/5 transition-all hover:shadow-md"
+            className="rounded-md border border-[#2e2e2e] bg-[#171717] p-6 transition-all"
           >
-            <div className="flex items-center gap-2 text-slate-400 mb-3">
+            <div className="flex items-center gap-2 text-[#666] mb-3">
               <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-              <p className="text-[11px] font-bold tracking-wider uppercase">
+              <p className="text-[11px] font-medium tracking-wider uppercase">
                 {item.label}
               </p>
             </div>
             
-            <h2 className="text-xl font-bold text-slate-900">
+            <h2 className="text-xl font-semibold text-[#ededed]">
               {item.value}
             </h2>
-            <p className="mt-3 text-sm leading-6 text-slate-600">
+            <p className="mt-3 text-[13px] leading-6 text-[#8f8f8f]">
               {item.description}
             </p>
           </section>
         ))}
       </div>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm ring-1 ring-slate-900/5">
+      <section className="rounded-md border border-[#2e2e2e] bg-[#171717] p-8">
         <EmptyState
           title="计费页暂不开放"
           description="如需进入下一阶段，应先明确 Supabase 账单相关表结构、收入口径、导出需求与权限边界。"

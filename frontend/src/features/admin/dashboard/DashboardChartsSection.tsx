@@ -49,11 +49,11 @@ const TIME_RANGE_OPTIONS: { value: AdminUsageRange; label: string }[] = [
 ];
 
 const tooltipStyle = {
-  backgroundColor: '#ffffff',
-  border: '1px solid #e2e8f0', // slate-200
-  borderRadius: '0.75rem',     // xl
-  color: '#0f172a',            // slate-900
-  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+  backgroundColor: '#232323',
+  border: '1px solid #2e2e2e',
+  borderRadius: '0.375rem',
+  color: '#ededed',
+  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.3)',
 };
 
 function formatCny(value: number) {
@@ -82,13 +82,13 @@ function ChartShell({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.2 }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
-      className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm ring-1 ring-slate-900/5"
+      className="relative overflow-hidden rounded-md border border-[#2e2e2e] bg-[#171717] p-6"
     >
       <div className="relative z-10 flex flex-col h-full">
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-            <p className="mt-1 text-sm text-slate-500">{description}</p>
+            <h2 className="text-lg font-medium text-[#ededed]">{title}</h2>
+            <p className="mt-1 text-[13px] text-[#8f8f8f]">{description}</p>
           </div>
           {action}
         </div>
@@ -105,15 +105,15 @@ function TimeRangeToggle({
   onTimeRangeChange,
 }: { timeRange: AdminUsageRange; onTimeRangeChange: (value: AdminUsageRange) => void }) {
   return (
-    <div className="flex gap-1 rounded-lg bg-slate-100 p-1 shadow-inner">
+    <div className="flex gap-1 rounded-lg bg-[#232323] p-1">
       {TIME_RANGE_OPTIONS.map((option) => (
         <button
           key={option.value}
           onClick={() => onTimeRangeChange(option.value)}
-          className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+          className={`rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors ${
             option.value === timeRange
-              ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-900/5'
-              : 'text-slate-500 hover:text-slate-700'
+              ? 'bg-[#171717] text-[#ededed]'
+              : 'text-[#8f8f8f] hover:text-[#ededed]'
           }`}
         >
           {option.label}
@@ -144,7 +144,7 @@ export function DashboardChartsSection({
   }));
 
   return (
-    <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+    <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
       <ChartShell
         title="调用次数趋势"
         description="Assistant 与 Workflow 的真实 Provider 调用次数"
@@ -152,9 +152,9 @@ export function DashboardChartsSection({
       >
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData}>
-            <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="ts" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} dy={8} />
-            <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+            <CartesianGrid stroke="#2e2e2e" strokeDasharray="3 3" vertical={false} />
+            <XAxis dataKey="ts" stroke="#666" fontSize={12} tickLine={false} axisLine={false} dy={8} />
+            <YAxis stroke="#666" fontSize={12} tickLine={false} axisLine={false} />
             <Tooltip contentStyle={tooltipStyle} />
             <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
             <Bar dataKey="assistant_calls" fill={colorAssistant} name="Assistant" radius={[4, 4, 0, 0]} />
@@ -166,9 +166,9 @@ export function DashboardChartsSection({
       <ChartShell title="Token 趋势" description="成功调用的 Token 消耗分布">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData}>
-            <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="ts" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} dy={8} />
-            <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+            <CartesianGrid stroke="#2e2e2e" strokeDasharray="3 3" vertical={false} />
+            <XAxis dataKey="ts" stroke="#666" fontSize={12} tickLine={false} axisLine={false} dy={8} />
+            <YAxis stroke="#666" fontSize={12} tickLine={false} axisLine={false} />
             <Tooltip contentStyle={tooltipStyle} />
             <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
             <Line type="monotone" dataKey="assistant_tokens" stroke={colorAssistant} strokeWidth={3} dot={false} name="Assistant Tokens" activeDot={{ r: 6 }} />
@@ -207,9 +207,9 @@ export function CostTrendChart({
       {hasData ? (
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData}>
-            <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="ts" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} dy={8} />
-            <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+            <CartesianGrid stroke="#2e2e2e" strokeDasharray="3 3" vertical={false} />
+            <XAxis dataKey="ts" stroke="#666" fontSize={12} tickLine={false} axisLine={false} dy={8} />
+            <YAxis stroke="#666" fontSize={12} tickLine={false} axisLine={false} />
             <Tooltip
               contentStyle={tooltipStyle}
               formatter={(value: number) => [formatCny(value), 'Cost']}
@@ -221,9 +221,9 @@ export function CostTrendChart({
         </ResponsiveContainer>
       ) : (
         <div className="flex h-full items-center justify-center">
-          <div className="flex flex-col items-center gap-3 text-slate-400">
+          <div className="flex flex-col items-center gap-3 text-[#666]">
             <span className="material-symbols-outlined text-4xl">trending_up</span>
-            <p className="text-sm">该时段内暂无费用记录</p>
+            <p className="text-[13px]">该时段内暂无费用记录</p>
           </div>
         </div>
       )}
@@ -269,38 +269,38 @@ export function CostBreakdownCard({
           <div className="space-y-2.5 w-full px-2">
             {pieData.map((entry, index) => (
               <div key={entry.name} className="flex items-center justify-between gap-2">
-                <span className="flex items-center gap-2 text-sm text-slate-600">
+                <span className="flex items-center gap-2 text-[13px] text-[#8f8f8f]">
                   <span
                     className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
                     style={{ background: index === 0 ? colorAssistant : colorWorkflow }}
                   />
                   {entry.name}
                 </span>
-                <span className="font-mono text-xs font-semibold text-slate-900">{formatCny(entry.value)}</span>
+                <span className="font-mono text-[12px] font-medium text-[#ededed]">{formatCny(entry.value)}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Divider */}
-        <div className="w-px shrink-0 self-stretch bg-slate-100" />
+        <div className="w-px shrink-0 self-stretch bg-[#2e2e2e]" />
 
         {/* Right: model ranking table fills remaining space */}
-        <div className="min-w-0 flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="min-w-0 flex-1 overflow-hidden rounded-md border border-[#2e2e2e] bg-[#171717]">
           <div className="overflow-auto h-full">
-            <table className="w-full text-left text-sm">
+            <table className="w-full text-left text-[13px]">
               <thead className="sticky top-0 z-10">
-                <tr className="border-b border-slate-200 bg-slate-50">
-                  <th className="px-5 py-3.5 font-semibold text-slate-900">SKU / Model</th>
-                  <th className="px-5 py-3.5 font-semibold text-slate-900 tabular-nums">Calls</th>
-                  <th className="px-5 py-3.5 font-semibold text-slate-900 tabular-nums">Tokens</th>
-                  <th className="px-5 py-3.5 font-semibold text-slate-900 tabular-nums">Cost (CNY)</th>
+                <tr className="border-b border-[#2e2e2e] bg-[#171717]">
+                  <th className="px-5 py-3.5 font-medium text-[#ededed]">SKU / Model</th>
+                  <th className="px-5 py-3.5 font-medium text-[#ededed] tabular-nums">Calls</th>
+                  <th className="px-5 py-3.5 font-medium text-[#ededed] tabular-nums">Tokens</th>
+                  <th className="px-5 py-3.5 font-medium text-[#ededed] tabular-nums">Cost (CNY)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#2e2e2e]">
                 {topModels.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-5 py-12 text-center text-sm text-slate-500">
+                    <td colSpan={4} className="px-5 py-12 text-center text-[13px] text-[#8f8f8f]">
                       暂无模型账本数据
                     </td>
                   </tr>
@@ -308,19 +308,19 @@ export function CostBreakdownCard({
                   topModels.map((item) => (
                     <tr
                       key={item.sku_id ?? `${item.provider}-${item.model}`}
-                      className="transition-colors hover:bg-indigo-50/40"
+                      className="transition-colors hover:bg-[#1f1f1f]"
                     >
                       <td className="px-5 py-3.5">
-                        <div className="font-medium text-slate-900">{item.provider}/{item.model}</div>
-                        <div className="mt-0.5 text-xs text-slate-400">{item.vendor} · {item.billing_channel}</div>
+                        <div className="font-medium text-[#ededed]">{item.provider}/{item.model}</div>
+                        <div className="mt-0.5 text-[12px] text-[#666]">{item.vendor} · {item.billing_channel}</div>
                       </td>
-                      <td className="px-5 py-3.5 font-mono text-sm text-slate-600">
+                      <td className="px-5 py-3.5 font-mono text-[13px] text-[#8f8f8f]">
                         {item.provider_call_count.toLocaleString('zh-CN')}
                       </td>
-                      <td className="px-5 py-3.5 font-mono text-sm text-slate-600">
+                      <td className="px-5 py-3.5 font-mono text-[13px] text-[#8f8f8f]">
                         {item.total_tokens.toLocaleString('zh-CN')}
                       </td>
-                      <td className="px-5 py-3.5 font-mono text-sm font-semibold text-slate-900">
+                      <td className="px-5 py-3.5 font-mono text-[13px] font-medium text-[#ededed]">
                         {formatCny(item.total_cost_cny)}
                       </td>
                     </tr>
