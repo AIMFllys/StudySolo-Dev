@@ -52,7 +52,7 @@ export function AdminMembersPageView() {
   }, [fetchAll]);
 
   return (
-    <div className="mx-auto min-h-full max-w-[1600px] space-y-6 bg-slate-50 px-8 py-8">
+    <div className="mx-auto min-h-full max-w-[1600px] space-y-6 px-8 py-8">
       <PageHeader
         title="会员管理"
         description={

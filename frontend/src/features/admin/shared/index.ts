@@ -35,6 +35,9 @@ export {
 } from './components';
 export type { AdminSelectOption } from './components';
 
+// Confirm dialog
+export { ConfirmDialog } from './ConfirmDialog';
+
 // Layout components
 export { AdminSidebar } from './AdminSidebar';
 export { AdminTopbar } from './AdminTopbar';

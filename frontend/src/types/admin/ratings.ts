@@ -1,18 +1,20 @@
 ﻿export interface RatingOverview {
-  nps_count: number;
-  nps_avg: number | null;
-  nps_score: number | null;
-  csat_count: number;
-  csat_avg: number | null;
+  total_count: number;
+  avg_rating: number | null;
+  rating_distribution: Record<number, number>;
+  reward_applied_count: number;
 }
 
 export interface RatingItem {
   id: string;
   user_id: string;
   email: string | null;
-  rating_type: string;
-  score: number;
-  comment: string | null;
+  nickname: string | null;
+  rating: number;
+  issue_type: string;
+  content: string;
+  reward_days: number;
+  reward_applied: boolean;
   created_at: string;
 }
 
@@ -24,4 +26,4 @@ export interface PaginatedRatingList {
   total_pages: number;
 }
 
-export type RatingTypeFilter = 'nps' | 'csat' | '';
+export type RatingScoreFilter = 1 | 2 | 3 | 4 | 5 | '';

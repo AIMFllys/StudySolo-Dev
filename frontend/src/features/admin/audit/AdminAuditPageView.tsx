@@ -49,7 +49,7 @@ export function AdminAuditPageView() {
   }, [draftActionFilter]);
 
   return (
-    <div className="mx-auto min-h-full max-w-[1600px] space-y-6 bg-slate-50 px-8 py-8">
+    <div className="mx-auto min-h-full max-w-[1600px] space-y-6 px-8 py-8">
       <PageHeader
         title="审计日志"
         description={data ? `共 ${data.total.toLocaleString('zh-CN')} 条管理员审计记录` : '支持分页浏览与按操作类型筛选'}

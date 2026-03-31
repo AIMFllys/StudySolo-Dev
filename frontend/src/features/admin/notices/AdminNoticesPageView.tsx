@@ -101,7 +101,7 @@ export function AdminNoticesPageView() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto min-h-full max-w-[1600px] space-y-6 px-8 py-8 md:px-12">
       <PageHeader
         title="公告管理"
         description={data ? `共 ${data.total.toLocaleString('zh-CN')} 条公告` : '查看和维护站内公告'}

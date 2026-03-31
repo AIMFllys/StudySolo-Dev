@@ -1,8 +1,8 @@
 """Admin Ratings API.
 
 Endpoints:
-  GET /ratings/overview  — NPS/CSAT aggregated from ss_ratings
-  GET /ratings/details   — paginated rating details with user info
+  GET /ratings/overview  — Aggregated feedback stats from ss_feedback
+  GET /ratings/details   — Paginated feedback details with user info
 """
 
 import logging
@@ -24,20 +24,22 @@ router = APIRouter(tags=["admin-ratings"])
 
 
 class RatingOverview(BaseModel):
-    nps_count: int
-    nps_avg: float | None
-    nps_score: float | None  # NPS = % promoters (9-10) - % detractors (0-6)
-    csat_count: int
-    csat_avg: float | None
+    total_count: int
+    avg_rating: float | None
+    rating_distribution: dict[int, int]  # score -> count
+    reward_applied_count: int
 
 
 class RatingItem(BaseModel):
     id: str
     user_id: str
     email: str | None
-    rating_type: str
-    score: int
-    comment: str | None
+    nickname: str | None
+    rating: int
+    issue_type: str
+    content: str
+    reward_days: int
+    reward_applied: bool
     created_at: str
 
 
@@ -58,41 +60,34 @@ class PaginatedRatingList(BaseModel):
 async def get_ratings_overview(
     db: AsyncClient = Depends(get_db),
 ) -> RatingOverview:
-    """Return NPS and CSAT aggregated statistics."""
+    """Return aggregated feedback statistics from ss_feedback."""
     try:
         result = (
-            await db.table("ss_ratings")
-            .select("rating_type, score")
+            await db.table("ss_feedback")
+            .select("rating, reward_applied")
             .execute()
         )
         rows = result.data or []
 
-        nps_scores = [int(r["score"]) for r in rows if r.get("rating_type") == "nps"]
-        csat_scores = [int(r["score"]) for r in rows if r.get("rating_type") == "csat"]
+        total_count = len(rows)
+        scores = [int(r["rating"]) for r in rows]
+        avg_rating = (sum(scores) / total_count) if total_count > 0 else None
 
-        nps_count = len(nps_scores)
-        nps_avg = (sum(nps_scores) / nps_count) if nps_count > 0 else None
+        distribution: dict[int, int] = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+        for s in scores:
+            distribution[s] = distribution.get(s, 0) + 1
 
-        # NPS score: % promoters (9-10) - % detractors (0-6)
-        nps_score: float | None = None
-        if nps_count > 0:
-            promoters = sum(1 for s in nps_scores if s >= 9)
-            detractors = sum(1 for s in nps_scores if s <= 6)
-            nps_score = round(((promoters - detractors) / nps_count) * 100, 1)
-
-        csat_count = len(csat_scores)
-        csat_avg = (sum(csat_scores) / csat_count) if csat_count > 0 else None
+        reward_applied_count = sum(1 for r in rows if r.get("reward_applied"))
 
     except Exception as exc:
         logger.exception("Ratings overview query failed: %s", exc)
         raise HTTPException(status_code=500, detail="获取评分概览失败")
 
     return RatingOverview(
-        nps_count=nps_count,
-        nps_avg=round(nps_avg, 2) if nps_avg is not None else None,
-        nps_score=nps_score,
-        csat_count=csat_count,
-        csat_avg=round(csat_avg, 2) if csat_avg is not None else None,
+        total_count=total_count,
+        avg_rating=round(avg_rating, 2) if avg_rating is not None else None,
+        rating_distribution=distribution,
+        reward_applied_count=reward_applied_count,
     )
 
 
@@ -100,17 +95,17 @@ async def get_ratings_overview(
 async def get_ratings_details(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
-    rating_type: str | None = Query(default=None),
+    rating: int | None = Query(default=None, ge=1, le=5),
     db: AsyncClient = Depends(get_db),
 ) -> PaginatedRatingList:
-    """Return paginated rating details."""
+    """Return paginated feedback details from ss_feedback."""
     try:
-        query = db.table("ss_ratings").select(
-            "id, user_id, rating_type, score, comment, created_at",
+        query = db.table("ss_feedback").select(
+            "id, user_id, user_email, user_nickname, rating, issue_type, content, reward_days, reward_applied, created_at",
             count="exact",
         )
-        if rating_type is not None:
-            query = query.eq("rating_type", rating_type)
+        if rating is not None:
+            query = query.eq("rating", rating)
 
         offset = (page - 1) * page_size
         query = query.order("created_at", desc=True).range(offset, offset + page_size - 1)
@@ -124,10 +119,13 @@ async def get_ratings_details(
             RatingItem(
                 id=row["id"],
                 user_id=row["user_id"],
-                email=None,  # No JOIN in this query for performance
-                rating_type=row["rating_type"],
-                score=int(row["score"]),
-                comment=row.get("comment"),
+                email=row.get("user_email") or None,
+                nickname=row.get("user_nickname") or None,
+                rating=int(row["rating"]),
+                issue_type=row.get("issue_type", ""),
+                content=row.get("content", ""),
+                reward_days=int(row.get("reward_days", 0)),
+                reward_applied=bool(row.get("reward_applied", False)),
                 created_at=str(row["created_at"]),
             )
             for row in rows
