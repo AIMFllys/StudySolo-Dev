@@ -143,7 +143,6 @@ export function AdminDashboardPageView() {
       <PageHeader
         title="AI 使用量与计费看板"
         description="平台全局 AI 请求、真实 API 调用、Token、CNY 成本与最近调用明细汇聚于此"
-        eyebrow="GLOBAL AI OBSERVABILITY"
         action={(
           <button
             onClick={() => {

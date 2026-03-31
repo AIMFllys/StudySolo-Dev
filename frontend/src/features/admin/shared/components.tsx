@@ -19,34 +19,27 @@ interface PageHeaderProps {
   title: string;
   description?: string;
   action?: ReactNode;
-  eyebrow?: string;
 }
 
 export function PageHeader({
   title,
   description,
   action,
-  eyebrow = '后台管理组件',
 }: PageHeaderProps) {
   return (
     <motion.div
       {...FADE_UP}
-      className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
+      className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
     >
-      <div className="space-y-3">
-        <p className="text-xs font-semibold tracking-widest text-slate-400 uppercase">
-          {eyebrow}
-        </p>
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
-            {title}
-          </h1>
-          {description ? (
-            <p className="text-sm text-slate-500 max-w-2xl mt-2 leading-relaxed">
-              {description}
-            </p>
-          ) : null}
-        </div>
+      <div className="space-y-1.5">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          {title}
+        </h1>
+        {description ? (
+          <p className="text-sm text-slate-500 max-w-2xl leading-relaxed">
+            {description}
+          </p>
+        ) : null}
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </motion.div>

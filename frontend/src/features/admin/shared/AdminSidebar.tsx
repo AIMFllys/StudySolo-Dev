@@ -1,88 +1,141 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAdminSidebarNavigation } from '@/features/admin/hooks/use-admin-sidebar-navigation';
+import { useAdminLogoutAction } from '@/features/admin/hooks/use-admin-logout-action';
 
 export const ADMIN_NAV_ITEMS = [
-  { href: '/admin-analysis', label: '数据概览', icon: 'dashboard' },
-  { href: '/admin-analysis/users', label: '用户管理', icon: 'group' },
-  { href: '/admin-analysis/workflows', label: '工作流监控', icon: 'account_tree' },
-  { href: '/admin-analysis/members', label: '会员管理', icon: 'workspace_premium' },
-  { href: '/admin-analysis/ratings', label: '评分数据', icon: 'star' },
-  { href: '/admin-analysis/notices', label: '公告管理', icon: 'campaign' },
-  { href: '/admin-analysis/models', label: '模型配置', icon: 'neurology' },
-  { href: '/admin-analysis/audit', label: '审计日志', icon: 'receipt_long' },
-  { href: '/admin-analysis/config', label: '系统设置', icon: 'settings' },
+  { href: '/admin-analysis', label: '概览', icon: 'space_dashboard', group: 'main' },
+  { href: '/admin-analysis/users', label: '用户', icon: 'group', group: 'main' },
+  { href: '/admin-analysis/workflows', label: '工作流', icon: 'account_tree', group: 'main' },
+  { href: '/admin-analysis/members', label: '会员', icon: 'workspace_premium', group: 'main' },
+  { href: '/admin-analysis/ratings', label: '反馈', icon: 'rate_review', group: 'data' },
+  { href: '/admin-analysis/notices', label: '公告', icon: 'campaign', group: 'data' },
+  { href: '/admin-analysis/models', label: '模型', icon: 'neurology', group: 'system' },
+  { href: '/admin-analysis/audit', label: '审计', icon: 'shield_person', group: 'system' },
+  { href: '/admin-analysis/config', label: '设置', icon: 'tune', group: 'system' },
 ];
 
+const GROUPS = [
+  { key: 'main', label: '核心' },
+  { key: 'data', label: '数据' },
+  { key: 'system', label: '系统' },
+];
+
+function NavTooltip({ label, visible }: { label: string; visible: boolean }) {
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          initial={{ opacity: 0, x: -4, scale: 0.96 }}
+          animate={{ opacity: 1, x: 0, scale: 1 }}
+          exit={{ opacity: 0, x: -4, scale: 0.96 }}
+          transition={{ duration: 0.12 }}
+          className="absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-2.5 py-1.5 text-[11px] font-semibold text-white shadow-lg"
+        >
+          {label}
+          <div className="absolute -left-1 top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-900" />
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 export function AdminSidebar() {
-  const { sidebarOpen, isActive, closeSidebarOnMobileNavigate } =
+  const { sidebarOpen, isActive, closeSidebarOnMobileNavigate, toggleSidebar } =
     useAdminSidebarNavigation();
+  const { logout, loggingOut } = useAdminLogoutAction();
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   return (
     <>
-      {sidebarOpen ? (
+      {sidebarOpen && (
         <div
-          className="fixed inset-0 z-30 bg-slate-900/50 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-30 bg-black/20 backdrop-blur-[2px] md:hidden"
           onClick={closeSidebarOnMobileNavigate}
         />
-      ) : null}
+      )}
+
+      {/* Mobile hamburger */}
+      <button
+        onClick={toggleSidebar}
+        className="fixed left-3 top-3 z-50 flex h-9 w-9 items-center justify-center rounded-lg bg-white/90 text-slate-600 shadow-sm ring-1 ring-slate-200 backdrop-blur-sm transition-all hover:bg-white hover:text-slate-900 md:hidden"
+        aria-label={sidebarOpen ? '关闭导航' : '打开导航'}
+      >
+        <span className="material-symbols-outlined text-[20px]">{sidebarOpen ? 'close' : 'menu'}</span>
+      </button>
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-slate-200 bg-slate-50 shadow-sm transition-transform md:static md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-[68px] flex-col items-center border-r border-slate-200/60 bg-white/70 backdrop-blur-md transition-transform md:static md:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="border-b border-slate-200 px-8 py-6 bg-white/50">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">StudySolo</h1>
-          <p className="mt-1 text-xs font-semibold tracking-wider text-slate-500 uppercase">
-            Admin Workspace
-          </p>
+        {/* Logo */}
+        <div className="flex h-14 w-full items-center justify-center border-b border-slate-100">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-[11px] font-black tracking-tight text-white">
+            SS
+          </div>
         </div>
 
-        <nav className="flex-1 space-y-1.5 overflow-y-auto px-4 py-6">
-          {ADMIN_NAV_ITEMS.map((item, index) => {
-            const active = isActive(item.href);
+        {/* Nav groups */}
+        <nav className="flex flex-1 flex-col items-center gap-1 overflow-y-auto py-4 px-2 w-full">
+          {GROUPS.map((group, gi) => {
+            const groupItems = ADMIN_NAV_ITEMS.filter((i) => i.group === group.key);
             return (
-              <motion.div
-                key={item.href}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.03, duration: 0.22, ease: 'easeOut' }}
-              >
-                <Link
-                  href={item.href}
-                  onClick={closeSidebarOnMobileNavigate}
-                  className={`group relative flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${
-                    active
-                      ? 'bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-inset ring-indigo-500/20'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                  }`}
-                >
-                  <span className={`material-symbols-outlined text-[20px] transition-colors ${active ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'}`}>
-                    {item.icon}
-                  </span>
-                  <span className={active ? 'text-sm font-semibold' : 'text-sm font-medium'}>
-                    {item.label}
-                  </span>
-                </Link>
-              </motion.div>
+              <div key={group.key} className="w-full">
+                {gi > 0 && <div className="mx-auto my-2 h-px w-8 bg-slate-200/80" />}
+                <div className="flex flex-col items-center gap-1 w-full">
+                  {groupItems.map((item) => {
+                    const active = isActive(item.href);
+                    return (
+                      <div
+                        key={item.href}
+                        className="relative w-full flex justify-center"
+                        onMouseEnter={() => setHoveredItem(item.href)}
+                        onMouseLeave={() => setHoveredItem(null)}
+                      >
+                        <Link
+                          href={item.href}
+                          onClick={closeSidebarOnMobileNavigate}
+                          className={`relative flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-150 ${
+                            active
+                              ? 'bg-slate-900 text-white shadow-sm'
+                              : 'text-slate-400 hover:bg-slate-100 hover:text-slate-700'
+                          }`}
+                          aria-label={item.label}
+                        >
+                          <span className={`material-symbols-outlined text-[20px] ${active ? 'font-medium' : ''}`}>
+                            {item.icon}
+                          </span>
+                        </Link>
+                        <NavTooltip label={item.label} visible={hoveredItem === item.href} />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             );
           })}
         </nav>
 
-        <div className="border-t border-slate-200 px-6 py-6 bg-white/50">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-sm font-bold text-white shadow-sm ring-1 ring-inset ring-indigo-500">
-              AD
-            </div>
-            <div className="overflow-hidden">
-              <p className="truncate text-sm font-semibold text-slate-900">管理员在线</p>
-              <p className="w-full truncate text-[11px] font-medium text-slate-500">
-                System Administrator
-              </p>
-            </div>
+        {/* Bottom: logout */}
+        <div className="flex flex-col items-center gap-2 border-t border-slate-100 py-4 px-2 w-full">
+          <div
+            className="relative w-full flex justify-center"
+            onMouseEnter={() => setHoveredItem('logout')}
+            onMouseLeave={() => setHoveredItem(null)}
+          >
+            <button
+              onClick={() => void logout()}
+              disabled={loggingOut}
+              className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 transition-all hover:bg-red-50 hover:text-red-500 disabled:opacity-50"
+              aria-label="退出登录"
+            >
+              <span className="material-symbols-outlined text-[20px]">logout</span>
+            </button>
+            <NavTooltip label={loggingOut ? '退出中...' : '退出登录'} visible={hoveredItem === 'logout'} />
           </div>
         </div>
       </aside>

@@ -15,28 +15,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         rel="stylesheet"
       />
       <link
-        href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;600&family=Space+Grotesk:wght@300;400;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
         rel="stylesheet"
       />
 
       {isLoginPage ? (
         children
       ) : (
-        <div className="flex h-screen overflow-hidden bg-[#f4f4f0] font-[Work_Sans,sans-serif] text-[#1b1c1a]">
+        <div className="flex h-screen overflow-hidden bg-[#fafaf8] font-[Inter,system-ui,sans-serif] text-slate-900">
           <AdminSidebar />
 
           <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
             <AdminTopbar />
-            <main
-              className="flex-1 overflow-auto"
-              style={{
-                backgroundColor: '#f4f4f0',
-                backgroundImage:
-                  'radial-gradient(rgba(0,32,69,0.08) 0.7px, transparent 0.7px)',
-                backgroundSize: '24px 24px',
-              }}
-            >
-              {children}
+            <main className="relative flex-1 overflow-auto">
+              {/* Grid lines background */}
+              <div
+                className="pointer-events-none absolute inset-0 z-0"
+                style={{
+                  backgroundImage: `
+                    linear-gradient(to right, rgba(0,0,0,0.03) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(0,0,0,0.03) 1px, transparent 1px)
+                  `,
+                  backgroundSize: '32px 32px',
+                }}
+              />
+              <div className="relative z-10">
+                {children}
+              </div>
             </main>
           </div>
         </div>
