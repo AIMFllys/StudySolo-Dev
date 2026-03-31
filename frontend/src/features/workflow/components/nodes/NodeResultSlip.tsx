@@ -76,6 +76,16 @@ export const NodeResultSlip: React.FC<NodeResultSlipProps> = ({
     }
   }, [status]);
 
+  // Listen for global expand/collapse-all events (used by Memory View)
+  useEffect(() => {
+    const handleExpandAll = (e: Event) => {
+      const expand = (e as CustomEvent<boolean>).detail;
+      setIsExpanded(expand);
+    };
+    window.addEventListener('workflow:toggle-all-slips', handleExpandAll);
+    return () => window.removeEventListener('workflow:toggle-all-slips', handleExpandAll);
+  }, []);
+
   // Native capture-phase right-click: beats ReactFlow's node wrapper handler
   const captureContextMenu = useCallback((e: MouseEvent) => {
     e.preventDefault();
