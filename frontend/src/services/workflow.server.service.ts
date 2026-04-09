@@ -82,7 +82,13 @@ export interface UserWorkflowQuota {
   workflows_addon_qty: number;
   workflows_total: number;
   workflows_remaining: number;
+  // Daily quotas
+  daily_chat_used: number;
+  daily_chat_limit: number;
+  daily_execution_used: number;
+  daily_execution_limit: number;
 }
+
 
 export async function fetchUserQuotaForServer(): Promise<UserWorkflowQuota | null> {
   const token = await getAccessTokenFromCookieStore();

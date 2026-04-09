@@ -17,6 +17,7 @@ from app.engine.events import event_message, parse_sse_frame
 from app.engine.executor import execute_workflow
 from app.models.workflow import WorkflowExecuteRequest
 from app.services.ai_catalog_service import get_sku_by_id, is_tier_allowed
+from app.services.quota_service import check_daily_execution_quota
 from app.services.usage_ledger import bind_usage_request, create_usage_request, finalize_usage_request
 
 logger = logging.getLogger(__name__)
@@ -69,6 +70,20 @@ async def _execute_workflow_sse_impl(
             detail="工作流触发过于频繁，请稍后再试",
         )
     await record_rate_limit_failure(service_db, bucket, event_type, WF_EXEC_WINDOW_SECONDS)
+
+    # ── Daily execution quota check ──
+    user_tier = current_user.get("tier", "free")
+    exec_quota = await check_daily_execution_quota(user_id, user_tier, service_db)
+    if not exec_quota["allowed"]:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail={
+                "code": "DAILY_EXECUTION_QUOTA_EXCEEDED",
+                "message": f"今日工作流执行次数已达上限（{exec_quota['used']}/{exec_quota['limit']}），明日重置或升级会员",
+                "used": exec_quota["used"],
+                "limit": exec_quota["limit"],
+            },
+        )
 
     async def event_generator():
         queue: asyncio.Queue[dict[str, str] | None] = asyncio.Queue()
@@ -144,6 +159,7 @@ async def _execute_workflow_sse_impl(
                 implicit_context = {
                     "user_id": user_id,
                     "workflow_id": workflow_id,
+                    "user_tier": user_tier,
                 }
 
                 await emit_workflow_status("validating", "正在校验模型权限与执行图")

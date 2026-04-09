@@ -7,11 +7,13 @@ from typing import Any
 from fastapi import APIRouter, Depends
 from sse_starlette.sse import EventSourceResponse
 
+from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.ai_chat import AIChatRequest
 from app.prompts import get_chat_prompt, get_create_prompt, get_intent_prompt, get_plan_prompt
-from app.services.ai_catalog_service import is_tier_allowed, resolve_selected_sku
+from app.services.ai_catalog_service import get_sku_by_id, is_tier_allowed, resolve_selected_sku
 from app.services.ai_router import AIRouterError, call_llm, call_llm_direct
+from app.services.quota_service import check_daily_chat_quota
 from app.services.usage_ledger import bind_usage_request, create_usage_request, finalize_usage_request
 from app.api.ai_chat import _build_canvas_summary, _call_with_model, _extract_json_obj
 
@@ -88,6 +90,7 @@ async def _call_modify_with_retry(
 async def _chat_stream_generator(
     body: AIChatRequest,
     current_user: dict,
+    service_db=None,
 ):
     usage_request = await create_usage_request(
         user_id=current_user["id"],
@@ -105,7 +108,34 @@ async def _chat_stream_generator(
                 selected_model=body.selected_model,
             )
             user_tier = current_user.get("tier", "free")
-            if selected_sku and not is_tier_allowed(user_tier, selected_sku.required_tier):
+
+            # ── Daily chat quota check (soft block → degrade to fallback model) ──
+            quota_degraded = False
+            if service_db is not None:
+                chat_quota = await check_daily_chat_quota(
+                    current_user["id"], user_tier, service_db,
+                )
+                if not chat_quota["allowed"]:
+                    fallback = await get_sku_by_id(chat_quota["fallback_sku_id"])
+                    if fallback:
+                        selected_sku = fallback
+                        quota_degraded = True
+                        yield {
+                            "data": json.dumps(
+                                {
+                                    "quota_warning": True,
+                                    "message": (
+                                        f"今日 AI 对话次数已达上限（{chat_quota['used']}/{chat_quota['limit']}），"
+                                        f"已自动切换至基础模型（{fallback.display_name}）。升级会员可获取更多额度"
+                                    ),
+                                    "used": chat_quota["used"],
+                                    "limit": chat_quota["limit"],
+                                },
+                                ensure_ascii=False,
+                            )
+                        }
+
+            if selected_sku and not quota_degraded and not is_tier_allowed(user_tier, selected_sku.required_tier):
                 request_status = "failed"
                 yield {
                     "data": json.dumps(
@@ -271,5 +301,6 @@ async def _chat_stream_generator(
 async def ai_chat_stream(
     body: AIChatRequest,
     current_user: dict = Depends(get_current_user),
+    service_db=Depends(get_db),
 ):
-    return EventSourceResponse(_chat_stream_generator(body, current_user))
+    return EventSourceResponse(_chat_stream_generator(body, current_user, service_db=service_db))

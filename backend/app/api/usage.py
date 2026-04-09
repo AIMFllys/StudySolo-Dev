@@ -7,7 +7,11 @@ from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.usage import UsageLiveResponse, UsageOverviewResponse, UsageTimeseriesResponse
 from app.services.usage_analytics import get_usage_live, get_usage_overview, get_usage_timeseries
-from app.services.quota_service import get_workflow_quota
+from app.services.quota_service import (
+    check_daily_chat_quota,
+    check_daily_execution_quota,
+    get_workflow_quota,
+)
 from pydantic import BaseModel
 
 router = APIRouter(tags=["usage"])
@@ -53,6 +57,11 @@ class WorkflowQuotaResponse(BaseModel):
     workflows_addon_qty: int
     workflows_total: int
     workflows_remaining: int
+    # Daily quotas
+    daily_chat_used: int
+    daily_chat_limit: int
+    daily_execution_used: int
+    daily_execution_limit: int
 
 
 @router.get("/quota", response_model=WorkflowQuotaResponse)
@@ -67,7 +76,14 @@ async def get_user_quota(
     """
     user_id = current_user["id"]
     tier = current_user.get("tier", "free")
+    
+    # Workflow count quota
     quota = await get_workflow_quota(user_id, tier, db)
+    
+    # Daily quotas
+    chat_quota = await check_daily_chat_quota(user_id, tier, db)
+    exec_quota = await check_daily_execution_quota(user_id, tier, db)
+    
     return WorkflowQuotaResponse(
         tier=tier,
         workflows_used=quota["used"],
@@ -75,4 +91,9 @@ async def get_user_quota(
         workflows_addon_qty=quota["addon_qty"],
         workflows_total=quota["total_limit"],
         workflows_remaining=quota["remaining"],
+        daily_chat_used=chat_quota["used"],
+        daily_chat_limit=chat_quota["limit"],
+        daily_execution_used=exec_quota["used"],
+        daily_execution_limit=exec_quota["limit"],
     )
+

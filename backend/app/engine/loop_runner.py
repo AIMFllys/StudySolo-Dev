@@ -15,6 +15,9 @@ from app.engine.node_runner import (
     stream_single_node_events,
 )
 from app.engine.topology import MAX_WAIT_SECONDS, get_branch_filtered_downstream, get_max_wait_seconds
+from app.services.quota_service import TIER_LOOP_ITERATION_LIMITS
+
+_ABSOLUTE_MAX_ITERATIONS = 9_999_999  # Safety ceiling for ultra tier
 
 
 def _topological_sort_child_levels(nodes: list[dict], edges: list[dict]) -> list[list[str]]:
@@ -58,9 +61,16 @@ async def execute_loop_group(
     failed_nodes: set[str] | None = None,
 ) -> AsyncIterator[str]:
     """Execute a loop_group container: iterate its child subgraph N times."""
-    group_id = group_node["id"]
+    group_id = group_id = group_node["id"]
     group_data = group_node.get("data", {})
-    max_iterations = min(int(group_data.get("maxIterations", 3)), 100)
+
+    # Tier-based iteration limit
+    user_tier = (implicit_context or {}).get("user_tier", "free")
+    tier_max = TIER_LOOP_ITERATION_LIMITS.get(user_tier, TIER_LOOP_ITERATION_LIMITS["free"])
+    max_iterations = min(int(group_data.get("maxIterations", 3)), tier_max)
+    # Ensure it never exceeds an absolute safety ceiling
+    max_iterations = min(max_iterations, _ABSOLUTE_MAX_ITERATIONS)
+
     interval_seconds = min(float(group_data.get("intervalSeconds", 0)), MAX_WAIT_SECONDS)
 
     child_nodes = [n for n in all_nodes if n.get("parentId") == group_id]
