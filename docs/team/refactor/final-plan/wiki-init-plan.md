@@ -310,3 +310,72 @@ jobs:
 > 4. `docs/wiki-content/` 内容由全体成员维护，队友 A 只负责渲染层
 > 5. Wiki Auth 不需要单独实现——同一个 Next.js 进程，天然共用登录态
 > 6. 使用 `next-mdx-remote/rsc` 做 Server Component 渲染，不要用客户端 MDX
+
+---
+
+## 生产部署分析
+
+### 结论：Route Group 方案可以正常部署，零额外配置
+
+| 维度 | 分析 |
+|------|------|
+| **Nginx** | `/wiki` 路径被 Next.js App Router 自动路由处理，**不需要**额外 `location` 块 |
+| **PM2** | 复用主前端的 PM2 进程，零额外进程 |
+| **构建** | `docs/wiki-content/*.md` 在 `next build` 时被 `lib/wiki.ts` 的 `fs.readFileSync` 读入并预渲染为静态 HTML |
+| **运行时** | 预渲染页面由 Next.js 直接提供，**运行时不再读取 md 文件** |
+| **Auth** | 同一个 Next.js 进程，天然共用 Supabase Auth 登录态 |
+| **URL** | `https://studyflow.1037solo.com/wiki/` → 自动路由到 `(wiki)/wiki/page.tsx` |
+
+#### 现有 Nginx 配置兼容性
+
+当前生产 Nginx 配置对主前端的反代：
+
+```nginx
+# 现有配置（已生效）
+location / {
+    proxy_pass http://127.0.0.1:2037;
+    ...
+}
+```
+
+由于 Wiki 是主前端的 Route Group，所有 `/wiki/*` 请求自动被 Next.js 处理。**不需要**添加任何新的 `location` 块。
+
+#### `docs/wiki-content/` 在服务器上的位置
+
+```
+服务器目录结构：
+/www/wwwroot/StudySolo/
+├── frontend/                    ← next build 在此执行
+│   ├── .next/                   ← 构建产物（含预渲染的 Wiki HTML）
+│   └── src/app/(wiki)/          ← Wiki 源码
+├── docs/
+│   └── wiki-content/            ← md 源文件（构建时读取，运行时不需要）
+└── backend/
+```
+
+> [!TIP]
+> `docs/wiki-content/` 只在 **build 阶段**被访问。如果使用 `output: 'standalone'` 模式部署，甚至可以在部署 artifact 中不包含 `docs/` 目录。
+
+---
+
+## 方案变更记录
+
+### 废弃独立 `wiki/` 子项目（2026-04-10）
+
+| 维度 | 旧方案（已废弃） | 新方案（采用） |
+|------|--------------|-------------|
+| 位置 | `wiki/`（独立 Next.js） | `frontend/src/app/(wiki)/wiki/` |
+| 端口 | 2039（独立） | 2037（复用主前端） |
+| 部署 | 独立 PM2 + 独立 Nginx 反代 | 复用主前端 PM2 |
+| Auth | 需要跨域 SSO | 天然共用 |
+| 维护 | 独立 package.json | 共用依赖 |
+
+**原因**：当前团队规模（3 人），独立子项目维护成本远大于收益。
+
+**操作**：`wiki/` 目录已从仓库中移除（`git rm -r wiki/`），所有相关信息已归档到本文档。
+
+### 分析来源
+
+- Claude 分析 `09-Wiki子项目规划.md`：最终推荐 Route Group 嵌入方案
+- Codex 分析 `08-wiki-main-project-interface.md`：确立"Wiki 是发布源，不是设计源"原则
+
