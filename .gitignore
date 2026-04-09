@@ -58,8 +58,14 @@ Desktop.ini
 !/docs/Plans/**
 !/docs/summary/
 !/docs/summary/**
+!/docs/summaries/
+!/docs/summaries/**
 !/docs/issue/
 !/docs/issue/**
+!/docs/issues/
+!/docs/issues/**
+!/docs/team/
+!/docs/team/**
 !/docs/Updates/
 !/docs/Updates/**
 !/docs/pencil/
