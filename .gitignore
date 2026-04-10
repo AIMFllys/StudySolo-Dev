@@ -45,12 +45,14 @@ Desktop.ini
 .antigravity/
 .Trae/
 
-# Environment Files (secrets - MUST be ignored)
+# Environment files and secrets
 .env
-.env.local
-.env.development
-.env.test
-.env.production
+.env.*
+!.env.example
+!**/.env.example
+*.pem
+*.key
+*.zip
 
 # Docs
 /docs/**
