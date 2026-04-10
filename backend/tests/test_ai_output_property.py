@@ -23,7 +23,7 @@ from app.models.ai import (
     NodePosition,
     NodeData,
 )
-from app.api.ai import sanitize_user_input, _extract_json
+from app.api.ai.generate import sanitize_user_input, _extract_json
 
 # ── Property 12: AI output schema validation ─────────────────────────────────
 

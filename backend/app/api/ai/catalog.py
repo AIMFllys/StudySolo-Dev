@@ -1,4 +1,4 @@
-"""AI model catalog routes."""
+"""AI model catalog routes — relocated from api/ai_catalog.py."""
 
 from fastapi import APIRouter, Depends
 

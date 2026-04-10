@@ -1,4 +1,7 @@
-"""AI workflow generation routes: /api/ai/*"""
+"""AI workflow generation routes — relocated from api/ai.py.
+
+Handles POST /api/ai/generate-workflow.
+"""
 
 import re
 
@@ -6,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.deps import get_current_user
 from app.models.ai import GenerateWorkflowRequest, GenerateWorkflowResponse
-from app.services.usage_ledger import bind_usage_request, create_usage_request, finalize_usage_request
+from app.services.usage_tracker import track_usage
 from app.services.workflow_generator import extract_json, generate_workflow_core
 
 router = APIRouter()
@@ -39,26 +42,10 @@ _extract_json = extract_json
 # ── Endpoint ─────────────────────────────────────────────────────────────────
 
 @router.post("/generate-workflow", response_model=GenerateWorkflowResponse)
+@track_usage(source_type="assistant", source_subtype="generate_workflow")
 async def generate_workflow(
     body: GenerateWorkflowRequest,
     current_user: dict = Depends(get_current_user),
 ):
-    usage_request = await create_usage_request(
-        user_id=current_user["id"],
-        source_type="assistant",
-        source_subtype="generate_workflow",
-    )
-    request_status = "completed"
-
-    with bind_usage_request(usage_request):
-        try:
-            safe_input = sanitize_user_input(body.user_input)
-            return await generate_workflow_core(body, safe_input)
-        except HTTPException:
-            request_status = "failed"
-            raise
-        except Exception:
-            request_status = "failed"
-            raise
-        finally:
-            await finalize_usage_request(usage_request.request_id, request_status)
+    safe_input = sanitize_user_input(body.user_input)
+    return await generate_workflow_core(body, safe_input)

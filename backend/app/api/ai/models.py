@@ -1,7 +1,6 @@
-"""AI chat model catalog routes — Track A (curated chat panel).
+"""AI chat model catalog routes — relocated from api/ai_chat_models.py.
 
-Serves the fixed 8-model list for the Chat sidebar panel.
-Decoupled from the workflow catalog (/api/ai/models/catalog).
+Track A (curated chat panel): serves the fixed model list for the Chat sidebar.
 Source of truth: config.yaml → chat_models block.
 """
 
@@ -94,4 +93,3 @@ async def get_chat_models(
         })
 
     return {"models": models}
-

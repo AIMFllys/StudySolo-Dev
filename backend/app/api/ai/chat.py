@@ -1,4 +1,8 @@
-"""Streaming AI chat routes."""
+"""AI Chat routes — unified endpoint (Task 2.1 merge result).
+
+Replaces the former ``api/ai_chat.py`` and ``api/ai_chat_stream.py``.
+Both ``/chat`` (non-streaming) and ``/chat-stream`` (SSE) live here.
+"""
 
 import json
 import logging
@@ -9,16 +13,28 @@ from sse_starlette.sse import EventSourceResponse
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models.ai_chat import AIChatRequest
-from app.prompts import get_chat_prompt, get_create_prompt, get_intent_prompt, get_plan_prompt
+from app.models.ai_chat import AIChatRequest, AIChatResponse, CanvasAction
+from app.prompts import (
+    get_chat_prompt,
+    get_chat_system_prompt,
+    get_create_prompt,
+    get_intent_prompt,
+    get_intent_system_prompt,
+    get_modify_system_prompt,
+    get_plan_prompt,
+)
 from app.services.ai_catalog_service import get_sku_by_id, is_tier_allowed, resolve_selected_sku
+from app.services.ai_chat.helpers import build_canvas_summary, extract_json_obj
+from app.services.ai_chat.model_caller import call_with_model
+from app.services.ai_chat.validators import resolve_assistant_subtype, resolve_source_subtype
 from app.services.ai_router import AIRouterError, call_llm, call_llm_direct
 from app.services.quota_service import check_daily_chat_quota
 from app.services.usage_ledger import bind_usage_request, create_usage_request, finalize_usage_request
-from app.api.ai_chat import _build_canvas_summary, _call_with_model, _extract_json_obj
 
 logger = logging.getLogger(__name__)
-stream_router = APIRouter()
+router = APIRouter()
+
+# ── Constants ────────────────────────────────────────────────────────────────
 
 _DEPTH_INSTRUCTIONS: dict[str, str] = {
     "fast": "Please answer briefly and directly.",
@@ -31,15 +47,11 @@ _MODIFY_FORMAT_ERROR = (
     "首字符必须是 {，不得包含 Markdown 代码块、解释文字或额外前后缀。"
 )
 
-def _resolve_source_subtype(body: AIChatRequest) -> str:
-    if body.mode == "plan":
-        return "plan"
-    if body.mode == "create":
-        return "modify"
-    return "chat"
 
+# ── Shared helpers (stream-specific) ─────────────────────────────────────────
 
 def _normalize_modify_actions(parsed: dict[str, Any]) -> list[dict[str, Any]]:
+    """Normalize action format from LLM output for canvas operations."""
     actions_data = parsed.get("tool_calls") or parsed.get("actions", [])
     formatted_actions: list[dict[str, Any]] = []
     for action in actions_data:
@@ -58,12 +70,13 @@ async def _call_modify_with_retry(
     body: AIChatRequest,
     base_messages: list[dict[str, str]],
 ) -> tuple[dict[str, Any] | None, str | None, str | None, str | None]:
+    """Call LLM for MODIFY intent with JSON parsing retries."""
     messages = list(base_messages)
     last_raw: str | None = None
     last_model_used: str | None = None
 
     for attempt in range(_MODIFY_FORMAT_RETRIES + 1):
-        raw, _, model_used = await _call_with_model(
+        raw, _, model_used = await call_with_model(
             body.selected_model_key,
             body.selected_platform,
             body.selected_model,
@@ -72,7 +85,7 @@ async def _call_modify_with_retry(
         last_raw = raw
         last_model_used = model_used
         try:
-            parsed = _extract_json_obj(raw)
+            parsed = extract_json_obj(raw)
             return parsed, raw, model_used, None
         except Exception as exc:  # noqa: BLE001
             if attempt >= _MODIFY_FORMAT_RETRIES:
@@ -87,6 +100,154 @@ async def _call_modify_with_retry(
     return None, last_raw, last_model_used, "unknown modify parsing error"
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# NON-STREAMING ENDPOINT
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.post("/chat", response_model=AIChatResponse)
+async def ai_chat(
+    body: AIChatRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    usage_request = await create_usage_request(
+        user_id=current_user["id"],
+        source_type="assistant",
+        source_subtype=resolve_assistant_subtype(body),
+        workflow_id=body.canvas_context.workflow_id if body.canvas_context else None,
+    )
+    request_status = "completed"
+
+    with bind_usage_request(usage_request):
+        try:
+            selected_sku = await resolve_selected_sku(
+                selected_model_key=body.selected_model_key,
+                selected_platform=body.selected_platform,
+                selected_model=body.selected_model,
+            )
+            user_tier = current_user.get("tier", "free")
+            if selected_sku and not is_tier_allowed(user_tier, selected_sku.required_tier):
+                request_status = "failed"
+                return AIChatResponse(
+                    intent="CHAT",
+                    response="This model requires a paid tier.",
+                    model_used=selected_sku.model_id,
+                    platform_used=selected_sku.provider,
+                )
+
+            canvas_summary = build_canvas_summary(body.canvas_context)
+            has_canvas = bool(body.canvas_context and body.canvas_context.nodes)
+            model_identity = selected_sku.display_name if selected_sku else "StudySolo 默认模型"
+
+            if body.intent_hint == "ACTION":
+                return AIChatResponse(
+                    intent="ACTION",
+                    response="Executing action...",
+                    model_used="none",
+                    platform_used="none",
+                )
+
+            history_msgs = [
+                {"role": message.role, "content": message.content}
+                for message in (body.conversation_history or [])[-10:]
+            ]
+
+            if body.intent_hint and body.intent_hint in ("BUILD", "MODIFY", "CHAT"):
+                intent = body.intent_hint
+            else:
+                classify_msgs = [
+                    {"role": "system", "content": get_intent_system_prompt(canvas_summary)},
+                    *history_msgs,
+                    {"role": "user", "content": body.user_input},
+                ]
+                try:
+                    raw, _, _ = await call_with_model(
+                        body.selected_model_key,
+                        body.selected_platform,
+                        body.selected_model,
+                        classify_msgs,
+                    )
+                    parsed = extract_json_obj(raw)
+                    intent = parsed.get("intent", "CHAT")
+                    if intent not in ("BUILD", "MODIFY", "CHAT", "ACTION"):
+                        intent = "CHAT"
+                except Exception:
+                    intent = "BUILD" if not has_canvas else "CHAT"
+
+            if intent == "BUILD":
+                return AIChatResponse(
+                    intent="BUILD",
+                    response="Preparing workflow generation...",
+                    model_used=selected_sku.model_id if selected_sku else (body.selected_model or "default"),
+                    platform_used=selected_sku.provider if selected_sku else (body.selected_platform or "default"),
+                )
+
+            if intent == "MODIFY":
+                modify_msgs = [
+                    {"role": "system", "content": get_modify_system_prompt(canvas_summary)},
+                    *history_msgs,
+                    {"role": "user", "content": body.user_input},
+                ]
+                raw, platform_used, model_used = await call_with_model(
+                    body.selected_model_key,
+                    body.selected_platform,
+                    body.selected_model,
+                    modify_msgs,
+                )
+                try:
+                    parsed = extract_json_obj(raw)
+                    actions_data = parsed.get("tool_calls") or parsed.get("actions", [])
+                    actions = [
+                        CanvasAction(
+                            operation=action.get("tool", action.get("operation", "")).upper(),
+                            target_node_id=(
+                                action.get("params", action.get("payload", {})).get("target_node_id")
+                                or action.get("target_node_id")
+                            ),
+                            payload=action.get("params", action.get("payload", {})),
+                        )
+                        for action in actions_data
+                    ]
+                    response_text = parsed.get("response", "Canvas updated.")
+                except (json.JSONDecodeError, KeyError):
+                    actions = None
+                    response_text = raw
+
+                return AIChatResponse(
+                    intent="MODIFY",
+                    response=response_text,
+                    actions=actions,
+                    model_used=model_used,
+                    platform_used=platform_used,
+                )
+
+            chat_msgs = [
+                {"role": "system", "content": get_chat_system_prompt(canvas_summary, model_identity=model_identity)},
+                *history_msgs,
+                {"role": "user", "content": body.user_input},
+            ]
+            raw, platform_used, model_used = await call_with_model(
+                body.selected_model_key,
+                body.selected_platform,
+                body.selected_model,
+                chat_msgs,
+            )
+            return AIChatResponse(
+                intent="CHAT",
+                response=raw,
+                model_used=model_used,
+                platform_used=platform_used,
+            )
+        except Exception:
+            request_status = "failed"
+            raise
+        finally:
+            await finalize_usage_request(usage_request.request_id, request_status)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STREAMING ENDPOINT (SSE)
+# ═══════════════════════════════════════════════════════════════════════════════
+
 async def _chat_stream_generator(
     body: AIChatRequest,
     current_user: dict,
@@ -95,7 +256,7 @@ async def _chat_stream_generator(
     usage_request = await create_usage_request(
         user_id=current_user["id"],
         source_type="assistant",
-        source_subtype=_resolve_source_subtype(body),
+        source_subtype=resolve_source_subtype(body),
         workflow_id=body.canvas_context.workflow_id if body.canvas_context else None,
     )
     request_status = "completed"
@@ -145,7 +306,7 @@ async def _chat_stream_generator(
                 }
                 return
 
-            canvas_summary = _build_canvas_summary(body.canvas_context)
+            canvas_summary = build_canvas_summary(body.canvas_context)
             has_canvas = bool(body.canvas_context and body.canvas_context.nodes)
             model_identity = selected_sku.display_name if selected_sku else "StudySolo 默认模型"
             history_msgs = [
@@ -163,13 +324,13 @@ async def _chat_stream_generator(
                         {"role": "user", "content": body.user_input},
                     ]
                     try:
-                        raw, _, _ = await _call_with_model(
+                        raw, _, _ = await call_with_model(
                             body.selected_model_key,
                             body.selected_platform,
                             body.selected_model,
                             classify_msgs,
                         )
-                        parsed = _extract_json_obj(raw)
+                        parsed = extract_json_obj(raw)
                         intent = parsed.get("intent", "MODIFY")
                         if intent not in ("BUILD", "MODIFY", "ACTION"):
                             intent = "MODIFY"
@@ -297,7 +458,7 @@ async def _chat_stream_generator(
             await finalize_usage_request(usage_request.request_id, request_status)
 
 
-@stream_router.post("/chat-stream")
+@router.post("/chat-stream")
 async def ai_chat_stream(
     body: AIChatRequest,
     current_user: dict = Depends(get_current_user),

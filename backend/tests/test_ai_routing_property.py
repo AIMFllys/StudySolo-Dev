@@ -19,6 +19,12 @@ from hypothesis import strategies as st
 from unittest.mock import AsyncMock, patch, MagicMock
 from openai import APIConnectionError
 
+pytest.skip(
+    "Stale: get_route/get_fallback_chain/is_proxy_aggregator removed in catalog-based routing refactor. "
+    "Routing is now tested via resolve_task_route_skus in ai_catalog_service.",
+    allow_module_level=True,
+)
+
 from app.core.config_loader import get_config
 from app.services.ai_router import (
     get_route,

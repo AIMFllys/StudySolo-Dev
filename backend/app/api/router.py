@@ -14,14 +14,8 @@ from app.api.admin_users import router as admin_users_router
 from app.api.admin_workflows import router as admin_workflows_router
 from app.api.auth import router as auth_router
 from app.api.workflow import router as workflow_router
-from app.api.workflow_execute import router as workflow_execute_router
-from app.api.workflow_social import router as workflow_social_router
-from app.api.workflow_collaboration import router as workflow_collab_router
+from app.api.workflow.runs import router as workflow_runs_router
 from app.api.ai import router as ai_router
-from app.api.ai_catalog import router as ai_catalog_router
-from app.api.ai_chat_models import router as ai_chat_models_router
-from app.api.ai_chat import router as ai_chat_router
-from app.api.ai_chat_stream import stream_router as ai_chat_stream_router
 from app.api.nodes import router as nodes_router
 from app.api.knowledge import router as knowledge_router
 from app.api.exports import router as exports_router
@@ -29,20 +23,13 @@ from app.api.feedback import router as feedback_router
 from app.api.usage import router as usage_router
 from app.api.discounts import router as discounts_router
 from app.api.community_nodes import router as community_nodes_router
-from app.api.workflow_runs import router as workflow_runs_router
+
 
 router = APIRouter()
 
 router.include_router(auth_router, prefix="/auth", tags=["auth"])
 router.include_router(workflow_router, prefix="/workflow", tags=["workflow"])
-router.include_router(workflow_social_router, prefix="/workflow", tags=["workflow-social"])
-router.include_router(workflow_collab_router, prefix="/workflow", tags=["workflow-collaboration"])
-router.include_router(workflow_execute_router, prefix="/workflow", tags=["workflow-execute"])
 router.include_router(ai_router, prefix="/ai", tags=["ai"])
-router.include_router(ai_catalog_router, prefix="/ai", tags=["ai-catalog"])
-router.include_router(ai_chat_models_router, prefix="/ai", tags=["ai-chat-models"])
-router.include_router(ai_chat_router, prefix="/ai", tags=["ai-chat"])
-router.include_router(ai_chat_stream_router, prefix="/ai", tags=["ai-chat-stream"])
 router.include_router(nodes_router, prefix="/nodes", tags=["nodes"])
 router.include_router(knowledge_router, prefix="/knowledge", tags=["knowledge"])
 router.include_router(exports_router, prefix="/exports", tags=["exports"])

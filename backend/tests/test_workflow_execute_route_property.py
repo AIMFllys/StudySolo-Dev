@@ -30,7 +30,7 @@ os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
 
 from app.main import app  # noqa: E402
 from app.core import deps  # noqa: E402
-from app.api import workflow_execute as workflow_execute_module  # noqa: E402
+from app.api.workflow import execute as workflow_execute_module  # noqa: E402
 from app.middleware import auth as auth_middleware  # noqa: E402
 
 

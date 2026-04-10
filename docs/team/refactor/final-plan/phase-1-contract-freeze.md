@@ -176,13 +176,13 @@ agents:
 
 ## Phase 1 完成标志
 
-- [ ] 后端依赖方向图已输出并签字
-- [ ] 前端依赖方向图已输出并签字
-- [ ] AI Chat 合并 API 契约文档已冻结
-- [ ] Usage Tracker 装饰器契约已冻结
-- [ ] Agent Gateway 契约已与队友 B 共同签字
-- [ ] 节点 Manifest-First 契约已冻结
-- [ ] 所有契约文档存放在 `docs/team/refactor/contracts/`
+- [x] 后端依赖方向图已输出并签字 → [`contracts/backend-deps.md`](../contracts/backend-deps.md)
+- [x] 前端依赖方向图已输出并签字 → [`contracts/frontend-deps.md`](../contracts/frontend-deps.md)
+- [x] AI Chat 合并 API 契约文档已冻结 → [`contracts/ai-chat-contract.md`](../contracts/ai-chat-contract.md)
+- [x] Usage Tracker 装饰器契约已冻结 → [`contracts/usage-tracker-contract.md`](../contracts/usage-tracker-contract.md)
+- [x] Agent Gateway 契约已与队友 B 共同签字 → [`contracts/agent-gateway-contract.md`](../contracts/agent-gateway-contract.md)
+- [x] 节点 Manifest-First 契约已冻结 → [`contracts/node-manifest-contract.md`](../contracts/node-manifest-contract.md)
+- [x] 所有契约文档存放在 `docs/team/refactor/contracts/`
 
 > [!IMPORTANT]
 > **Gate 规则**：Phase 1 全部冻结后，Phase 2-4 才可以并行启动。冻结 = 写下来 + 签字 + 不许单方面改。若需修改，必须三人 sync 并更新契约文档版本号。
