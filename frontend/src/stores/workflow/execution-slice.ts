@@ -24,12 +24,7 @@ interface StoreWithGraph {
   edges: import('@xyflow/react').Edge[];
 }
 
-export const createExecutionSlice: StateCreator<
-  ExecutionSlice & StoreWithGraph,
-  [],
-  [],
-  ExecutionSlice
-> = (set) => ({
+export const createExecutionSlice: StateCreator<ExecutionSlice & StoreWithGraph, [], [], ExecutionSlice> = (set) => ({
   executionSession: null,
 
   startExecutionSession: (workflowId, workflowName) =>

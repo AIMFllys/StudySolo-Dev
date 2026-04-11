@@ -16,12 +16,7 @@ interface StoreWithGraph {
   selectedNodeId: string | null;
 }
 
-export const createHistorySlice: StateCreator<
-  HistorySlice & StoreWithGraph,
-  [],
-  [],
-  HistorySlice
-> = (set) => ({
+export const createHistorySlice: StateCreator<HistorySlice & StoreWithGraph, [], [], HistorySlice> = (set) => ({
   past: [],
   future: [],
 
