@@ -28,8 +28,41 @@ def completion_payload(settings, stream: bool = False):
     }
 
 
-def install_fake_upstream(monkeypatch, *, content: str | None = None, error: Exception | None = None):
+def install_fake_upstream(
+    monkeypatch,
+    *,
+    content: str | None = None,
+    error: Exception | None = None,
+    stream_chunks: list[str] | None = None,
+    stream_error: Exception | None = None,
+):
     state = {"instances": []}
+
+    class FakeAsyncStream:
+        def __init__(self, chunks: list[str], trailing_error: Exception | None):
+            self._chunks = list(chunks)
+            self._trailing_error = trailing_error
+
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            if self._chunks:
+                return SimpleNamespace(
+                    choices=[
+                        SimpleNamespace(
+                            delta=SimpleNamespace(content=self._chunks.pop(0)),
+                        )
+                    ]
+                )
+            if self._trailing_error is not None:
+                error_to_raise = self._trailing_error
+                self._trailing_error = None
+                raise error_to_raise
+            raise StopAsyncIteration
+
+        async def aclose(self):
+            return None
 
     class FakeAsyncOpenAI:
         def __init__(self, *, base_url, api_key, timeout):
@@ -44,6 +77,11 @@ def install_fake_upstream(monkeypatch, *, content: str | None = None, error: Exc
                 instance["calls"].append(kwargs)
                 if error is not None:
                     raise error
+                if kwargs.get("stream"):
+                    chunks = list(stream_chunks) if stream_chunks is not None else []
+                    if not chunks and content is not None:
+                        chunks = [content]
+                    return FakeAsyncStream(chunks, stream_error)
                 return SimpleNamespace(
                     choices=[
                         SimpleNamespace(
@@ -272,26 +310,29 @@ def test_non_stream_response_format_with_upstream_live_backend(monkeypatch):
     )
     assert len(state["instances"]) == 1
     assert state["instances"][0]["calls"][0]["model"] == "review-upstream-v1"
+    assert state["instances"][0]["calls"][0]["stream"] is False
 
 
 def test_stream_response_sse_format_with_upstream_live_backend(monkeypatch):
-    install_fake_upstream(
+    payload = json.dumps(
+        {
+            "findings": [
+                {
+                    "title": "Hardcoded secret",
+                    "rule_id": "hardcoded_secret",
+                    "severity": "high",
+                    "file_path": "frontend/app.tsx",
+                    "line_number": 9,
+                    "evidence": "token = 'sk-test-1234567890'",
+                    "fix": "Move the credential into environment variables.",
+                }
+            ]
+        }
+    )
+    state = install_fake_upstream(
         monkeypatch,
-        content=json.dumps(
-            {
-                "findings": [
-                    {
-                        "title": "Hardcoded secret",
-                        "rule_id": "hardcoded_secret",
-                        "severity": "high",
-                        "file_path": "frontend/app.tsx",
-                        "line_number": 9,
-                        "evidence": "token = 'sk-test-1234567890'",
-                        "fix": "Move the credential into environment variables.",
-                    }
-                ]
-            }
-        ),
+        content=payload,
+        stream_chunks=[payload[:32], payload[32:74], payload[74:]],
     )
     monkeypatch.setenv("AGENT_API_KEY", "test-agent-key")
     monkeypatch.setenv("AGENT_REVIEW_BACKEND", "upstream_openai_compatible")
@@ -318,3 +359,5 @@ def test_stream_response_sse_format_with_upstream_live_backend(monkeypatch):
     stream_content = collect_stream_content(response)
     assert "Title: Hardcoded secret" in stream_content
     assert "Rule ID: hardcoded_secret" in stream_content
+    assert len(state["instances"]) == 1
+    assert state["instances"][0]["calls"][0]["stream"] is True

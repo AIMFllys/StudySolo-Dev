@@ -1,7 +1,7 @@
 import json
 import re
 from dataclasses import dataclass
-from typing import Literal
+from typing import Any, Literal
 
 from openai import AsyncOpenAI
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
@@ -184,3 +184,47 @@ async def call_openai_compatible_review(
     choice = response.choices[0] if response.choices else None
     content = getattr(getattr(choice, "message", None), "content", None) or ""
     return parse_upstream_review_payload(content)
+
+
+def _extract_stream_chunk_content(chunk: Any) -> str:
+    choices = getattr(chunk, "choices", None) or ()
+    pieces: list[str] = []
+
+    for choice in choices:
+        delta = getattr(choice, "delta", None)
+        content = getattr(delta, "content", None)
+        if isinstance(content, str) and content:
+            pieces.append(content)
+
+    return "".join(pieces)
+
+
+async def call_openai_compatible_review_stream(
+    request: UpstreamReviewRequest,
+) -> UpstreamFindingsPayload:
+    if not request.model or not request.base_url or not request.api_key:
+        raise UpstreamReviewError("Upstream review configuration is incomplete")
+
+    client = AsyncOpenAI(
+        base_url=request.base_url,
+        api_key=request.api_key,
+        timeout=request.timeout_seconds,
+    )
+    response_stream = await client.chat.completions.create(
+        model=request.model,
+        messages=list(request.messages),
+        stream=True,
+    )
+
+    collected_content: list[str] = []
+    try:
+        async for chunk in response_stream:
+            chunk_content = _extract_stream_chunk_content(chunk)
+            if chunk_content:
+                collected_content.append(chunk_content)
+    finally:
+        aclose = getattr(response_stream, "aclose", None)
+        if callable(aclose):
+            await aclose()
+
+    return parse_upstream_review_payload("".join(collected_content))

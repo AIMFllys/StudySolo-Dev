@@ -2,7 +2,7 @@ import asyncio
 import re
 from dataclasses import dataclass
 from math import ceil
-from typing import Literal
+from typing import AsyncIterator, Literal
 
 import src.core.upstream_review as upstream_review
 
@@ -580,10 +580,17 @@ class CodeReviewAgent:
         self.review_backend = review_backend
         self.upstream_settings = upstream_settings or upstream_review.UpstreamReviewSettings()
 
-    async def complete(self, messages: list[dict[str, str]]) -> CompletionResult:
+    def _prepare_messages(
+        self,
+        messages: list[dict[str, str]],
+    ) -> tuple[str, PreparedReview]:
         prompt_text = "\n".join(message.get("content", "") for message in messages)
         latest_user_message = self._latest_user_message(messages)
         prepared_review = self.prepare_review_text(latest_user_message)
+        return prompt_text, prepared_review
+
+    async def complete(self, messages: list[dict[str, str]]) -> CompletionResult:
+        prompt_text, prepared_review = self._prepare_messages(messages)
         content = await self._render_review_async(prepared_review)
         return CompletionResult(
             content=content,
@@ -593,6 +600,18 @@ class CodeReviewAgent:
 
     def stream_chunks(self, content: str) -> list[str]:
         return iter_text_chunks(content)
+
+    async def stream_review_chunks(
+        self,
+        messages: list[dict[str, str]],
+    ) -> AsyncIterator[str]:
+        _, prepared_review = self._prepare_messages(messages)
+        content = await self._render_review_async(
+            prepared_review,
+            prefer_upstream_streaming=True,
+        )
+        for piece in iter_text_chunks(content):
+            yield piece
 
     def prepare_review_text(self, text: str) -> PreparedReview:
         payload = extract_structured_review_payload(text)
@@ -625,7 +644,12 @@ class CodeReviewAgent:
         findings = collect_findings(prepared_review.review_input)
         return format_review(prepared_review.review_input, findings)
 
-    async def _render_review_async(self, prepared_review: PreparedReview) -> str:
+    async def _render_review_async(
+        self,
+        prepared_review: PreparedReview,
+        *,
+        prefer_upstream_streaming: bool = False,
+    ) -> str:
         if self.review_backend == "heuristic":
             findings = collect_findings(prepared_review.review_input)
             return format_review(prepared_review.review_input, findings)
@@ -635,7 +659,10 @@ class CodeReviewAgent:
             findings = collect_findings(prepared_review.review_input)
             return format_review(prepared_review.review_input, findings)
 
-        live_findings = await self._collect_live_upstream_findings(prepared_review)
+        live_findings = await self._collect_live_upstream_findings(
+            prepared_review,
+            prefer_streaming=prefer_upstream_streaming,
+        )
         if live_findings is not None:
             return format_review(
                 prepared_review.review_input,
@@ -662,21 +689,25 @@ class CodeReviewAgent:
     async def _collect_live_upstream_findings(
         self,
         prepared_review: PreparedReview,
+        *,
+        prefer_streaming: bool = False,
     ) -> list[ReviewFinding] | None:
         if not upstream_review.has_live_upstream_configuration(self.upstream_settings):
             return None
 
         try:
-            payload = await upstream_review.call_openai_compatible_review(
-                upstream_review.build_upstream_review_request(
-                    settings=self.upstream_settings,
-                    input_kind=prepared_review.review_input.kind,
-                    review_target_text=prepared_review.review_input.raw_text,
-                    review_target_path=prepared_review.payload.review_target_path,
-                    context_blocks=prepared_review.payload.context_blocks,
-                    uses_structured_input=prepared_review.payload.uses_structured_input,
-                )
+            request = upstream_review.build_upstream_review_request(
+                settings=self.upstream_settings,
+                input_kind=prepared_review.review_input.kind,
+                review_target_text=prepared_review.review_input.raw_text,
+                review_target_path=prepared_review.payload.review_target_path,
+                context_blocks=prepared_review.payload.context_blocks,
+                uses_structured_input=prepared_review.payload.uses_structured_input,
             )
+            if prefer_streaming:
+                payload = await upstream_review.call_openai_compatible_review_stream(request)
+            else:
+                payload = await upstream_review.call_openai_compatible_review(request)
         except Exception:
             return None
 

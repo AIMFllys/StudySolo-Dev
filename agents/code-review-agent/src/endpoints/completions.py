@@ -70,9 +70,9 @@ async def create_chat_completion(
         ),
     )
     messages = [message.model_dump() for message in body.messages]
-    result = await agent.complete(messages)
 
     if not body.stream:
+        result = await agent.complete(messages)
         response = ChatCompletionResponse(
             model=settings.model_id,
             choices=[
@@ -90,7 +90,6 @@ async def create_chat_completion(
 
     completion_id = new_chat_completion_id()
     created = current_timestamp()
-    chunks = agent.stream_chunks(result.content)
 
     async def event_stream():
         role_chunk = ChatCompletionChunk(
@@ -105,7 +104,7 @@ async def create_chat_completion(
         )
         yield f"data: {_json_payload(role_chunk)}\n\n"
 
-        for piece in chunks:
+        async for piece in agent.stream_review_chunks(messages):
             content_chunk = ChatCompletionChunk(
                 id=completion_id,
                 created=created,

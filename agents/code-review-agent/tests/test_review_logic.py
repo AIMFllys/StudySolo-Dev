@@ -23,8 +23,51 @@ def render_review(
     return agent.review_text(text)
 
 
-def install_fake_upstream(monkeypatch, *, content: str | None = None, error: Exception | None = None):
+async def collect_stream_review(
+    agent: CodeReviewAgent,
+    messages: list[dict[str, str]],
+) -> str:
+    pieces: list[str] = []
+    async for piece in agent.stream_review_chunks(messages):
+        pieces.append(piece)
+    return "".join(pieces)
+
+
+def install_fake_upstream(
+    monkeypatch,
+    *,
+    content: str | None = None,
+    error: Exception | None = None,
+    stream_chunks: list[str] | None = None,
+    stream_error: Exception | None = None,
+):
     state = {"instances": []}
+
+    class FakeAsyncStream:
+        def __init__(self, chunks: list[str], trailing_error: Exception | None):
+            self._chunks = list(chunks)
+            self._trailing_error = trailing_error
+
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            if self._chunks:
+                return SimpleNamespace(
+                    choices=[
+                        SimpleNamespace(
+                            delta=SimpleNamespace(content=self._chunks.pop(0)),
+                        )
+                    ]
+                )
+            if self._trailing_error is not None:
+                error_to_raise = self._trailing_error
+                self._trailing_error = None
+                raise error_to_raise
+            raise StopAsyncIteration
+
+        async def aclose(self):
+            return None
 
     class FakeAsyncOpenAI:
         def __init__(self, *, base_url, api_key, timeout):
@@ -39,6 +82,11 @@ def install_fake_upstream(monkeypatch, *, content: str | None = None, error: Exc
                 instance["calls"].append(kwargs)
                 if error is not None:
                     raise error
+                if kwargs.get("stream"):
+                    chunks = list(stream_chunks) if stream_chunks is not None else []
+                    if not chunks and content is not None:
+                        chunks = [content]
+                    return FakeAsyncStream(chunks, stream_error)
                 return SimpleNamespace(
                     choices=[
                         SimpleNamespace(
@@ -481,6 +529,7 @@ export const helper = true;
     assert len(state["instances"]) == 1
     assert state["instances"][0]["base_url"] == "https://example.test/v1"
     assert state["instances"][0]["calls"][0]["model"] == "review-upstream-v1"
+    assert state["instances"][0]["calls"][0]["stream"] is False
 
 
 def test_upstream_openai_compatible_missing_config_falls_back_without_client(monkeypatch):
@@ -579,6 +628,117 @@ def test_upstream_openai_compatible_exception_falls_back_to_heuristic(monkeypatc
 
     assert "1. Title: Debug artifact" in review
     assert "external model reasoning is limited" not in review
+
+
+def test_stream_review_chunks_with_upstream_openai_compatible_uses_provider_stream(monkeypatch):
+    payload = json.dumps(
+        {
+            "findings": [
+                {
+                    "title": "Hardcoded secret",
+                    "rule_id": "hardcoded_secret",
+                    "severity": "high",
+                    "file_path": "frontend/app.tsx",
+                    "line_number": 4,
+                    "evidence": "token = 'sk-test-1234567890'",
+                    "fix": "Move the credential into environment variables.",
+                }
+            ]
+        }
+    )
+    state = install_fake_upstream(
+        monkeypatch,
+        content=payload,
+        stream_chunks=[payload[:24], payload[24:68], payload[68:]],
+    )
+    agent = CodeReviewAgent(
+        agent_name="code-review",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+    messages = [
+        {
+            "role": "user",
+            "content": """<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+return total;
+```
+</review_target>""",
+        }
+    ]
+
+    stream_review = asyncio.run(collect_stream_review(agent, messages))
+    non_stream_review = asyncio.run(agent.review_text_async(messages[0]["content"]))
+
+    assert stream_review == non_stream_review
+    assert "1. Title: Hardcoded secret" in stream_review
+    assert state["instances"][0]["calls"][0]["stream"] is True
+
+
+def test_stream_review_chunks_with_upstream_openai_compatible_falls_back_before_content(
+    monkeypatch,
+):
+    state = install_fake_upstream(
+        monkeypatch,
+        stream_chunks=['{"findings": ['],
+        stream_error=TimeoutError("upstream stream timeout"),
+    )
+    text = "```ts\nconsole.log('debug');\n```"
+    agent = CodeReviewAgent(
+        agent_name="code-review",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    stream_review = asyncio.run(
+        collect_stream_review(agent, [{"role": "user", "content": text}])
+    )
+    heuristic_review = render_review(text)
+
+    assert stream_review == heuristic_review
+    assert "1. Title: Debug artifact" in stream_review
+    assert "external model reasoning is limited" not in stream_review
+    assert state["instances"][0]["calls"][0]["stream"] is True
+
+
+def test_stream_review_chunks_with_upstream_openai_compatible_invalid_json_falls_back(
+    monkeypatch,
+):
+    state = install_fake_upstream(
+        monkeypatch,
+        stream_chunks=["not-json"],
+    )
+    text = "```ts\nconsole.log('debug');\n```"
+    agent = CodeReviewAgent(
+        agent_name="code-review",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    stream_review = asyncio.run(
+        collect_stream_review(agent, [{"role": "user", "content": text}])
+    )
+    heuristic_review = render_review(text)
+
+    assert stream_review == heuristic_review
+    assert "1. Title: Debug artifact" in stream_review
+    assert state["instances"][0]["calls"][0]["stream"] is True
 
 
 def test_prepare_review_text_legacy_message_uses_entire_text_as_target():
