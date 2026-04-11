@@ -335,3 +335,161 @@
 - 最小 patch
 - 一次一个闭环
 - 不顺手处理 `MemoryView`、compat shim、无关脏文件
+
+## 8. 追加更新（2026-04-11 晚）：Manifest 契约闭环与跨域 EventBus 第二批已完成
+
+在上述阶段总结形成后，Phase 3 又继续向前推进了三个独立闭环，分别覆盖 backend manifest 契约、frontend manifest renderer 接线，以及跨域 EventBus 第二批迁移。
+
+### 8.1 `feat(backend): extend node manifest metadata contract`
+
+后端节点 manifest 已从“预留契约”推进到“真实 API 已返回新字段”。
+
+#### 完成内容
+1. `backend/app/nodes/_base.py`
+   - `BaseNode` 新增类变量：
+     - `display_name`
+     - `renderer`
+     - `version`
+   - `BaseNode.get_manifest()` 统一输出这三个字段
+2. 现有节点已显式补齐 `display_name`
+   - 例如：
+     - `trigger_input -> 用户输入`
+     - `ai_analyzer -> 需求分析`
+     - `ai_planner -> 工作流规划`
+     - `summary -> 总结归纳`
+     - `loop_group -> 循环块`
+     - `community_node -> 社区共享节点`
+3. 现有专用 renderer 节点已显式补齐 `renderer`
+   - `outline_gen -> OutlineRenderer`
+   - `flashcard -> FlashcardRenderer`
+   - `compare -> CompareRenderer`
+   - `mind_map -> MindMapRenderer`
+   - `quiz_gen -> QuizRenderer`
+   - `community_node -> CommunityNodeRenderer`
+4. `version` 当前统一固定为 `1.0.0`
+5. 新增 dedicated route test
+   - `backend/tests/test_node_manifest_contract_property.py`
+
+#### 结果
+- `GET /api/nodes/manifest` 现在真实返回：
+  - `display_name`
+  - `renderer`
+  - `version`
+- backend manifest 契约不再只是冻结文档，而是已落地实现
+
+### 8.2 `refactor(frontend): align node manifest types and renderer resolution`
+
+这一闭环把前端 manifest 数据面与新的 backend 契约对齐，并让 renderer 选择真正走 manifest-first 的最小运行路径。
+
+#### 完成内容
+1. `frontend/src/types/workflow.ts`
+   - `NodeManifestItem` 新增：
+     - `display_name`
+     - `renderer`
+     - `version`
+2. `frontend/src/services/node-manifest.service.ts`
+   - 保持现有 cache / inflight 结构
+   - 新增 `peekNodeManifestCache()`，让消费方能优先复用已缓存 manifest
+3. `frontend/src/features/workflow/hooks/use-node-manifest.ts`
+   - 新增：
+     - `findNodeManifestItem(...)`
+     - `useNodeManifestItem(...)`
+   - 保持原 hook 形态，不新增 store，不做全局初始化
+4. 两个输出渲染入口现在都改为：
+   - manifest 命中 `renderer` 时，优先走 `resolveRenderer({ nodeType, rendererName })`
+   - manifest 缺失或 renderer 无效时，继续回退到静态 `nodeType -> renderer` 映射
+5. 新增测试
+   - `frontend/src/__tests__/node-manifest.service.property.test.ts`
+
+#### 范围控制
+- 这一轮**只接 renderer**
+- 没有把 `workflow-meta.ts`、节点商店、节点配置抽屉改成 manifest 驱动
+- `NodeConfigFormContent` 继续只把 manifest 用在：
+  - `config_schema`
+  - `output_capabilities`
+  - `deprecated_surface`
+
+### 8.3 `refactor(frontend): migrate cross-domain events to typed bus`
+
+在 workflow-local EventBus 第一批完成后，这一轮继续完成第二批跨域事件迁移。
+
+#### 完成内容
+1. `frontend/src/lib/events/event-bus.ts`
+   - 新增事件：
+     - `node-store:add-node`
+     - `studysolo:tier-refresh`
+2. `node-store:add-node`
+   - 发射端：
+     - `frontend/src/components/layout/sidebar/NodeStoreItem.tsx`
+   - 监听端：
+     - `frontend/src/features/workflow/hooks/use-canvas-event-listeners.ts`
+   - 已从 `window.dispatchEvent / addEventListener` 切换到 typed event bus
+3. `studysolo:tier-refresh`
+   - 发射端：
+     - `frontend/src/app/upgrade/_components/RedeemCode.tsx`
+   - 监听端：
+     - `frontend/src/components/layout/sidebar/UserPanel.tsx`
+     - `frontend/src/components/layout/sidebar/WalletPanel.tsx`
+   - 已从旧 `window` 自定义事件切换到 typed event bus
+4. `frontend/src/__tests__/workflow-event-bus.property.test.ts`
+   - 新增了第二批事件的测试覆盖
+
+#### 明确保留
+- `frontend/src/app/m/[id]/MemoryView.tsx` 仍然不动
+- `workflow:toggle-all-slips` 的 legacy 兼容监听仍保留在 `NodeResultSlip.tsx`
+- 这保证 `/m/[id]` 仍能沿旧链路工作，不被第二批事件迁移误伤
+
+### 8.4 本轮新增验证结果
+
+#### 后端
+- `pytest backend/tests/test_node_manifest_contract_property.py`
+- 结果：通过
+
+#### 前端
+- `pnpm.cmd test -- src/__tests__/node-manifest.service.property.test.ts src/__tests__/node-renderer-registry.property.test.ts src/__tests__/workflow-event-bus.property.test.ts`
+- 实际结果：Vitest 全量测试一并执行，`39` 个测试文件、`155` 个测试全部通过
+
+#### 构建
+- `pnpm.cmd build`
+- 结果：通过
+
+#### 静态扫描结论
+- `node-store:add-node` 不再有旧 `window` 自定义事件残留
+- `studysolo:tier-refresh` 不再有旧 `window` 自定义事件残留
+- 仅剩 `MemoryView.tsx` 继续保留既有 `workflow:toggle-all-slips` 兼容路径
+
+### 8.5 当前本地提交链追加
+
+在之前 6 个本地提交基础上，又新增了 3 个本地提交：
+
+- `eaeabab feat(backend): extend node manifest metadata contract`
+- `0d87d1a refactor(frontend): align node manifest types and renderer resolution`
+- `ca47b64 refactor(frontend): migrate cross-domain events to typed bus`
+
+因此当前本地 `main` 相比 `origin/main` 已累计超前 `10` 个提交。
+
+### 8.6 当前最准确的状态判断（更新版）
+
+截至 2026-04-11 当前最新本地状态，Phase 3 可以这样重新判断：
+
+1. **D2 已完成 workflow 主域收口**
+   - stores 新结构、compat shim、workflow 主域路径迁移都已稳定
+2. **Task 3.3 已完成当前规划内最重要的一批 service consolidation**
+   - workflow / collaboration / community-node / memory 相关 service 已明显收薄
+3. **Task 3.4 已完成两批事件迁移**
+   - workflow-local 第一批已完成
+   - `node-store:add-node` 与 `studysolo:tier-refresh` 第二批也已完成
+4. **Task 3.5 已不再停留在“静态预适配”**
+   - backend manifest 契约已真实返回新字段
+   - frontend 输出渲染已真正接入 manifest `renderer`
+5. **当前仍显式保留的例外只剩少数边界项**
+   - `MemoryView.tsx`
+   - compat shim
+   - `workflow-meta.ts` 的 label/icon/description 硬编码职责
+
+换句话说，Phase 3 现在已经从“准备接 manifest / 第二批事件尚未开始”，推进到了：
+
+- manifest 契约已真实落地
+- renderer-first 的最小运行时接线已完成
+- 跨域事件第二批已落地
+- 构建与核心测试链保持绿色
