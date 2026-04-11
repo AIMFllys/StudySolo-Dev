@@ -1,6 +1,6 @@
 # Code Review Agent
 
-> 状态：🔨 规则型本地审查 Agent 已落地（含 repo-aware 前置输入与 forwarding governance）
+> 状态：🔨 规则型本地审查 Agent 已落地（含 repo-aware 前置输入、forwarding governance 与 utilization hints）
 > 负责人：小李
 > 端口：8001
 > 来源：新建
@@ -9,7 +9,7 @@
 
 ## 用途
 
-自动化代码审查 Agent。当前版本已经具备 Phase 4B 所需的最小 OpenAI-compatible 协议、规则型本地审查能力，以及单条 `user` 消息内的结构化 repo context 前置输入与 forwarding governance 能力。
+自动化代码审查 Agent。当前版本已经具备 Phase 4B 所需的最小 OpenAI-compatible 协议、规则型本地审查能力，以及单条 `user` 消息内的结构化 repo context 前置输入、forwarding governance 与 repo-aware utilization hints 能力。
 
 ## 当前能力
 
@@ -27,6 +27,11 @@
   - `<repo_context path="...">...</repo_context>`
   - 仍只对 `review_target` 出 findings；`repo_context` 在 live upstream 路径下只作为经过治理后的辅助上下文
   - forwarded context 会做路径归一化、去重、关系排序与预算裁剪，并在超限时追加 `... [truncated]`
+- repo-aware utilization hints：
+  - upstream system prompt 会明确 findings 只能针对 `review_target`
+  - upstream user prompt 会显式带上 `review scope hint`
+  - 每个 forwarded context 会补入 `shared identifiers`、`usage priority`
+  - 既有的 `relationship / truncated` 提示继续保留
 
 ## 运行
 
@@ -90,6 +95,7 @@ export function debugLog(message: string) {
   - 配置缺失、超时、HTTP 异常、空内容或 JSON / findings 不合规都会严格回退到 `heuristic`
   - 上游成功后只消费内部 JSON findings，并归一化回当前稳定文本模板
   - 上游 prompt 中的 `repo_context` 会先经过 forwarding governance：归一化路径、丢弃与 `review_target` 重复的 context、按 `same_dir / same_top_level / same_extension / other` 排序，并按 `4` 文件 / 单文件 `80` 行 / 总计 `200` 行预算裁剪
+  - 在 forward 之后，upstream prompt 还会进一步补入 `review scope hint`、逐 context 的 `shared identifiers`、`usage priority`，并继续保留 `relationship / truncated`
 
 当前预留配置项均沿用 `AGENT_` 前缀环境变量：
 
@@ -128,7 +134,7 @@ export function debugLog(message: string) {
 
 补充说明：
 - `repo_context` 不会单独产出 findings；但在 live upstream 路径下，会以治理后的 forwarded context 形式进入上游 prompt。
-- forwarded context 会显式标记 `relationship` 与 `truncated` 状态，帮助上游更稳定利用上下文，而不是无上限原样透传。
+- forwarded context 会显式标记 `relationship` 与 `truncated` 状态，并补入 `shared identifiers` 与 `usage priority`，帮助上游更稳定利用上下文，而不是无上限原样透传。
 - findings 排序已固定为：`severity -> file_path -> line_number -> position -> rule_id`。
 - 没有文件路径时，`File:` 行固定输出 `<none>`，避免模板分支漂移。
 - 即使成功走 `upstream_openai_compatible`，最终返回给客户端的仍是同一套稳定纯文本模板。
@@ -139,8 +145,14 @@ export function debugLog(message: string) {
 - 当前 `src/core/agent.py` 已可选接入外部 OpenAI-compatible 上游，但默认仍是本地启发式规则审查
 - 当前 `stream=True + upstream_openai_compatible` 已接通真实 provider streaming，但继续采用“稳定模板优先”的本地归一化策略
 - 当前不读取本地仓库文件；repo context 仍必须由调用方显式放进最后一条 `user` 消息，并只会以治理后的 forwarded context 形式进入上游
+- 当前 upstream prompt 已显式具备 `review scope hint`、`shared identifiers`、`usage priority`，用于约束和提升 repo-aware 利用质量
 - 输出保持 `Summary + Findings + Limitations`
 - 后续如果接真实仓库分析或上游 LLM，仍以 `src/core/agent.py` 为主扩展点
+
+## 当前测试基线
+
+- `pytest tests -q`
+- 最新真实结果：`66 passed`
 
 ## 参考
 
