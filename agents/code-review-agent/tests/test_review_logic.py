@@ -8,6 +8,8 @@ from src.core.agent import (
     CodeReviewAgent,
     StructuredReviewPayload,
     UNVALIDATED_UPSTREAM_FIX_ADVICE,
+    UNVALIDATED_UPSTREAM_TITLE,
+    normalize_unknown_live_title,
     normalize_unknown_live_fix_advice,
     preprocess_forwarded_context,
 )
@@ -1089,6 +1091,137 @@ return total;
     assert "Fix: Use a safer helper." in review
 
 
+def test_upstream_openai_compatible_backend_preserves_unknown_rule_title_with_matching_identifier(
+    monkeypatch,
+):
+    install_fake_upstream(
+        monkeypatch,
+        content=json.dumps(
+            {
+                "findings": [
+                    {
+                        "title": "Total return issue",
+                        "rule_id": "custom_rule",
+                        "severity": "medium",
+                        "file_path": "frontend/app.tsx",
+                        "line_number": 2,
+                        "evidence": "return total;",
+                        "fix": "Review carefully.",
+                    }
+                ]
+            }
+        ),
+    )
+
+    review = render_review(
+        """<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+return total;
+```
+</review_target>""",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    assert "1. Title: Total return issue" in review
+    assert "Rule ID: custom_rule" in review
+    assert "Fix: Review carefully." in review
+
+
+def test_upstream_openai_compatible_backend_rewrites_unknown_rule_title_with_foreign_identifier(
+    monkeypatch,
+):
+    install_fake_upstream(
+        monkeypatch,
+        content=json.dumps(
+            {
+                "findings": [
+                    {
+                        "title": "CacheManager mismatch",
+                        "rule_id": "custom_rule",
+                        "severity": "medium",
+                        "file_path": "frontend/app.tsx",
+                        "line_number": 2,
+                        "evidence": "return total;",
+                        "fix": "Review carefully.",
+                    }
+                ]
+            }
+        ),
+    )
+
+    review = render_review(
+        """<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+return total;
+```
+</review_target>""",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    assert f"1. Title: {UNVALIDATED_UPSTREAM_TITLE}" in review
+    assert "Rule ID: custom_rule" in review
+    assert "Fix: Review carefully." in review
+    assert "CacheManager mismatch" not in review
+
+
+def test_upstream_openai_compatible_backend_rewrites_unknown_rule_title_with_foreign_path(
+    monkeypatch,
+):
+    install_fake_upstream(
+        monkeypatch,
+        content=json.dumps(
+            {
+                "findings": [
+                    {
+                        "title": "Issue in backend/service.py",
+                        "rule_id": "custom_rule",
+                        "severity": "medium",
+                        "file_path": "frontend/app.tsx",
+                        "line_number": 2,
+                        "evidence": "return total;",
+                        "fix": "Review carefully.",
+                    }
+                ]
+            }
+        ),
+    )
+
+    review = render_review(
+        """<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+return total;
+```
+</review_target>""",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    assert f"1. Title: {UNVALIDATED_UPSTREAM_TITLE}" in review
+    assert "Rule ID: custom_rule" in review
+    assert "Fix: Review carefully." in review
+    assert "Issue in backend/service.py" not in review
+
+
 def test_upstream_openai_compatible_backend_rewrites_unknown_rule_fix_with_foreign_identifier(
     monkeypatch,
 ):
@@ -1225,6 +1358,27 @@ return total;
     assert "Findings found: 1" in review
     assert review.count("Rule ID: custom_rule") == 1
     assert review.count(UNVALIDATED_UPSTREAM_FIX_ADVICE) == 1
+
+
+def test_normalize_unknown_live_title_rewrites_empty_title():
+    review_input = CodeReviewAgent(agent_name="code-review").prepare_review_text(
+        """<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+return total;
+```
+</review_target>"""
+    ).review_input
+
+    title = normalize_unknown_live_title(
+        review_input,
+        review_target_path="frontend/app.tsx",
+        file_path="frontend/app.tsx",
+        evidence="return total;",
+        title="   ",
+    )
+
+    assert title == UNVALIDATED_UPSTREAM_TITLE
 
 
 def test_normalize_unknown_live_fix_advice_rewrites_empty_fix():
