@@ -50,6 +50,14 @@ CODE_HINTS = (
     "}",
 )
 
+BROAD_EXCEPTION_HEADER_PATTERN = re.compile(
+    r"^\s*except(?:\s+(?:Exception|BaseException)(?:\s+as\s+\w+)?)?\s*:\s*(?P<inline>.*)$",
+    re.IGNORECASE,
+)
+SWALLOW_ACTION_PATTERN = re.compile(r"^(?:pass\b|continue\b|return\s+None\b)")
+MAX_SWALLOW_LOOKAHEAD = 3
+MAX_SWALLOW_POSITION_GAP = 4
+
 
 @dataclass(slots=True)
 class ReviewLine:
@@ -137,13 +145,30 @@ RULES: tuple[RuleSpec, ...] = (
         advice="Avoid raw HTML sinks; sanitize trusted content or render structured data instead.",
     ),
     RuleSpec(
-        rule_id="broad_exception_swallow",
-        title="Broad exception swallow",
-        severity="medium",
-        patterns=(re.compile(r"^\s*except(?:\s+Exception)?\s*:\s*(?:#.*)?$", re.IGNORECASE),),
-        advice=(
-            "Catch a narrower exception type and handle or re-raise it with context instead of swallowing everything."
+        rule_id="shell_command_execution",
+        title="Shell command execution",
+        severity="high",
+        patterns=(
+            re.compile(
+                r"\bsubprocess\.(?:run|Popen|call|check_call|check_output)\s*\([^)]*\bshell\s*=\s*True\b"
+            ),
+            re.compile(r"\bos\.system\s*\("),
+            re.compile(r"\bchild_process\.(?:exec|execSync)\s*\("),
         ),
+        advice=(
+            "Avoid shell-based execution when possible; prefer argument arrays, allowlists, and explicit escaping."
+        ),
+    ),
+    RuleSpec(
+        rule_id="tls_verification_disabled",
+        title="TLS verification disabled",
+        severity="high",
+        patterns=(
+            re.compile(r"\bverify\s*=\s*False\b"),
+            re.compile(r"\brejectUnauthorized\s*:\s*false\b"),
+            re.compile(r"\bssl\._create_unverified_context\s*\("),
+        ),
+        advice="Keep certificate verification enabled and trust only known CAs or pinned certificates.",
     ),
     RuleSpec(
         rule_id="debug_artifact",
@@ -289,6 +314,75 @@ def shorten_evidence(text: str, limit: int = 96) -> str:
     return f"{compact[: limit - 3]}..."
 
 
+def line_indent(text: str) -> int:
+    return len(text) - len(text.lstrip(" \t"))
+
+
+def build_rule_finding(
+    rule: RuleSpec,
+    line: ReviewLine,
+    evidence: str | None = None,
+) -> ReviewFinding:
+    return ReviewFinding(
+        rule_id=rule.rule_id,
+        title=rule.title,
+        severity=rule.severity,
+        evidence=shorten_evidence(evidence or line.evidence),
+        advice=rule.advice,
+        position=line.position,
+        file_path=line.file_path,
+        line_number=line.line_number,
+    )
+
+
+def collect_broad_exception_findings(review_input: ReviewInput) -> list[ReviewFinding]:
+    rule = RuleSpec(
+        rule_id="broad_exception_swallow",
+        title="Broad exception swallow",
+        severity="medium",
+        patterns=(),
+        advice=(
+            "Catch a narrower exception type and handle or re-raise it with context instead of swallowing everything."
+        ),
+    )
+    findings: list[ReviewFinding] = []
+    seen_files: set[str | None] = set()
+
+    for index, line in enumerate(review_input.lines):
+        match = BROAD_EXCEPTION_HEADER_PATTERN.match(line.text)
+        if not match:
+            continue
+        if line.file_path in seen_files:
+            continue
+
+        inline_action = match.group("inline").strip()
+        if inline_action and SWALLOW_ACTION_PATTERN.match(inline_action):
+            findings.append(build_rule_finding(rule, line, f"{line.text.strip()} -> {inline_action}"))
+            seen_files.add(line.file_path)
+            continue
+
+        header_indent = line_indent(line.text)
+        for next_line in review_input.lines[index + 1:index + 1 + MAX_SWALLOW_LOOKAHEAD]:
+            if next_line.file_path != line.file_path:
+                break
+            if next_line.position - line.position > MAX_SWALLOW_POSITION_GAP:
+                break
+            if line_indent(next_line.text) <= header_indent:
+                break
+
+            nested_text = next_line.text.strip()
+            if not nested_text or nested_text.startswith("#"):
+                continue
+            if SWALLOW_ACTION_PATTERN.match(nested_text):
+                findings.append(
+                    build_rule_finding(rule, line, f"{line.text.strip()} -> {nested_text}")
+                )
+                seen_files.add(line.file_path)
+            break
+
+    return findings
+
+
 def collect_findings(review_input: ReviewInput) -> list[ReviewFinding]:
     findings: list[ReviewFinding] = []
     seen_rule_locations: set[tuple[str, str | None]] = set()
@@ -300,18 +394,9 @@ def collect_findings(review_input: ReviewInput) -> list[ReviewFinding]:
                 if dedupe_key in seen_rule_locations:
                     continue
                 seen_rule_locations.add(dedupe_key)
-                findings.append(
-                    ReviewFinding(
-                        rule_id=rule.rule_id,
-                        title=rule.title,
-                        severity=rule.severity,
-                        evidence=shorten_evidence(line.evidence),
-                        advice=rule.advice,
-                        position=line.position,
-                        file_path=line.file_path,
-                        line_number=line.line_number,
-                    )
-                )
+                findings.append(build_rule_finding(rule, line))
+
+    findings.extend(collect_broad_exception_findings(review_input))
 
     findings.sort(key=lambda finding: (SEVERITY_ORDER[finding.severity], finding.position))
     return findings[:MAX_FINDINGS]

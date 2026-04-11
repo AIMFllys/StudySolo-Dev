@@ -38,6 +38,16 @@ def render_review(text: str) -> str:
             "Dangerous dynamic execution [high]",
             "code_snippet",
         ),
+        (
+            "```python\nsubprocess.run(command, shell=True)\n```",
+            "Shell command execution [high]",
+            "code_snippet",
+        ),
+        (
+            "```python\nrequests.get(url, verify=False)\n```",
+            "TLS verification disabled [high]",
+            "code_snippet",
+        ),
     ],
 )
 def test_rule_findings_are_reported(text, expected_title, expected_kind):
@@ -54,6 +64,28 @@ def test_clean_input_reports_no_findings():
 
     assert "Findings found: 0" in review
     assert "No deterministic findings" in review
+
+
+def test_broad_exception_swallow_detects_bare_except_with_nested_continue():
+    review = render_review(
+        "```python\ntry:\n    sync()\nexcept:\n    continue\n```"
+    )
+
+    assert "Broad exception swallow [medium]" in review
+
+
+def test_safe_shell_and_tls_usage_do_not_trigger_findings():
+    review = render_review(
+        """```python
+subprocess.run(["git", "status"], shell=False)
+response = requests.get(url, verify=True)
+ssl.create_default_context()
+```"""
+    )
+
+    assert "Findings found: 0" in review
+    assert "Shell command execution [high]" not in review
+    assert "TLS verification disabled [high]" not in review
 
 
 def test_complete_only_analyzes_latest_user_message():
@@ -107,6 +139,31 @@ diff --git a/backend/service.py b/backend/service.py
     assert "File: frontend/app.tsx:9" in review
 
 
+def test_multi_file_diff_reports_new_rule_paths_and_line_numbers():
+    review = render_review(
+        """```diff
+diff --git a/backend/runner.py b/backend/runner.py
+--- a/backend/runner.py
++++ b/backend/runner.py
+@@ -10,1 +10,2 @@
+ def execute(command):
++    subprocess.run(command, shell=True)
+diff --git a/frontend/http.ts b/frontend/http.ts
+--- a/frontend/http.ts
++++ b/frontend/http.ts
+@@ -4,1 +4,2 @@
+ export async function load() {
++  return fetch(url, { agent: new https.Agent({ rejectUnauthorized: false }) })
+```"""
+    )
+
+    assert "- Files reviewed: 2" in review
+    assert "Shell command execution [high]" in review
+    assert "TLS verification disabled [high]" in review
+    assert "File: backend/runner.py:11" in review
+    assert "File: frontend/http.ts:5" in review
+
+
 def test_same_rule_same_file_only_reports_first_hit():
     review = render_review(
         """```diff
@@ -122,6 +179,24 @@ diff --git a/frontend/app.tsx b/frontend/app.tsx
 
     assert review.count("Debug artifact [low]") == 1
     assert "File: frontend/app.tsx:1" in review
+
+
+def test_same_broad_exception_rule_same_file_only_reports_first_hit():
+    review = render_review(
+        """```diff
+diff --git a/backend/service.py b/backend/service.py
+--- a/backend/service.py
++++ b/backend/service.py
+@@ -1,1 +1,6 @@
++except Exception as exc:
++    pass
++except:
++    continue
+```"""
+    )
+
+    assert review.count("Broad exception swallow [medium]") == 1
+    assert "File: backend/service.py:1" in review
 
 
 def test_fragment_diff_falls_back_to_unknown_file_when_header_missing():
