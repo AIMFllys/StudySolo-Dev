@@ -282,13 +282,13 @@ def test_non_stream_response_format_with_upstream_live_backend(monkeypatch):
             {
                 "findings": [
                     {
-                        "title": "Hardcoded secret",
+                        "title": "Temporary secret",
                         "rule_id": "hardcoded_secret",
-                        "severity": "high",
+                        "severity": "low",
                         "file_path": "frontend/app.tsx",
                         "line_number": 1,
                         "evidence": "token = 'sk-test-1234567890'",
-                        "fix": "Move the credential into environment variables.",
+                        "fix": "Delete the statement.",
                     }
                 ]
             }
@@ -325,7 +325,14 @@ const token = 'sk-test-1234567890';
     assert data["model"] == settings.model_id
     assert "1. Title: Hardcoded secret" in content
     assert "Rule ID: hardcoded_secret" in content
+    assert "Severity: high" in content
     assert "File: frontend/app.tsx:1" in content
+    assert (
+        "Fix: Move the credential into environment variables or secret storage and load it at runtime."
+        in content
+    )
+    assert "Temporary secret" not in content
+    assert "Delete the statement." not in content
     assert (
         "external model reasoning is limited to the review target and supplied repo context"
         in content
@@ -474,13 +481,13 @@ def test_stream_response_sse_format_with_upstream_live_backend(monkeypatch):
         {
                 "findings": [
                     {
-                        "title": "Hardcoded secret",
+                        "title": "Temporary secret",
                         "rule_id": "hardcoded_secret",
-                        "severity": "high",
+                        "severity": "low",
                         "file_path": "frontend/app.tsx",
                         "line_number": 1,
                         "evidence": "token = 'sk-test-1234567890'",
-                        "fix": "Move the credential into environment variables.",
+                        "fix": "Delete the statement.",
                     }
                 ]
             }
@@ -523,6 +530,13 @@ const token = 'sk-test-1234567890';
     stream_content = collect_stream_content(response)
     assert "Title: Hardcoded secret" in stream_content
     assert "Rule ID: hardcoded_secret" in stream_content
+    assert "Severity: high" in stream_content
+    assert (
+        "Fix: Move the credential into environment variables or secret storage and load it at runtime."
+        in stream_content
+    )
+    assert "Temporary secret" not in stream_content
+    assert "Delete the statement." not in stream_content
     assert len(state["instances"]) == 1
     assert state["instances"][0]["calls"][0]["stream"] is True
 

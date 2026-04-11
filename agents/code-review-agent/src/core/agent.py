@@ -214,6 +214,20 @@ RULES: tuple[RuleSpec, ...] = (
     ),
 )
 
+BROAD_EXCEPTION_SWALLOW_RULE = RuleSpec(
+    rule_id="broad_exception_swallow",
+    title="Broad exception swallow",
+    severity="medium",
+    patterns=(),
+    advice=(
+        "Catch a narrower exception type and handle or re-raise it with context instead of swallowing everything."
+    ),
+)
+
+KNOWN_RULE_SPECS: dict[str, RuleSpec] = {
+    rule.rule_id: rule for rule in (*RULES, BROAD_EXCEPTION_SWALLOW_RULE)
+}
+
 
 def extract_review_text(text: str) -> str:
     blocks = [block.strip() for block in CODE_BLOCK_PATTERN.findall(text) if block.strip()]
@@ -553,15 +567,6 @@ def build_rule_finding(
 
 
 def collect_broad_exception_findings(review_input: ReviewInput) -> list[ReviewFinding]:
-    rule = RuleSpec(
-        rule_id="broad_exception_swallow",
-        title="Broad exception swallow",
-        severity="medium",
-        patterns=(),
-        advice=(
-            "Catch a narrower exception type and handle or re-raise it with context instead of swallowing everything."
-        ),
-    )
     findings: list[ReviewFinding] = []
     seen_files: set[str | None] = set()
 
@@ -574,7 +579,13 @@ def collect_broad_exception_findings(review_input: ReviewInput) -> list[ReviewFi
 
         inline_action = match.group("inline").strip()
         if inline_action and SWALLOW_ACTION_PATTERN.match(inline_action):
-            findings.append(build_rule_finding(rule, line, f"{line.text.strip()} -> {inline_action}"))
+            findings.append(
+                build_rule_finding(
+                    BROAD_EXCEPTION_SWALLOW_RULE,
+                    line,
+                    f"{line.text.strip()} -> {inline_action}",
+                )
+            )
             seen_files.add(line.file_path)
             continue
 
@@ -592,7 +603,11 @@ def collect_broad_exception_findings(review_input: ReviewInput) -> list[ReviewFi
                 continue
             if SWALLOW_ACTION_PATTERN.match(nested_text):
                 findings.append(
-                    build_rule_finding(rule, line, f"{line.text.strip()} -> {nested_text}")
+                    build_rule_finding(
+                        BROAD_EXCEPTION_SWALLOW_RULE,
+                        line,
+                        f"{line.text.strip()} -> {nested_text}",
+                    )
                 )
                 seen_files.add(line.file_path)
             break
@@ -736,7 +751,6 @@ def normalize_live_upstream_findings(
             file_path = review_target_path
 
         evidence = shorten_evidence(finding.evidence)
-        advice = finding.fix
         line_number = normalize_live_finding_line_number(
             review_input,
             file_path=file_path,
@@ -750,6 +764,11 @@ def normalize_live_upstream_findings(
             evidence=evidence,
         ):
             continue
+
+        known_rule = KNOWN_RULE_SPECS.get(finding.rule_id)
+        title = known_rule.title if known_rule else finding.title
+        severity = known_rule.severity if known_rule else finding.severity
+        advice = known_rule.advice if known_rule else finding.fix
 
         display_key = (
             finding.rule_id,
@@ -765,8 +784,8 @@ def normalize_live_upstream_findings(
         normalized_findings.append(
             ReviewFinding(
                 rule_id=finding.rule_id,
-                title=finding.title,
-                severity=finding.severity,
+                title=title,
+                severity=severity,
                 evidence=evidence,
                 advice=advice,
                 position=position,

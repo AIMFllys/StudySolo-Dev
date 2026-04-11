@@ -137,6 +137,7 @@ export function debugLog(message: string) {
 - `repo_context` 不会单独产出 findings；但在 live upstream 路径下，会以治理后的 forwarded context 形式进入上游 prompt。
 - forwarded context 会显式标记 `relationship` 与 `truncated` 状态，并补入 `shared identifiers` 与 `usage priority`，帮助上游更稳定利用上下文，而不是无上限原样透传。
 - live upstream findings 现在还会做最小 evidence anchoring 治理：只有当 `evidence` 能被 `review_target` 的目标文本真实支撑时，finding 才会被保留。
+- live upstream findings 对已知 `rule_id` 还会做 metadata canonicalization：`title / severity / fix` 会收口到本地规则表，不再直接信任上游漂移文案。
 - findings 排序已固定为：`severity -> file_path -> line_number -> position -> rule_id`。
 - 没有文件路径时，`File:` 行固定输出 `<none>`，避免模板分支漂移。
 - 即使成功走 `upstream_openai_compatible`，最终返回给客户端的仍是同一套稳定纯文本模板。
@@ -149,13 +150,14 @@ export function debugLog(message: string) {
 - 当前不读取本地仓库文件；repo context 仍必须由调用方显式放进最后一条 `user` 消息，并只会以治理后的 forwarded context 形式进入上游
 - 当前 upstream prompt 已显式具备 `review scope hint`、`shared identifiers`、`usage priority`，用于约束和提升 repo-aware 利用质量
 - 当前 live upstream findings 还会校验 `evidence` 是否能锚定到 `review_target`；不能被目标文本支撑的 finding 会被治理丢弃，并在全丢弃时继续严格回退到 `heuristic`
+- 当前 live upstream findings 若命中本地已知 `rule_id`，其 `title / severity / fix` 会强制收口到本地 `RuleSpec`；unknown rule 才继续保留上游元数据
 - 输出保持 `Summary + Findings + Limitations`
 - 后续如果接真实仓库分析或上游 LLM，仍以 `src/core/agent.py` 为主扩展点
 
 ## 当前测试基线
 
 - `pytest tests -q`
-- 最新真实结果：`73 passed`
+- 最新真实结果：`75 passed`
 
 ## 参考
 
