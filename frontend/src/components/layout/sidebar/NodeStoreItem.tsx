@@ -28,7 +28,18 @@ const NODE_EXTENDED_INFO: Partial<Record<NodeType, string>> = {
   loop_map: '对列表数据进行循环处理，每个元素独立经过指定的节点链。',
 };
 
-function NodeTooltip({ nodeType, anchorRect }: { nodeType: NodeType; anchorRect: DOMRect }) {
+interface NodeStoreItemProps {
+  nodeType: NodeType;
+  title: string;
+  description: string;
+}
+
+function NodeTooltip({
+  nodeType,
+  title,
+  description,
+  anchorRect,
+}: NodeStoreItemProps & { anchorRect: DOMRect }) {
   const meta = NODE_TYPE_META[nodeType];
   const extended = NODE_EXTENDED_INFO[nodeType];
   const nodeTheme = getNodeTheme(nodeType);
@@ -41,8 +52,8 @@ function NodeTooltip({ nodeType, anchorRect }: { nodeType: NodeType; anchorRect:
           <meta.icon className="z-10 h-3.5 w-3.5 stroke-[2.5]" />
         </div>
         <div>
-          <p className="text-xs font-semibold text-foreground">{meta.label}</p>
-          <p className="text-[10px] text-muted-foreground">{meta.description}</p>
+          <p className="text-xs font-semibold text-foreground">{title}</p>
+          <p className="text-[10px] text-muted-foreground">{description}</p>
         </div>
       </div>
       {extended && <p className="text-[11px] leading-relaxed text-muted-foreground">{extended}</p>}
@@ -52,7 +63,7 @@ function NodeTooltip({ nodeType, anchorRect }: { nodeType: NodeType; anchorRect:
   );
 }
 
-export function NodeStoreItem({ nodeType }: { nodeType: NodeType }) {
+export function NodeStoreItem({ nodeType, title, description }: NodeStoreItemProps) {
   const meta = NODE_TYPE_META[nodeType];
   const [hovered, setHovered] = useState(false);
   const itemRef = useRef<HTMLButtonElement>(null);
@@ -81,12 +92,19 @@ export function NodeStoreItem({ nodeType }: { nodeType: NodeType }) {
           <meta.icon className="z-10 h-3 w-3 stroke-[2.5]" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[11px] font-medium text-foreground">{meta.label}</p>
-          <p className="truncate text-[9px] text-muted-foreground">{meta.description}</p>
+          <p className="truncate text-[11px] font-medium text-foreground">{title}</p>
+          <p className="truncate text-[9px] text-muted-foreground">{description}</p>
         </div>
         <GripVertical className="h-3 w-3 shrink-0 text-muted-foreground/30 opacity-0 transition-opacity group-hover:opacity-100" />
       </button>
-      {hovered && anchorRect && <NodeTooltip nodeType={nodeType} anchorRect={anchorRect} />}
+      {hovered && anchorRect && (
+        <NodeTooltip
+          nodeType={nodeType}
+          title={title}
+          description={description}
+          anchorRect={anchorRect}
+        />
+      )}
     </>
   );
 }

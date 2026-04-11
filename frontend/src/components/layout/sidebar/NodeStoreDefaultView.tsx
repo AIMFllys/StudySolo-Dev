@@ -6,9 +6,10 @@ import {
   FileTerminal, LayoutGrid, LibraryBig, Network, NotebookPen, Search, X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { NODE_TYPE_META } from '@/features/workflow/constants/workflow-meta';
-import type { NodeType } from '@/types';
+import { useNodeManifest } from '@/features/workflow/hooks/use-node-manifest';
+import type { NodeManifestItem, NodeType } from '@/types';
 import { NodeStoreItem } from './NodeStoreItem';
+import { matchesNodeStoreQuery, resolveNodeStoreCopy } from './resolve-node-store-copy';
 
 const NODE_CATEGORIES: { id: string; label: string; icon: LucideIcon; types: NodeType[] }[] = [
   { id: 'trigger', label: '输入源', icon: FileTerminal, types: ['trigger_input', 'knowledge_base', 'web_search'] },
@@ -19,6 +20,8 @@ const NODE_CATEGORIES: { id: string; label: string; icon: LucideIcon; types: Nod
 ];
 
 const ALL_TAG = 'all';
+
+type NodeManifestLookup = Partial<Record<NodeType, NodeManifestItem>>;
 
 function TagFilterBar({ selectedCategoryId, onSelect }: { selectedCategoryId: string; onSelect: (id: string) => void }) {
   const [expanded, setExpanded] = useState(false);
@@ -47,16 +50,21 @@ function TagFilterBar({ selectedCategoryId, onSelect }: { selectedCategoryId: st
   );
 }
 
-function CategorySection({ label, types, searchQuery }: { label: string; types: NodeType[]; searchQuery: string }) {
+function CategorySection({
+  label,
+  types,
+  searchQuery,
+  manifestByType,
+}: {
+  label: string;
+  types: NodeType[];
+  searchQuery: string;
+  manifestByType: NodeManifestLookup;
+}) {
   const [collapsed, setCollapsed] = useState(false);
   const filtered = useMemo(() => {
-    if (!searchQuery) return types;
-    const q = searchQuery.toLowerCase();
-    return types.filter((t) => {
-      const m = NODE_TYPE_META[t];
-      return m.label.toLowerCase().includes(q) || m.description.toLowerCase().includes(q) || t.toLowerCase().includes(q);
-    });
-  }, [searchQuery, types]);
+    return types.filter((type) => matchesNodeStoreQuery(type, manifestByType[type], searchQuery));
+  }, [manifestByType, searchQuery, types]);
   if (filtered.length === 0) return null;
   return (
     <div className="mb-1.5">
@@ -65,7 +73,21 @@ function CategorySection({ label, types, searchQuery }: { label: string; types: 
         {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
         {label}<span className="ml-auto text-[9px] text-muted-foreground/40">{filtered.length}</span>
       </button>
-      {!collapsed && <div className="mt-0.5 space-y-0">{filtered.map((t) => <NodeStoreItem key={t} nodeType={t} />)}</div>}
+      {!collapsed && (
+        <div className="mt-0.5 space-y-0">
+          {filtered.map((type) => {
+            const copy = resolveNodeStoreCopy(type, manifestByType[type]);
+            return (
+              <NodeStoreItem
+                key={type}
+                nodeType={type}
+                title={copy.title}
+                description={copy.description}
+              />
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -73,14 +95,21 @@ function CategorySection({ label, types, searchQuery }: { label: string; types: 
 export default function DefaultNodeStoreView() {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>(ALL_TAG);
+  const { manifest } = useNodeManifest();
   const visibleCategories = useMemo(() => selectedCategory === ALL_TAG ? NODE_CATEGORIES : NODE_CATEGORIES.filter((c) => c.id === selectedCategory), [selectedCategory]);
+  const manifestByType = useMemo(
+    () =>
+      manifest.reduce<NodeManifestLookup>((lookup, item) => {
+        lookup[item.type] = item;
+        return lookup;
+      }, {}),
+    [manifest],
+  );
   const totalFiltered = useMemo(() => {
-    const q = search.toLowerCase();
     return visibleCategories.reduce((sum, c) => {
-      if (!search) return sum + c.types.length;
-      return sum + c.types.filter((t) => { const m = NODE_TYPE_META[t]; return m.label.toLowerCase().includes(q) || m.description.toLowerCase().includes(q) || t.toLowerCase().includes(q); }).length;
+      return sum + c.types.filter((type) => matchesNodeStoreQuery(type, manifestByType[type], search)).length;
     }, 0);
-  }, [search, visibleCategories]);
+  }, [manifestByType, search, visibleCategories]);
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -99,7 +128,15 @@ export default function DefaultNodeStoreView() {
         </p>
       </div>
       <div className="scrollbar-hide flex-1 overflow-y-auto px-2 pb-2">
-        {visibleCategories.map((c) => <CategorySection key={c.id} label={c.label} types={c.types} searchQuery={search} />)}
+        {visibleCategories.map((c) => (
+          <CategorySection
+            key={c.id}
+            label={c.label}
+            types={c.types}
+            searchQuery={search}
+            manifestByType={manifestByType}
+          />
+        ))}
         {totalFiltered === 0 && <p className="px-2 py-6 text-center text-[11px] text-muted-foreground/60">没有匹配的节点</p>}
       </div>
     </div>
