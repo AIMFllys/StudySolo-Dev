@@ -30,7 +30,7 @@ from app.engine.topology import (
 from app.nodes import NODE_REGISTRY  # re-exported for test monkeypatching
 from app.nodes._base import NodeInput  # re-exported for test compatibility
 from app.services.ai_catalog_service import get_sku_by_id  # re-exported for test monkeypatching
-from app.services.ai_router import AIRouterError, call_llm, call_llm_direct  # re-exported for test patching
+from app.services.llm.router import AIRouterError, call_llm, call_llm_direct  # re-exported for test patching
 from app.services.usage_ledger import bind_usage_call  # re-exported for test compatibility
 
 logger = logging.getLogger(__name__)

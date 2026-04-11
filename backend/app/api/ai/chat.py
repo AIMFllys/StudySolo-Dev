@@ -27,7 +27,7 @@ from app.services.ai_catalog_service import get_sku_by_id, is_tier_allowed, reso
 from app.services.ai_chat.helpers import build_canvas_summary, extract_json_obj
 from app.services.ai_chat.model_caller import call_with_model
 from app.services.ai_chat.validators import resolve_assistant_subtype, resolve_source_subtype
-from app.services.ai_router import AIRouterError, call_llm, call_llm_direct
+from app.services.llm.router import AIRouterError, call_llm, call_llm_direct
 from app.services.quota_service import check_daily_chat_quota
 from app.services.usage_tracker import track_usage, usage_request_scope
 

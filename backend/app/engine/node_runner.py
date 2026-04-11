@@ -11,7 +11,7 @@ from app.nodes import NODE_REGISTRY
 from app.nodes._base import NodeInput
 from app.engine.events import sse_event
 from app.services.ai_catalog_service import get_sku_by_id
-from app.services.ai_router import call_llm, call_llm_direct
+from app.services.llm.router import call_llm, call_llm_direct
 from app.services.usage_ledger import bind_usage_call
 
 logger = logging.getLogger(__name__)

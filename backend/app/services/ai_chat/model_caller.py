@@ -5,7 +5,7 @@ streaming and non-streaming endpoints.
 """
 
 from app.services.ai_catalog_service import resolve_selected_sku
-from app.services.ai_router import LLMCallResult, call_llm_direct_structured, call_llm_structured
+from app.services.llm.router import LLMCallResult, call_llm_direct_structured, call_llm_structured
 
 
 async def call_with_model(

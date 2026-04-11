@@ -22,7 +22,7 @@ from app.models.community_nodes import (
     SchemaGenResponse,
 )
 from app.models.workflow import InteractionToggleResponse
-from app.services.ai_router import call_llm_direct
+from app.services.llm.router import call_llm_direct
 from app.services.community_node_service import (
     create_node,
     delete_node,

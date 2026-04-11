@@ -22,7 +22,7 @@ from app.models.ai import (
     WorkflowNodeSchema,
 )
 from app.nodes._base import BaseNode
-from app.services.ai_router import AIRouterError, call_llm
+from app.services.llm.router import AIRouterError, call_llm
 
 logger = logging.getLogger(__name__)
 
