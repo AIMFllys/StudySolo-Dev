@@ -506,6 +506,7 @@ def test_upstream_openai_compatible_backend_normalizes_live_findings(monkeypatch
         """<review_target path="frontend/app.tsx">
 ```ts
 const total = items.length;
+const token = 'sk-test-1234567890';
 return total;
 ```
 </review_target>
@@ -599,7 +600,7 @@ def test_upstream_openai_compatible_backend_maps_foreign_single_target_path_to_r
                         "severity": "low",
                         "file_path": " 'backend/service.py' ",
                         "line_number": 2,
-                        "evidence": "console.log('debug')",
+                        "evidence": "return total;",
                         "fix": "Remove it.",
                     }
                 ]
@@ -629,6 +630,49 @@ return total;
     assert "backend/service.py" not in review
 
 
+def test_upstream_openai_compatible_backend_drops_unanchored_single_target_evidence_and_falls_back(
+    monkeypatch,
+):
+    install_fake_upstream(
+        monkeypatch,
+        content=json.dumps(
+            {
+                "findings": [
+                    {
+                        "title": "Debug artifact",
+                        "rule_id": "debug_artifact",
+                        "severity": "low",
+                        "file_path": "frontend/app.tsx",
+                        "line_number": 2,
+                        "evidence": "console.log('debug')",
+                        "fix": "Remove it.",
+                    }
+                ]
+            }
+        ),
+    )
+
+    review = render_review(
+        """<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+return total;
+```
+</review_target>""",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    assert "Findings found: 0" in review
+    assert "Title: Debug artifact" not in review
+    assert "external model reasoning is limited" not in review
+
+
 def test_upstream_openai_compatible_backend_drops_foreign_multi_file_diff_findings(
     monkeypatch,
 ):
@@ -643,7 +687,7 @@ def test_upstream_openai_compatible_backend_drops_foreign_multi_file_diff_findin
                         "severity": "high",
                         "file_path": " \"b/backend/service.py\" ",
                         "line_number": 21,
-                        "evidence": "token = 'sk-test-1234567890'",
+                        "evidence": "return \"ok\"",
                         "fix": "Move the credential into environment variables.",
                     },
                     {
@@ -693,6 +737,59 @@ diff --git a/backend/service.py b/backend/service.py
     assert "Unsafe HTML sink" not in review
 
 
+def test_upstream_openai_compatible_backend_drops_unanchored_multi_file_diff_evidence(
+    monkeypatch,
+):
+    install_fake_upstream(
+        monkeypatch,
+        content=json.dumps(
+            {
+                "findings": [
+                    {
+                        "title": "Hardcoded secret",
+                        "rule_id": "hardcoded_secret",
+                        "severity": "high",
+                        "file_path": "backend/service.py",
+                        "line_number": 21,
+                        "evidence": "token = 'sk-test-1234567890'",
+                        "fix": "Move the credential into environment variables.",
+                    }
+                ]
+            }
+        ),
+    )
+
+    review = render_review(
+        """```diff
+diff --git a/frontend/app.tsx b/frontend/app.tsx
+--- a/frontend/app.tsx
++++ b/frontend/app.tsx
+@@ -8,2 +8,3 @@
+ const ready = true;
++const total = items.length;
+ export default ready;
+diff --git a/backend/service.py b/backend/service.py
+--- a/backend/service.py
++++ b/backend/service.py
+@@ -20,2 +20,3 @@
+ def handler():
++    return "ok"
+     return "ok"
+```""",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    assert "Findings found: 0" in review
+    assert "Title: Hardcoded secret" not in review
+    assert "external model reasoning is limited" not in review
+
+
 def test_upstream_openai_compatible_backend_clears_out_of_range_line_numbers(monkeypatch):
     install_fake_upstream(
         monkeypatch,
@@ -705,8 +802,52 @@ def test_upstream_openai_compatible_backend_clears_out_of_range_line_numbers(mon
                         "severity": "high",
                         "file_path": "frontend/app.tsx",
                         "line_number": 99,
-                        "evidence": "token = 'sk-test-1234567890'",
+                        "evidence": "const token = 'sk-test-1234567890';",
                         "fix": "Move the credential into environment variables.",
+                    }
+                ]
+            }
+        ),
+    )
+
+    review = render_review(
+        """<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+const token = 'sk-test-1234567890';
+return total;
+```
+</review_target>""",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    assert "1. Title: Hardcoded secret" in review
+    assert "File: frontend/app.tsx" in review
+    assert "File: frontend/app.tsx:99" not in review
+
+
+def test_upstream_openai_compatible_backend_keeps_anchored_evidence_after_line_number_is_cleared(
+    monkeypatch,
+):
+    install_fake_upstream(
+        monkeypatch,
+        content=json.dumps(
+            {
+                "findings": [
+                    {
+                        "title": "Hardcoded secret",
+                        "rule_id": "hardcoded_secret",
+                        "severity": "high",
+                        "file_path": "frontend/app.tsx",
+                        "line_number": 99,
+                        "evidence": "return total;",
+                        "fix": "Check the return path.",
                     }
                 ]
             }
@@ -730,8 +871,56 @@ return total;
     )
 
     assert "1. Title: Hardcoded secret" in review
+    assert "Evidence: return total;" in review
     assert "File: frontend/app.tsx" in review
     assert "File: frontend/app.tsx:99" not in review
+    assert (
+        "external model reasoning is limited to the review target and supplied repo context"
+        in review
+    )
+
+
+def test_upstream_openai_compatible_backend_drops_unanchored_evidence_after_line_number_is_cleared(
+    monkeypatch,
+):
+    install_fake_upstream(
+        monkeypatch,
+        content=json.dumps(
+            {
+                "findings": [
+                    {
+                        "title": "Hardcoded secret",
+                        "rule_id": "hardcoded_secret",
+                        "severity": "high",
+                        "file_path": "frontend/app.tsx",
+                        "line_number": 99,
+                        "evidence": "console.log('debug')",
+                        "fix": "Remove it.",
+                    }
+                ]
+            }
+        ),
+    )
+
+    review = render_review(
+        """<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+return total;
+```
+</review_target>""",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    assert "Findings found: 0" in review
+    assert "Title: Hardcoded secret" not in review
+    assert "external model reasoning is limited" not in review
 
 
 def test_upstream_openai_compatible_backend_deduplicates_normalized_findings(monkeypatch):
@@ -766,7 +955,7 @@ def test_upstream_openai_compatible_backend_deduplicates_normalized_findings(mon
     review = render_review(
         """<review_target path="frontend/app.tsx">
 ```ts
-const ready = true;
+console.log('debug');
 ```
 </review_target>""",
         review_backend="upstream_openai_compatible",
@@ -780,6 +969,10 @@ const ready = true;
 
     assert "Findings found: 1" in review
     assert review.count("Rule ID: debug_artifact") == 1
+    assert (
+        "external model reasoning is limited to the review target and supplied repo context"
+        in review
+    )
 
 
 def test_upstream_openai_compatible_backend_accepts_empty_findings_without_fallback(
@@ -945,6 +1138,7 @@ def test_stream_review_chunks_with_upstream_openai_compatible_uses_provider_stre
             "content": """<review_target path="frontend/app.tsx">
 ```ts
 const total = items.length;
+const token = 'sk-test-1234567890';
 return total;
 ```
 </review_target>""",
@@ -986,6 +1180,57 @@ def test_stream_review_chunks_with_upstream_openai_compatible_falls_back_before_
 
     assert stream_review == heuristic_review
     assert "1. Title: Debug artifact" in stream_review
+    assert "external model reasoning is limited" not in stream_review
+    assert state["instances"][0]["calls"][0]["stream"] is True
+
+
+def test_stream_review_chunks_with_upstream_openai_compatible_unanchored_evidence_falls_back(
+    monkeypatch,
+):
+    payload = json.dumps(
+        {
+            "findings": [
+                {
+                    "title": "Hardcoded secret",
+                    "rule_id": "hardcoded_secret",
+                    "severity": "high",
+                    "file_path": "frontend/app.tsx",
+                    "line_number": 2,
+                    "evidence": "console.log('debug')",
+                    "fix": "Remove it.",
+                }
+            ]
+        }
+    )
+    state = install_fake_upstream(
+        monkeypatch,
+        content=payload,
+        stream_chunks=[payload[:24], payload[24:68], payload[68:]],
+    )
+    text = """<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+return total;
+```
+</review_target>"""
+    agent = CodeReviewAgent(
+        agent_name="code-review",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    stream_review = asyncio.run(
+        collect_stream_review(agent, [{"role": "user", "content": text}])
+    )
+    heuristic_review = render_review(text)
+
+    assert stream_review == heuristic_review
+    assert "Title: Hardcoded secret" not in stream_review
     assert "external model reasoning is limited" not in stream_review
     assert state["instances"][0]["calls"][0]["stream"] is True
 

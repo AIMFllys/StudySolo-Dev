@@ -309,7 +309,7 @@ def test_non_stream_response_format_with_upstream_live_backend(monkeypatch):
                 settings,
                 content="""<review_target path="frontend/app.tsx">
 ```ts
-const total = items.length;
+const token = 'sk-test-1234567890';
 ```
 </review_target>""",
             ),
@@ -333,6 +333,60 @@ const total = items.length;
     assert len(state["instances"]) == 1
     assert state["instances"][0]["calls"][0]["model"] == "review-upstream-v1"
     assert state["instances"][0]["calls"][0]["stream"] is False
+
+
+def test_non_stream_response_format_with_upstream_live_backend_unanchored_evidence_falls_back(
+    monkeypatch,
+):
+    install_fake_upstream(
+        monkeypatch,
+        content=json.dumps(
+            {
+                "findings": [
+                    {
+                        "title": "Hardcoded secret",
+                        "rule_id": "hardcoded_secret",
+                        "severity": "high",
+                        "file_path": "frontend/app.tsx",
+                        "line_number": 1,
+                        "evidence": "console.log('debug')",
+                        "fix": "Remove it.",
+                    }
+                ]
+            }
+        ),
+    )
+    monkeypatch.setenv("AGENT_API_KEY", "test-agent-key")
+    monkeypatch.setenv("AGENT_REVIEW_BACKEND", "upstream_openai_compatible")
+    monkeypatch.setenv("AGENT_UPSTREAM_MODEL", "review-upstream-v1")
+    monkeypatch.setenv("AGENT_UPSTREAM_BASE_URL", "https://example.test/v1")
+    monkeypatch.setenv("AGENT_UPSTREAM_API_KEY", "upstream-key")
+    get_settings.cache_clear()
+
+    settings = get_settings()
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/v1/chat/completions",
+            json=structured_completion_payload(
+                settings,
+                content="""<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+return total;
+```
+</review_target>""",
+            ),
+            headers=auth_headers(settings),
+        )
+
+    get_settings.cache_clear()
+
+    assert response.status_code == 200
+    data = response.json()
+    content = data["choices"][0]["message"]["content"]
+    assert "Findings found: 0" in content
+    assert "Title: Hardcoded secret" not in content
+    assert "external model reasoning is limited" not in content
 
 
 def test_non_stream_live_backend_filters_and_prioritizes_repo_context_before_upstream(
@@ -451,7 +505,7 @@ def test_stream_response_sse_format_with_upstream_live_backend(monkeypatch):
                 settings,
                 content="""<review_target path="frontend/app.tsx">
 ```ts
-const total = items.length;
+const token = 'sk-test-1234567890';
 ```
 </review_target>""",
                 stream=True,

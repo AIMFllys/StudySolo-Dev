@@ -527,6 +527,10 @@ def shorten_evidence(text: str, limit: int = 96) -> str:
     return f"{compact[: limit - 3]}..."
 
 
+def normalize_anchor_text(text: str) -> str:
+    return " ".join(text.strip().split())
+
+
 def line_indent(text: str) -> int:
     return len(text) - len(text.lstrip(" \t"))
 
@@ -637,6 +641,42 @@ def collect_reviewable_line_numbers(review_input: ReviewInput) -> dict[str, set[
     return reviewable_line_numbers
 
 
+def evidence_is_anchored_to_review_target(
+    review_input: ReviewInput,
+    *,
+    file_path: str | None,
+    line_number: int | None,
+    evidence: str,
+) -> bool:
+    normalized_evidence = normalize_anchor_text(evidence)
+    if not normalized_evidence:
+        return False
+
+    candidate_lines = [
+        line
+        for line in review_input.lines
+        if (
+            (file_path is None or line.file_path == file_path)
+            and (line_number is None or line.line_number == line_number)
+        )
+    ]
+    if candidate_lines:
+        return any(
+            normalized_evidence in normalize_anchor_text(line.evidence)
+            for line in candidate_lines
+        )
+
+    if file_path is not None:
+        file_lines = [line for line in review_input.lines if line.file_path == file_path]
+        if file_lines:
+            return any(
+                normalized_evidence in normalize_anchor_text(line.evidence)
+                for line in file_lines
+            )
+
+    return normalized_evidence in normalize_anchor_text(review_input.raw_text)
+
+
 def normalize_live_finding_line_number(
     review_input: ReviewInput,
     *,
@@ -703,6 +743,13 @@ def normalize_live_upstream_findings(
             line_number=finding.line_number,
             reviewable_line_numbers=reviewable_line_numbers,
         )
+        if not evidence_is_anchored_to_review_target(
+            review_input,
+            file_path=file_path,
+            line_number=line_number,
+            evidence=evidence,
+        ):
+            continue
 
         display_key = (
             finding.rule_id,
