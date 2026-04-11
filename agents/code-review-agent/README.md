@@ -80,9 +80,11 @@ export function debugLog(message: string) {
   - 当前只构建 upstream request payload，然后立即回退到 `heuristic`
   - 本轮不会发真实网络请求，也不会改变对外 HTTP 契约
 - `upstream_openai_compatible`
-  - 真实 non-stream OpenAI-compatible 上游调用
+  - 真实 OpenAI-compatible 上游调用
   - 仅在 `AGENT_UPSTREAM_MODEL / BASE_URL / API_KEY` 完整时才尝试调用
-  - 配置缺失、超时、HTTP 异常、空内容或 JSON 不合规都会严格回退到 `heuristic`
+  - `stream=False` 时走真实 non-stream 上游调用
+  - `stream=True` 时走真实 provider stream，但会先在服务端完整消费并校验 JSON findings，再向客户端发出内容 chunk
+  - 配置缺失、超时、HTTP 异常、空内容或 JSON / findings 不合规都会严格回退到 `heuristic`
   - 上游成功后只消费内部 JSON findings，并归一化回当前稳定文本模板
 
 当前预留配置项均沿用 `AGENT_` 前缀环境变量：
@@ -125,10 +127,12 @@ export function debugLog(message: string) {
 - findings 排序已固定为：`severity -> file_path -> line_number -> position -> rule_id`。
 - 没有文件路径时，`File:` 行固定输出 `<none>`，避免模板分支漂移。
 - 即使成功走 `upstream_openai_compatible`，最终返回给客户端的仍是同一套稳定纯文本模板。
+- 即使 `stream=True` 且成功走 live provider stream，客户端看到的也仍是同一套 SSE 外壳；只是首个 content chunk 会等到服务端完成本地校验与归一化。
 
 ## 说明
 
 - 当前 `src/core/agent.py` 已可选接入外部 OpenAI-compatible 上游，但默认仍是本地启发式规则审查
+- 当前 `stream=True + upstream_openai_compatible` 已接通真实 provider streaming，但继续采用“稳定模板优先”的本地归一化策略
 - 当前不读取本地仓库文件；repo context 仍必须由调用方显式放进最后一条 `user` 消息
 - 输出保持 `Summary + Findings + Limitations`
 - 后续如果接真实仓库分析或上游 LLM，仍以 `src/core/agent.py` 为主扩展点
