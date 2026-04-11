@@ -66,6 +66,9 @@ BROAD_EXCEPTION_HEADER_PATTERN = re.compile(
 SWALLOW_ACTION_PATTERN = re.compile(r"^(?:pass\b|continue\b|return\s+None\b)")
 MAX_SWALLOW_LOOKAHEAD = 3
 MAX_SWALLOW_POSITION_GAP = 4
+MAX_FORWARDED_CONTEXT_FILES = 4
+MAX_FORWARDED_CONTEXT_LINES_PER_FILE = 80
+MAX_FORWARDED_CONTEXT_LINES_TOTAL = 200
 
 
 @dataclass(slots=True)
@@ -121,6 +124,7 @@ class RuleSpec:
 class PreparedReview:
     payload: StructuredReviewPayload
     review_input: ReviewInput
+    forwarded_context: tuple[upstream_review.UpstreamContextBlock, ...] = ()
 
 
 RULES: tuple[RuleSpec, ...] = (
@@ -252,6 +256,14 @@ def normalize_live_finding_path(path: str | None) -> str | None:
     return normalized
 
 
+def normalize_context_path(path: str | None) -> str | None:
+    return normalize_live_finding_path(path)
+
+
+def normalize_context_content(content: str) -> str:
+    return "\n".join(line for line in content.splitlines() if line.strip())
+
+
 def ordered_unique(values: list[str]) -> tuple[str, ...]:
     seen: set[str] = set()
     unique: list[str] = []
@@ -260,6 +272,104 @@ def ordered_unique(values: list[str]) -> tuple[str, ...]:
             seen.add(value)
             unique.append(value)
     return tuple(unique)
+
+
+def split_path_parts(path: str | None) -> tuple[str, ...]:
+    if not path:
+        return ()
+    return tuple(part for part in path.split("/") if part)
+
+
+def context_relationship_priority(
+    relationship: upstream_review.ContextRelationship,
+) -> int:
+    return {"same_dir": 0, "same_top_level": 1, "same_extension": 2, "other": 3}[relationship]
+
+
+def path_relationship(
+    review_target_path: str | None,
+    context_path: str,
+) -> upstream_review.ContextRelationship:
+    target_parts = split_path_parts(review_target_path)
+    context_parts = split_path_parts(context_path)
+    if not target_parts or not context_parts:
+        return "other"
+
+    target_dir = target_parts[:-1]
+    context_dir = context_parts[:-1]
+    if target_dir == context_dir:
+        return "same_dir"
+    if target_parts[0] == context_parts[0]:
+        return "same_top_level"
+
+    target_name = target_parts[-1]
+    context_name = context_parts[-1]
+    if "." in target_name and "." in context_name:
+        target_ext = target_name.rsplit(".", 1)[1]
+        context_ext = context_name.rsplit(".", 1)[1]
+        if target_ext == context_ext:
+            return "same_extension"
+    return "other"
+
+
+def preprocess_forwarded_context(
+    payload: StructuredReviewPayload,
+) -> tuple[upstream_review.UpstreamContextBlock, ...]:
+    normalized_target_path = normalize_context_path(payload.review_target_path)
+    unique_contexts: list[tuple[str, str, int]] = []
+    seen_paths: set[str] = set()
+
+    for index, (raw_path, raw_content) in enumerate(payload.context_blocks):
+        normalized_path = normalize_context_path(raw_path)
+        if normalized_path is None or normalized_path == normalized_target_path:
+            continue
+
+        normalized_content = normalize_context_content(raw_content)
+        if not normalized_content or normalized_path in seen_paths:
+            continue
+
+        seen_paths.add(normalized_path)
+        unique_contexts.append((normalized_path, normalized_content, index))
+
+    if normalized_target_path is not None:
+        unique_contexts.sort(
+            key=lambda item: (
+                context_relationship_priority(
+                    path_relationship(normalized_target_path, item[0])
+                ),
+                item[2],
+            )
+        )
+
+    forwarded_context: list[upstream_review.UpstreamContextBlock] = []
+    remaining_total_lines = MAX_FORWARDED_CONTEXT_LINES_TOTAL
+
+    for normalized_path, normalized_content, _ in unique_contexts:
+        if len(forwarded_context) >= MAX_FORWARDED_CONTEXT_FILES or remaining_total_lines <= 0:
+            break
+
+        content_lines = normalized_content.splitlines()
+        line_limit = min(MAX_FORWARDED_CONTEXT_LINES_PER_FILE, remaining_total_lines)
+        kept_lines = content_lines[:line_limit]
+        if not kept_lines:
+            continue
+
+        truncated = len(kept_lines) < len(content_lines)
+        forwarded_content = "\n".join(kept_lines)
+        if truncated:
+            forwarded_content = f"{forwarded_content}\n... [truncated]"
+
+        forwarded_context.append(
+            upstream_review.UpstreamContextBlock(
+                path=normalized_path,
+                content=forwarded_content,
+                relationship=path_relationship(normalized_target_path, normalized_path),
+                truncated=truncated,
+            )
+        )
+        remaining_total_lines -= len(kept_lines)
+
+    return tuple(forwarded_context)
 
 
 def extract_structured_review_payload(text: str) -> StructuredReviewPayload:
@@ -739,7 +849,11 @@ class CodeReviewAgent:
             default_file_path=payload.review_target_path,
             context_file_paths=payload.context_file_paths,
         )
-        return PreparedReview(payload=payload, review_input=review_input)
+        return PreparedReview(
+            payload=payload,
+            review_input=review_input,
+            forwarded_context=preprocess_forwarded_context(payload),
+        )
 
     def review_text(self, text: str) -> str:
         prepared_review = self.prepare_review_text(text)
@@ -801,7 +915,8 @@ class CodeReviewAgent:
             input_kind=prepared_review.review_input.kind,
             review_target_text=prepared_review.review_input.raw_text,
             review_target_path=prepared_review.payload.review_target_path,
-            context_blocks=prepared_review.payload.context_blocks,
+            context_file_count=len(prepared_review.payload.context_blocks),
+            forwarded_context=prepared_review.forwarded_context,
             uses_structured_input=prepared_review.payload.uses_structured_input,
         )
 
@@ -820,7 +935,8 @@ class CodeReviewAgent:
                 input_kind=prepared_review.review_input.kind,
                 review_target_text=prepared_review.review_input.raw_text,
                 review_target_path=prepared_review.payload.review_target_path,
-                context_blocks=prepared_review.payload.context_blocks,
+                context_file_count=len(prepared_review.payload.context_blocks),
+                forwarded_context=prepared_review.forwarded_context,
                 uses_structured_input=prepared_review.payload.uses_structured_input,
             )
             if prefer_streaming:

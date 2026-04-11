@@ -88,6 +88,17 @@ class UpstreamReviewRequest:
     messages: tuple[dict[str, str], ...]
 
 
+ContextRelationship = Literal["same_dir", "same_top_level", "same_extension", "other"]
+
+
+@dataclass(frozen=True, slots=True)
+class UpstreamContextBlock:
+    path: str
+    content: str
+    relationship: ContextRelationship
+    truncated: bool = False
+
+
 def has_live_upstream_configuration(settings: UpstreamReviewSettings) -> bool:
     return bool(
         (settings.model or "").strip()
@@ -102,7 +113,8 @@ def build_upstream_review_request(
     input_kind: str,
     review_target_text: str,
     review_target_path: str | None,
-    context_blocks: tuple[tuple[str, str], ...],
+    context_file_count: int,
+    forwarded_context: tuple[UpstreamContextBlock, ...],
     uses_structured_input: bool,
 ) -> UpstreamReviewRequest:
     target_path = review_target_path or "<none>"
@@ -116,15 +128,18 @@ def build_upstream_review_request(
         review_target_text or "<empty>",
         "",
         "Repo context",
-        f"- Repo context files supplied: {len(context_blocks)}",
+        f"- Repo context files supplied: {context_file_count}",
+        f"- Repo context files forwarded: {len(forwarded_context)}",
     ]
 
-    for index, (path, content) in enumerate(context_blocks, start=1):
+    for index, context_block in enumerate(forwarded_context, start=1):
         sections.extend(
             [
-                f"- Context file {index} path: {path}",
+                f"- Context file {index} path: {context_block.path}",
+                f"- Context file {index} relationship: {context_block.relationship}",
+                f"- Context file {index} truncated: {'yes' if context_block.truncated else 'no'}",
                 "Context content:",
-                content or "<empty>",
+                context_block.content or "<empty>",
             ]
         )
 

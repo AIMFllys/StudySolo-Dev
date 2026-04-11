@@ -4,7 +4,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.core.agent import CodeReviewAgent
+from src.core.agent import (
+    CodeReviewAgent,
+    StructuredReviewPayload,
+    preprocess_forwarded_context,
+)
 import src.core.upstream_review as upstream_review_module
 from src.core.upstream_review import UpstreamReviewSettings, build_upstream_review_request
 
@@ -1039,6 +1043,135 @@ console.log('debug');
     assert "console.log('debug');" in prepared.review_input.raw_text
 
 
+def test_prepare_review_text_drops_duplicate_and_review_target_repo_context_before_forwarding():
+    agent = CodeReviewAgent(agent_name="code-review")
+    prepared = agent.prepare_review_text(
+        """<review_target path="frontend/app.tsx">
+```ts
+console.log('debug');
+```
+</review_target>
+<repo_context path=" b/frontend/app.tsx ">
+```ts
+export const shouldNotForward = true;
+```
+</repo_context>
+<repo_context path=" b/frontend/helper.ts ">
+```ts
+export const helper = "first";
+```
+</repo_context>
+<repo_context path="frontend/helper.ts">
+```ts
+export const helper = "second";
+```
+</repo_context>
+<repo_context path="<unknown>">
+```ts
+export const ignored = true;
+```
+</repo_context>"""
+    )
+
+    assert len(prepared.payload.context_blocks) == 4
+    assert tuple(block.path for block in prepared.forwarded_context) == ("frontend/helper.ts",)
+    assert prepared.forwarded_context[0].content == 'export const helper = "first";'
+    assert prepared.forwarded_context[0].relationship == "same_dir"
+    assert prepared.forwarded_context[0].truncated is False
+
+
+def test_prepare_review_text_prioritizes_closer_repo_contexts_under_file_limit():
+    agent = CodeReviewAgent(agent_name="code-review")
+    prepared = agent.prepare_review_text(
+        """<review_target path="frontend/components/app.tsx">
+```tsx
+export default function App() {
+  return null;
+}
+```
+</review_target>
+<repo_context path="docs/readme.md">
+```md
+# docs
+```
+</repo_context>
+<repo_context path="backend/render.tsx">
+```tsx
+export const backendView = true;
+```
+</repo_context>
+<repo_context path="frontend/utils/math.ts">
+```ts
+export const add = (a, b) => a + b;
+```
+</repo_context>
+<repo_context path="frontend/components/button.tsx">
+```tsx
+export function Button() {
+  return null;
+}
+```
+</repo_context>
+<repo_context path="scripts/task.py">
+```python
+print("task")
+```
+</repo_context>"""
+    )
+
+    assert tuple(block.path for block in prepared.forwarded_context) == (
+        "frontend/components/button.tsx",
+        "frontend/utils/math.ts",
+        "backend/render.tsx",
+        "docs/readme.md",
+    )
+    assert tuple(block.relationship for block in prepared.forwarded_context) == (
+        "same_dir",
+        "same_top_level",
+        "same_extension",
+        "other",
+    )
+
+
+def test_prepare_review_text_truncates_long_repo_context_content():
+    agent = CodeReviewAgent(agent_name="code-review")
+    long_context = "\n".join(f"line {index}" for index in range(1, 86))
+    prepared = agent.prepare_review_text(
+        f"""<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+```
+</review_target>
+<repo_context path="frontend/logger.ts">
+```ts
+{long_context}
+```
+</repo_context>"""
+    )
+
+    forwarded = prepared.forwarded_context[0]
+    assert forwarded.truncated is True
+    assert "line 1" in forwarded.content
+    assert "line 80" in forwarded.content
+    assert "line 81" not in forwarded.content
+    assert forwarded.content.endswith("... [truncated]")
+
+
+def test_preprocess_forwarded_context_preserves_order_without_review_target_path():
+    forwarded = preprocess_forwarded_context(
+        StructuredReviewPayload(
+            review_target_text="console.log('debug');",
+            context_blocks=(
+                (' "backend/a.py" ', "print('a')"),
+                ("b/frontend/b.py", "print('b')"),
+            ),
+        )
+    )
+
+    assert tuple(block.path for block in forwarded) == ("backend/a.py", "frontend/b.py")
+    assert tuple(block.relationship for block in forwarded) == ("other", "other")
+
+
 def test_upstream_review_request_includes_review_target_and_repo_context():
     agent = CodeReviewAgent(agent_name="code-review")
     prepared = agent.prepare_review_text(
@@ -1066,7 +1199,8 @@ export function debugLog(message: string) {
         input_kind=prepared.review_input.kind,
         review_target_text=prepared.review_input.raw_text,
         review_target_path=prepared.payload.review_target_path,
-        context_blocks=prepared.payload.context_blocks,
+        context_file_count=len(prepared.payload.context_blocks),
+        forwarded_context=prepared.forwarded_context,
         uses_structured_input=prepared.payload.uses_structured_input,
     )
 
@@ -1079,8 +1213,55 @@ export function debugLog(message: string) {
     assert "Return JSON only" in request.messages[0]["content"]
     assert "Review target path: frontend/app.tsx" in request.messages[1]["content"]
     assert "Repo context files supplied: 1" in request.messages[1]["content"]
+    assert "Repo context files forwarded: 1" in request.messages[1]["content"]
     assert "Context file 1 path: frontend/logger.ts" in request.messages[1]["content"]
+    assert "Context file 1 relationship: same_dir" in request.messages[1]["content"]
+    assert "Context file 1 truncated: no" in request.messages[1]["content"]
     assert "console.log('debug');" in request.messages[1]["content"]
+
+
+def test_upstream_review_request_reports_forwarded_context_truncation_and_filtered_count():
+    agent = CodeReviewAgent(agent_name="code-review")
+    long_context = "\n".join(f"line {index}" for index in range(1, 86))
+    prepared = agent.prepare_review_text(
+        f"""<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+```
+</review_target>
+<repo_context path="frontend/app.tsx">
+```ts
+export const duplicateTarget = true;
+```
+</repo_context>
+<repo_context path="frontend/logger.ts">
+```ts
+{long_context}
+```
+</repo_context>"""
+    )
+
+    request = build_upstream_review_request(
+        settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=18.0,
+        ),
+        input_kind=prepared.review_input.kind,
+        review_target_text=prepared.review_input.raw_text,
+        review_target_path=prepared.payload.review_target_path,
+        context_file_count=len(prepared.payload.context_blocks),
+        forwarded_context=prepared.forwarded_context,
+        uses_structured_input=prepared.payload.uses_structured_input,
+    )
+
+    assert "Repo context files supplied: 2" in request.messages[1]["content"]
+    assert "Repo context files forwarded: 1" in request.messages[1]["content"]
+    assert "Context file 1 path: frontend/logger.ts" in request.messages[1]["content"]
+    assert "Context file 1 relationship: same_dir" in request.messages[1]["content"]
+    assert "Context file 1 truncated: yes" in request.messages[1]["content"]
+    assert "... [truncated]" in request.messages[1]["content"]
 
 
 def test_findings_sort_by_severity_then_file_path_then_line_number():
