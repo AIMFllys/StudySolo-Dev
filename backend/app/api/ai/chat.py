@@ -29,8 +29,7 @@ from app.services.ai_chat.model_caller import call_with_model
 from app.services.ai_chat.validators import resolve_assistant_subtype, resolve_source_subtype
 from app.services.ai_router import AIRouterError, call_llm, call_llm_direct
 from app.services.quota_service import check_daily_chat_quota
-from app.services.usage_tracker import track_usage
-from app.services.usage_ledger import bind_usage_request, create_usage_request, finalize_usage_request
+from app.services.usage_tracker import track_usage, usage_request_scope
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -249,15 +248,12 @@ async def _chat_stream_generator(
     current_user: dict,
     service_db=None,
 ):
-    usage_request = await create_usage_request(
+    async with usage_request_scope(
         user_id=current_user["id"],
         source_type="assistant",
         source_subtype=resolve_source_subtype(body),
         workflow_id=body.canvas_context.workflow_id if body.canvas_context else None,
-    )
-    request_status = "completed"
-
-    with bind_usage_request(usage_request):
+    ) as usage_scope:
         try:
             selected_sku = await resolve_selected_sku(
                 selected_model_key=body.selected_model_key,
@@ -292,7 +288,7 @@ async def _chat_stream_generator(
                         }
 
             if selected_sku and not quota_degraded and not is_tier_allowed(user_tier, selected_sku.required_tier):
-                request_status = "failed"
+                usage_scope.status = "failed"
                 yield {
                     "data": json.dumps(
                         {"error": _MODEL_TIER_FORBIDDEN_RESPONSE, "done": True},
@@ -351,7 +347,7 @@ async def _chat_stream_generator(
                 try:
                     parsed, raw, model_used, parse_error = await _call_modify_with_retry(body, create_msgs)
                     if not parsed:
-                        request_status = "failed"
+                        usage_scope.status = "failed"
                         yield {
                             "data": json.dumps(
                                 {
@@ -380,7 +376,7 @@ async def _chat_stream_generator(
                         )
                     }
                 except Exception as exc:  # noqa: BLE001
-                    request_status = "failed"
+                    usage_scope.status = "failed"
                     yield {
                         "data": json.dumps(
                             {"intent": "MODIFY", "done": True, "response": str(exc)},
@@ -432,7 +428,7 @@ async def _chat_stream_generator(
             yield {"data": json.dumps({"done": True, "full": full}, ensure_ascii=False)}
             yield {"data": "[DONE]"}
         except AIRouterError as exc:
-            request_status = "failed"
+            usage_scope.status = "failed"
             logger.warning("AI router error: %s", exc)
             yield {
                 "data": json.dumps(
@@ -441,7 +437,7 @@ async def _chat_stream_generator(
                 )
             }
         except Exception as exc:  # noqa: BLE001
-            request_status = "failed"
+            usage_scope.status = "failed"
             logger.exception("AI chat stream failed: %s", exc)
             yield {
                 "data": json.dumps(
@@ -449,8 +445,6 @@ async def _chat_stream_generator(
                     ensure_ascii=False,
                 )
             }
-        finally:
-            await finalize_usage_request(usage_request.request_id, request_status)
 
 
 @router.post("/chat-stream")

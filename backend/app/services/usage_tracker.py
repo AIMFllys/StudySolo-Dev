@@ -9,6 +9,9 @@ Usage:
         # ... pure business logic, no usage boilerplate ...
 """
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from dataclasses import dataclass
 import functools
 import inspect
 import logging
@@ -21,6 +24,42 @@ from app.services.usage_ledger import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(slots=True)
+class UsageRequestScope:
+    request_id: str
+    status: str = "completed"
+
+
+@asynccontextmanager
+async def usage_request_scope(
+    *,
+    user_id: str,
+    source_type: str,
+    source_subtype: str,
+    workflow_id: str | None = None,
+    workflow_run_id: str | None = None,
+) -> AsyncIterator[UsageRequestScope]:
+    """Manage a usage request lifecycle for streaming or long-running flows."""
+
+    usage_request = await create_usage_request(
+        user_id=user_id,
+        source_type=source_type,
+        source_subtype=source_subtype,
+        workflow_id=workflow_id,
+        workflow_run_id=workflow_run_id,
+    )
+    scope = UsageRequestScope(request_id=usage_request.request_id)
+
+    with bind_usage_request(usage_request):
+        try:
+            yield scope
+        except Exception:
+            scope.status = "failed"
+            raise
+        finally:
+            await finalize_usage_request(usage_request.request_id, scope.status)
 
 
 def track_usage(

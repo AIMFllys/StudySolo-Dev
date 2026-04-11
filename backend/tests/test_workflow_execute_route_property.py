@@ -32,6 +32,7 @@ from app.api.auth import _helpers as auth_helpers_module  # noqa: E402
 from app.core import deps  # noqa: E402
 from app.api.workflow import execute as workflow_execute_module  # noqa: E402
 from app.middleware import auth as auth_middleware  # noqa: E402
+from app.services import usage_tracker as usage_tracker_module  # noqa: E402
 
 
 class _DbMock:
@@ -80,18 +81,31 @@ class _DbMock:
         return result
 
 
-def _install_execution_stubs(monkeypatch, captured: dict):
+def _install_execution_stubs(
+    monkeypatch,
+    captured: dict,
+    *,
+    finalize_calls: list[tuple[str, str]] | None = None,
+    workflow_done_status: str = "completed",
+    should_raise: bool = False,
+):
     async def fake_execute_workflow(workflow_id: str, nodes: list[dict], edges: list[dict], **_kwargs):
         captured["workflow_id"] = workflow_id
         captured["nodes"] = nodes
         captured["edges"] = edges
-        yield 'event: workflow_done\ndata: {"workflow_id":"wf-1","status":"completed"}\n\n'
+        if should_raise:
+            raise RuntimeError("boom")
+        yield (
+            'event: workflow_done\ndata: '
+            f'{{"workflow_id":"wf-1","status":"{workflow_done_status}"}}\n\n'
+        )
 
     async def fake_create_usage_request(**_kwargs):
         return SimpleNamespace(request_id="req-1")
 
-    async def fake_finalize_usage_request(*_args, **_kwargs):
-        return None
+    async def fake_finalize_usage_request(request_id: str, status: str):
+        if finalize_calls is not None:
+            finalize_calls.append((request_id, status))
 
     async def fake_load_total_tokens(*_args, **_kwargs):
         return 0
@@ -109,9 +123,9 @@ def _install_execution_stubs(monkeypatch, captured: dict):
         return {"allowed": True, "used": 0, "limit": 20}
 
     monkeypatch.setattr(workflow_execute_module, "execute_workflow", fake_execute_workflow)
-    monkeypatch.setattr(workflow_execute_module, "create_usage_request", fake_create_usage_request)
-    monkeypatch.setattr(workflow_execute_module, "finalize_usage_request", fake_finalize_usage_request)
-    monkeypatch.setattr(workflow_execute_module, "bind_usage_request", lambda _req: contextlib.nullcontext())
+    monkeypatch.setattr(usage_tracker_module, "create_usage_request", fake_create_usage_request)
+    monkeypatch.setattr(usage_tracker_module, "finalize_usage_request", fake_finalize_usage_request)
+    monkeypatch.setattr(usage_tracker_module, "bind_usage_request", lambda _req: contextlib.nullcontext())
     monkeypatch.setattr(workflow_execute_module, "check_daily_execution_quota", fake_execution_quota)
     monkeypatch.setattr(workflow_execute_module, "_load_request_total_tokens", fake_load_total_tokens)
     monkeypatch.setattr(workflow_execute_module, "_finalize_run", fake_noop)
@@ -139,7 +153,8 @@ def test_post_execute_prefers_request_body(monkeypatch):
         "edges_json": [],
     }
     captured: dict = {}
-    _install_execution_stubs(monkeypatch, captured)
+    finalize_calls: list[tuple[str, str]] = []
+    _install_execution_stubs(monkeypatch, captured, finalize_calls=finalize_calls)
     headers = _install_auth_stub(monkeypatch)
 
     app.dependency_overrides[deps.get_current_user] = lambda: {"id": "user-1", "tier": "free"}
@@ -159,8 +174,10 @@ def test_post_execute_prefers_request_body(monkeypatch):
         ) as response:
             assert response.status_code == 200
             assert response.headers["content-type"].startswith("text/event-stream")
+            list(response.iter_lines())
         assert captured["nodes"][0]["id"] == "body-node"
         assert captured["edges"][0]["id"] == "e-1"
+        assert finalize_calls == [("req-1", "completed")]
     finally:
         app.dependency_overrides.clear()
 
@@ -236,6 +253,39 @@ def test_get_execute_route_still_streams(monkeypatch):
         with client.stream("GET", "/api/workflow/wf-1/execute", headers=headers) as response:
             assert response.status_code == 200
             assert response.headers["content-type"].startswith("text/event-stream")
+            list(response.iter_lines())
         assert captured["nodes"][0]["id"] == "db-node"
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_post_execute_marks_usage_failed_when_workflow_reports_error(monkeypatch):
+    workflow = {
+        "id": "wf-1",
+        "nodes_json": [{"id": "db-node", "type": "summary", "data": {"label": "db"}}],
+        "edges_json": [],
+    }
+    captured: dict = {}
+    finalize_calls: list[tuple[str, str]] = []
+    _install_execution_stubs(
+        monkeypatch,
+        captured,
+        finalize_calls=finalize_calls,
+        workflow_done_status="error",
+    )
+    headers = _install_auth_stub(monkeypatch)
+
+    app.dependency_overrides[deps.get_current_user] = lambda: {"id": "user-1", "tier": "free"}
+    app.dependency_overrides[deps.get_supabase_client] = lambda: _DbMock(workflow)
+    app.dependency_overrides[deps.get_db] = lambda: _DbMock(workflow)
+
+    try:
+        client = TestClient(app, raise_server_exceptions=False)
+        with client.stream("POST", "/api/workflow/wf-1/execute", headers=headers) as response:
+            assert response.status_code == 200
+            assert response.headers["content-type"].startswith("text/event-stream")
+            list(response.iter_lines())
+
+        assert finalize_calls == [("req-1", "failed")]
     finally:
         app.dependency_overrides.clear()

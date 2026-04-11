@@ -36,6 +36,10 @@ from app.middleware import auth as auth_middleware  # noqa: E402
 from app.services import usage_tracker as usage_tracker_module  # noqa: E402
 
 
+def _stream_lines(response) -> list[str]:
+    return [line for line in response.iter_lines() if line]
+
+
 def _install_auth_stub(monkeypatch):
     async def fake_get_user(_token: str):
         return SimpleNamespace(user=SimpleNamespace(id="user-1", email="user-1@example.com"))
@@ -170,6 +174,87 @@ def test_ai_chat_tracks_failed_status_on_exception(monkeypatch):
         )
 
         assert response.status_code == 500
+        assert finalize_calls == [("req-1", "failed")]
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_ai_chat_stream_tracks_completed_status(monkeypatch):
+    create_calls: list[dict] = []
+    finalize_calls: list[tuple[str, str]] = []
+    headers = _install_auth_stub(monkeypatch)
+    _install_usage_stubs(monkeypatch, create_calls, finalize_calls)
+
+    async def fake_resolve_selected_sku(**_kwargs):
+        return None
+
+    async def fake_call_llm(*_args, **_kwargs):
+        async def _stream():
+            yield "hello"
+
+        return _stream()
+
+    monkeypatch.setattr(ai_chat_module, "resolve_selected_sku", fake_resolve_selected_sku)
+    monkeypatch.setattr(ai_chat_module, "call_llm", fake_call_llm)
+
+    app.dependency_overrides[deps.get_current_user] = lambda: {"id": "user-1", "tier": "free"}
+    app.dependency_overrides[ai_chat_module.get_db] = lambda: None
+
+    try:
+        client = TestClient(app, raise_server_exceptions=False)
+        with client.stream(
+            "POST",
+            "/api/ai/chat-stream",
+            headers=headers,
+            json={"user_input": "你好", "conversation_history": [], "thinking_level": "fast"},
+        ) as response:
+            assert response.status_code == 200
+            lines = _stream_lines(response)
+
+        assert any("hello" in line for line in lines)
+        assert create_calls == [
+            {
+                "user_id": "user-1",
+                "source_type": "assistant",
+                "source_subtype": "chat",
+                "workflow_id": None,
+                "workflow_run_id": None,
+            }
+        ]
+        assert finalize_calls == [("req-1", "completed")]
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_ai_chat_stream_tracks_failed_status_on_router_error(monkeypatch):
+    finalize_calls: list[tuple[str, str]] = []
+    headers = _install_auth_stub(monkeypatch)
+    _install_usage_stubs(monkeypatch, [], finalize_calls)
+
+    async def fake_resolve_selected_sku(**_kwargs):
+        return None
+
+    async def fake_call_llm(*_args, **_kwargs):
+        raise ai_chat_module.AIRouterError("no route")
+
+    monkeypatch.setattr(ai_chat_module, "resolve_selected_sku", fake_resolve_selected_sku)
+    monkeypatch.setattr(ai_chat_module, "call_llm", fake_call_llm)
+
+    app.dependency_overrides[deps.get_current_user] = lambda: {"id": "user-1", "tier": "free"}
+    app.dependency_overrides[ai_chat_module.get_db] = lambda: None
+
+    try:
+        client = TestClient(app, raise_server_exceptions=False)
+        with client.stream(
+            "POST",
+            "/api/ai/chat-stream",
+            headers=headers,
+            json={"user_input": "你好", "conversation_history": [], "thinking_level": "fast"},
+        ) as response:
+            assert response.status_code == 200
+            lines = _stream_lines(response)
+
+        assert any("error" in line for line in lines)
         assert finalize_calls == [("req-1", "failed")]
     finally:
         app.dependency_overrides.clear()

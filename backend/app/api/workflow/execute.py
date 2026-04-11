@@ -18,7 +18,7 @@ from app.engine.executor import execute_workflow
 from app.models.workflow import WorkflowExecuteRequest
 from app.services.ai_catalog_service import get_sku_by_id, is_tier_allowed
 from app.services.quota_service import check_daily_execution_quota
-from app.services.usage_ledger import bind_usage_request, create_usage_request, finalize_usage_request
+from app.services.usage_tracker import usage_request_scope
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +118,7 @@ async def _execute_workflow_sse_impl(
             run_id = str(uuid.uuid4())
             run_status = "completed"
             final_output: dict | None = None
-            usage_request = None
+            usage_scope = None
             workflow_run_ref: str | None = None
             did_emit_workflow_done = False
             total_tokens = 0
@@ -200,22 +200,20 @@ async def _execute_workflow_sse_impl(
                 except Exception as exc:  # noqa: BLE001
                     logger.error("Failed to insert ss_workflow_runs record: %s", exc)
 
-                usage_request = await create_usage_request(
+                async with usage_request_scope(
                     user_id=user_id,
                     source_type="workflow",
                     source_subtype="workflow_execute",
                     workflow_id=workflow_id,
                     workflow_run_id=workflow_run_ref,
-                )
+                ) as usage_scope:
+                    async def _save_results(wf_id: str, updated_nodes: list[dict]) -> None:
+                        await emit_workflow_status("saving", "正在保存执行结果")
+                        await db.from_("ss_workflows").update(
+                            {"nodes_json": updated_nodes}
+                        ).eq("id", wf_id).eq("user_id", user_id).execute()
 
-                async def _save_results(wf_id: str, updated_nodes: list[dict]) -> None:
-                    await emit_workflow_status("saving", "正在保存执行结果")
-                    await db.from_("ss_workflows").update(
-                        {"nodes_json": updated_nodes}
-                    ).eq("id", wf_id).eq("user_id", user_id).execute()
-
-                await emit_workflow_status("executing", "正在执行工作流节点")
-                with bind_usage_request(usage_request):
+                    await emit_workflow_status("executing", "正在执行工作流节点")
                     async for event in execute_workflow(
                         workflow_id,
                         nodes,
@@ -241,14 +239,16 @@ async def _execute_workflow_sse_impl(
                             final_output = payload
                             if payload.get("status") != "completed":
                                 run_status = "failed"
+                                usage_scope.status = "failed"
 
-                if not did_emit_workflow_done:
-                    run_status = "failed"
-                    await emit("workflow_done", {
-                        "workflow_id": workflow_id,
-                        "status": "error",
-                        "error": "执行流未正常结束",
-                    })
+                    if not did_emit_workflow_done:
+                        run_status = "failed"
+                        usage_scope.status = "failed"
+                        await emit("workflow_done", {
+                            "workflow_id": workflow_id,
+                            "status": "error",
+                            "error": "执行流未正常结束",
+                        })
             except HTTPException as exc:
                 run_status = "failed"
                 await emit("workflow_done", {
@@ -266,9 +266,8 @@ async def _execute_workflow_sse_impl(
                 })
             finally:
                 await emit_workflow_status("finalizing", "正在收尾执行状态")
-                if usage_request is not None:
-                    await finalize_usage_request(usage_request.request_id, run_status)
-                    total_tokens = await _load_request_total_tokens(service_db, usage_request.request_id)
+                if usage_scope is not None:
+                    total_tokens = await _load_request_total_tokens(service_db, usage_scope.request_id)
                 if workflow_run_ref:
                     await _finalize_run(service_db, run_id, run_status, total_tokens, final_output)
                 # ── Persist node-level traces for Memory system ──
