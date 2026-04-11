@@ -140,6 +140,7 @@ export function debugLog(message: string) {
 - live upstream findings 对已知 `rule_id` 还会做 metadata canonicalization：`title / severity / fix` 会收口到本地规则表，不再直接信任上游漂移文案。
 - 对 unknown rule，live upstream 的 `Rule ID:` 现在也会做最小安全治理：只有已经是干净稳定 slug 的值才会保留，否则会降级为 `external_review_issue`。
 - 对 unknown rule，live upstream 的 `Title:` 现在也会做最小 groundedness 治理：只有足够贴近 `review_target` 的标题才会保留，否则会降级为 `Potential issue in review target`。
+- 对 unknown rule，live upstream 的 `Severity:` 现在也会做最小治理：不再直接信任上游高低分级，而是统一收口到 `medium`。
 - 对 unknown rule，live upstream 的 `Fix:` 现在也会做最小 groundedness 治理：只有足够贴近 `review_target` 的建议才会保留，否则会降级为统一占位文案。
 - findings 排序已固定为：`severity -> file_path -> line_number -> position -> rule_id`。
 - 没有文件路径时，`File:` 行固定输出 `<none>`，避免模板分支漂移。
@@ -156,6 +157,7 @@ export function debugLog(message: string) {
 - 当前 live upstream findings 若命中本地已知 `rule_id`，其 `title / severity / fix` 会强制收口到本地 `RuleSpec`；unknown rule 才继续保留上游元数据
 - 当前 unknown rule 的 `Rule ID:` 若不是干净稳定的 slug，会被改写为 `external_review_issue`
 - 当前 unknown rule 的 `Title:` 若引用 foreign path、foreign identifier 或无法通过最小 groundedness 校验，会被改写为 `Potential issue in review target`
+- 当前 unknown rule 的 `Severity:` 不再直接信任上游枚举值，而是统一改写为 `medium`
 - 当前 unknown rule 的 `Fix:` 若引用 foreign path、foreign identifier 或无法通过最小 groundedness 校验，会被改写为统一安全占位文案，而不是原样透出
 - 输出保持 `Summary + Findings + Limitations`
 - 后续如果接真实仓库分析或上游 LLM，仍以 `src/core/agent.py` 为主扩展点
@@ -163,7 +165,7 @@ export function debugLog(message: string) {
 ## 当前测试基线
 
 - `pytest tests -q`
-- 最新真实结果：`93 passed`
+- 最新真实结果：`98 passed`
 
 ## 参考
 

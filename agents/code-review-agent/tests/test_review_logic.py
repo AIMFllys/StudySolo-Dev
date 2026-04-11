@@ -9,6 +9,7 @@ from src.core.agent import (
     StructuredReviewPayload,
     UNVALIDATED_UPSTREAM_FIX_ADVICE,
     UNVALIDATED_UPSTREAM_RULE_ID,
+    UNVALIDATED_UPSTREAM_SEVERITY,
     UNVALIDATED_UPSTREAM_TITLE,
     normalize_unknown_live_rule_id,
     normalize_unknown_live_title,
@@ -1181,6 +1182,94 @@ return total;
     assert "Rule ID: Custom upstream rule" not in review
 
 
+def test_upstream_openai_compatible_backend_rewrites_unknown_rule_severity_from_high(
+    monkeypatch,
+):
+    install_fake_upstream(
+        monkeypatch,
+        content=json.dumps(
+            {
+                "findings": [
+                    {
+                        "title": "Custom upstream rule",
+                        "rule_id": "custom_rule",
+                        "severity": "high",
+                        "file_path": "frontend/app.tsx",
+                        "line_number": 2,
+                        "evidence": "return total;",
+                        "fix": "Review carefully.",
+                    }
+                ]
+            }
+        ),
+    )
+
+    review = render_review(
+        """<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+return total;
+```
+</review_target>""",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    assert "1. Title: Custom upstream rule" in review
+    assert "Rule ID: custom_rule" in review
+    assert f"Severity: {UNVALIDATED_UPSTREAM_SEVERITY}" in review
+    assert "Severity: high" not in review
+
+
+def test_upstream_openai_compatible_backend_rewrites_unknown_rule_severity_from_low(
+    monkeypatch,
+):
+    install_fake_upstream(
+        monkeypatch,
+        content=json.dumps(
+            {
+                "findings": [
+                    {
+                        "title": "Custom upstream rule",
+                        "rule_id": "custom_rule",
+                        "severity": "low",
+                        "file_path": "frontend/app.tsx",
+                        "line_number": 2,
+                        "evidence": "return total;",
+                        "fix": "Review carefully.",
+                    }
+                ]
+            }
+        ),
+    )
+
+    review = render_review(
+        """<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+return total;
+```
+</review_target>""",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    assert "1. Title: Custom upstream rule" in review
+    assert "Rule ID: custom_rule" in review
+    assert f"Severity: {UNVALIDATED_UPSTREAM_SEVERITY}" in review
+    assert "Severity: low" not in review
+
+
 def test_upstream_openai_compatible_backend_preserves_unknown_rule_title_with_matching_identifier(
     monkeypatch,
 ):
@@ -1449,6 +1538,58 @@ return total;
     assert review.count(f"Rule ID: {UNVALIDATED_UPSTREAM_RULE_ID}") == 1
     assert "Rule ID: backend/service.py" not in review
     assert "Rule ID: Custom upstream rule" not in review
+
+
+def test_upstream_openai_compatible_backend_deduplicates_unknown_rule_severity_after_placeholder_rewrite(
+    monkeypatch,
+):
+    install_fake_upstream(
+        monkeypatch,
+        content=json.dumps(
+            {
+                "findings": [
+                    {
+                        "title": "Custom upstream rule",
+                        "rule_id": "custom_rule",
+                        "severity": "high",
+                        "file_path": "frontend/app.tsx",
+                        "line_number": 2,
+                        "evidence": "return total;",
+                        "fix": "Review carefully.",
+                    },
+                    {
+                        "title": "Custom upstream rule",
+                        "rule_id": "custom_rule",
+                        "severity": "low",
+                        "file_path": "frontend/app.tsx",
+                        "line_number": 2,
+                        "evidence": "return total;",
+                        "fix": "Review carefully.",
+                    },
+                ]
+            }
+        ),
+    )
+
+    review = render_review(
+        """<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+return total;
+```
+</review_target>""",
+        review_backend="upstream_openai_compatible",
+        upstream_settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=12.5,
+        ),
+    )
+
+    assert "Findings found: 1" in review
+    assert review.count("Rule ID: custom_rule") == 1
+    assert review.count(f"Severity: {UNVALIDATED_UPSTREAM_SEVERITY}") == 1
 
 
 def test_upstream_openai_compatible_backend_deduplicates_unknown_rule_fix_after_placeholder_rewrite(

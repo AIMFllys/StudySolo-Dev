@@ -70,6 +70,7 @@ MAX_FORWARDED_CONTEXT_FILES = 4
 MAX_FORWARDED_CONTEXT_LINES_PER_FILE = 80
 MAX_FORWARDED_CONTEXT_LINES_TOTAL = 200
 UNVALIDATED_UPSTREAM_RULE_ID = "external_review_issue"
+UNVALIDATED_UPSTREAM_SEVERITY: Severity = "medium"
 UNVALIDATED_UPSTREAM_TITLE = "Potential issue in review target"
 UNVALIDATED_UPSTREAM_FIX_ADVICE = (
     "Review manually; the upstream fix suggestion was not validated against the review target."
@@ -939,7 +940,11 @@ def normalize_live_upstream_findings(
                 title=finding.title,
             )
         )
-        severity = known_rule.severity if known_rule else finding.severity
+        severity = (
+            known_rule.severity
+            if known_rule
+            else UNVALIDATED_UPSTREAM_SEVERITY
+        )
         advice = (
             known_rule.advice
             if known_rule
