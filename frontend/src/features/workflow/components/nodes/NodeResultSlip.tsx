@@ -7,7 +7,8 @@ import { createPortal } from 'react-dom';
 import NodeContextMenu, { buildSlipMenuGroups } from '../canvas/NodeContextMenu';
 import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 import { eventBus, normalizeToggleAllSlipsDetail } from '@/lib/events/event-bus';
-import { useNodeManifestItem } from '@/features/workflow/hooks/use-node-manifest';
+import { findNodeManifestItem, useNodeManifest } from '@/features/workflow/hooks/use-node-manifest';
+import { buildExecutionNodeNameMap } from '@/features/workflow/utils/execution-node-copy';
 
 interface NodeResultSlipProps {
   nodeId: string;
@@ -58,14 +59,20 @@ export const NodeResultSlip: React.FC<NodeResultSlipProps> = ({
   const [slipMenuPos, setSlipMenuPos] = useState<{ x: number; y: number } | null>(null);
   const slipRef = useRef<HTMLDivElement>(null);
   const wasRunningRef = useRef(false);
-  const { manifestItem } = useNodeManifestItem(nodeType);
+  const { manifest } = useNodeManifest();
   const parsedInput = useMemo(() => parseInputSnapshot(inputSnapshot), [inputSnapshot]);
   const nodes = useWorkflowStore((state) => state.nodes);
+  const manifestByType = useMemo(
+    () => Object.fromEntries(manifest.map((item) => [item.type, item])),
+    [manifest],
+  );
+  const manifestItem = useMemo(
+    () => findNodeManifestItem(manifest, nodeType),
+    [manifest, nodeType],
+  );
   const nodeNameMap = useMemo(
-    () => Object.fromEntries(
-      nodes.map((node) => [node.id, String((node.data as { label?: string })?.label ?? node.id)]),
-    ),
-    [nodes],
+    () => buildExecutionNodeNameMap(nodes, manifestByType),
+    [nodes, manifestByType],
   );
 
   useEffect(() => {

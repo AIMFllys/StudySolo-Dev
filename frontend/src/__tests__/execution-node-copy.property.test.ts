@@ -128,4 +128,38 @@ describe('execution node copy helpers', () => {
 
     expect(nodeNameMap['node-raw']).toBe('node-raw');
   });
+
+  it('builds mixed nodeNameMap entries from label, manifest, workflow meta, and node id fallbacks', () => {
+    const nodes = [
+      {
+        id: 'node-labeled',
+        type: 'summary',
+        data: { label: '自定义标题', type: 'summary' },
+      },
+      {
+        id: 'node-manifest',
+        type: 'summary',
+        data: { label: '   ', type: 'summary' },
+      },
+      {
+        id: 'node-meta',
+        type: 'flashcard',
+        data: { label: '   ', type: 'flashcard' },
+      },
+      {
+        id: 'node-id',
+        type: 'unknown_type',
+        data: { label: '   ', type: 'unknown_type' },
+      },
+    ] as unknown as Node[];
+
+    const nodeNameMap = buildExecutionNodeNameMap(nodes, {
+      summary: makeManifestItem('summary', { display_name: 'Manifest 总结标题' }),
+    });
+
+    expect(nodeNameMap['node-labeled']).toBe('自定义标题');
+    expect(nodeNameMap['node-manifest']).toBe('Manifest 总结标题');
+    expect(nodeNameMap['node-meta']).toBe('闪卡生成');
+    expect(nodeNameMap['node-id']).toBe('node-id');
+  });
 });
