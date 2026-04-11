@@ -138,6 +138,7 @@ export function debugLog(message: string) {
 - forwarded context 会显式标记 `relationship` 与 `truncated` 状态，并补入 `shared identifiers` 与 `usage priority`，帮助上游更稳定利用上下文，而不是无上限原样透传。
 - live upstream findings 现在还会做最小 evidence anchoring 治理：只有当 `evidence` 能被 `review_target` 的目标文本真实支撑时，finding 才会被保留。
 - live upstream findings 对已知 `rule_id` 还会做 metadata canonicalization：`title / severity / fix` 会收口到本地规则表，不再直接信任上游漂移文案。
+- 对 unknown rule，live upstream 的 `Rule ID:` 现在也会做最小安全治理：只有已经是干净稳定 slug 的值才会保留，否则会降级为 `external_review_issue`。
 - 对 unknown rule，live upstream 的 `Title:` 现在也会做最小 groundedness 治理：只有足够贴近 `review_target` 的标题才会保留，否则会降级为 `Potential issue in review target`。
 - 对 unknown rule，live upstream 的 `Fix:` 现在也会做最小 groundedness 治理：只有足够贴近 `review_target` 的建议才会保留，否则会降级为统一占位文案。
 - findings 排序已固定为：`severity -> file_path -> line_number -> position -> rule_id`。
@@ -153,6 +154,7 @@ export function debugLog(message: string) {
 - 当前 upstream prompt 已显式具备 `review scope hint`、`shared identifiers`、`usage priority`，用于约束和提升 repo-aware 利用质量
 - 当前 live upstream findings 还会校验 `evidence` 是否能锚定到 `review_target`；不能被目标文本支撑的 finding 会被治理丢弃，并在全丢弃时继续严格回退到 `heuristic`
 - 当前 live upstream findings 若命中本地已知 `rule_id`，其 `title / severity / fix` 会强制收口到本地 `RuleSpec`；unknown rule 才继续保留上游元数据
+- 当前 unknown rule 的 `Rule ID:` 若不是干净稳定的 slug，会被改写为 `external_review_issue`
 - 当前 unknown rule 的 `Title:` 若引用 foreign path、foreign identifier 或无法通过最小 groundedness 校验，会被改写为 `Potential issue in review target`
 - 当前 unknown rule 的 `Fix:` 若引用 foreign path、foreign identifier 或无法通过最小 groundedness 校验，会被改写为统一安全占位文案，而不是原样透出
 - 输出保持 `Summary + Findings + Limitations`
@@ -161,7 +163,7 @@ export function debugLog(message: string) {
 ## 当前测试基线
 
 - `pytest tests -q`
-- 最新真实结果：`87 passed`
+- 最新真实结果：`93 passed`
 
 ## 参考
 

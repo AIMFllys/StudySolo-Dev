@@ -69,6 +69,7 @@ MAX_SWALLOW_POSITION_GAP = 4
 MAX_FORWARDED_CONTEXT_FILES = 4
 MAX_FORWARDED_CONTEXT_LINES_PER_FILE = 80
 MAX_FORWARDED_CONTEXT_LINES_TOTAL = 200
+UNVALIDATED_UPSTREAM_RULE_ID = "external_review_issue"
 UNVALIDATED_UPSTREAM_TITLE = "Potential issue in review target"
 UNVALIDATED_UPSTREAM_FIX_ADVICE = (
     "Review manually; the upstream fix suggestion was not validated against the review target."
@@ -612,6 +613,23 @@ def collect_live_upstream_reference_identifiers(
     return reference_identifiers
 
 
+def normalize_unknown_live_rule_id(rule_id: str) -> str:
+    normalized_rule_id = rule_id.strip()
+    if len(normalized_rule_id) < 3 or len(normalized_rule_id) > 64:
+        return UNVALIDATED_UPSTREAM_RULE_ID
+
+    if normalized_rule_id != normalized_rule_id.lower():
+        return UNVALIDATED_UPSTREAM_RULE_ID
+
+    if not re.fullmatch(r"[a-z0-9_-]+", normalized_rule_id):
+        return UNVALIDATED_UPSTREAM_RULE_ID
+
+    if PATH_LIKE_TOKEN_PATTERN.search(normalized_rule_id):
+        return UNVALIDATED_UPSTREAM_RULE_ID
+
+    return normalized_rule_id
+
+
 def normalize_unknown_live_title(
     review_input: ReviewInput,
     *,
@@ -905,6 +923,11 @@ def normalize_live_upstream_findings(
             continue
 
         known_rule = KNOWN_RULE_SPECS.get(finding.rule_id)
+        rule_id = (
+            known_rule.rule_id
+            if known_rule
+            else normalize_unknown_live_rule_id(finding.rule_id)
+        )
         title = (
             known_rule.title
             if known_rule
@@ -930,7 +953,7 @@ def normalize_live_upstream_findings(
         )
 
         display_key = (
-            finding.rule_id,
+            rule_id,
             file_path,
             line_number,
             evidence,
@@ -942,7 +965,7 @@ def normalize_live_upstream_findings(
 
         normalized_findings.append(
             ReviewFinding(
-                rule_id=finding.rule_id,
+                rule_id=rule_id,
                 title=title,
                 severity=severity,
                 evidence=evidence,

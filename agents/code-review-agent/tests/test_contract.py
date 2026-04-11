@@ -4,7 +4,11 @@ from types import SimpleNamespace
 from fastapi.testclient import TestClient
 
 import src.core.upstream_review as upstream_review_module
-from src.core.agent import UNVALIDATED_UPSTREAM_FIX_ADVICE, UNVALIDATED_UPSTREAM_TITLE
+from src.core.agent import (
+    UNVALIDATED_UPSTREAM_FIX_ADVICE,
+    UNVALIDATED_UPSTREAM_RULE_ID,
+    UNVALIDATED_UPSTREAM_TITLE,
+)
 from src.config import get_settings
 from src.main import create_app
 
@@ -451,6 +455,60 @@ return total;
     assert "Move the logic into backend/service.py." not in content
 
 
+def test_non_stream_response_format_with_upstream_live_backend_rewrites_unknown_rule_id(
+    monkeypatch,
+):
+    install_fake_upstream(
+        monkeypatch,
+        content=json.dumps(
+            {
+                "findings": [
+                    {
+                        "title": "Custom upstream rule",
+                        "rule_id": "backend/service.py",
+                        "severity": "medium",
+                        "file_path": "frontend/app.tsx",
+                        "line_number": 2,
+                        "evidence": "return total;",
+                        "fix": "Review carefully.",
+                    }
+                ]
+            }
+        ),
+    )
+    monkeypatch.setenv("AGENT_API_KEY", "test-agent-key")
+    monkeypatch.setenv("AGENT_REVIEW_BACKEND", "upstream_openai_compatible")
+    monkeypatch.setenv("AGENT_UPSTREAM_MODEL", "review-upstream-v1")
+    monkeypatch.setenv("AGENT_UPSTREAM_BASE_URL", "https://example.test/v1")
+    monkeypatch.setenv("AGENT_UPSTREAM_API_KEY", "upstream-key")
+    get_settings.cache_clear()
+
+    settings = get_settings()
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/v1/chat/completions",
+            json=structured_completion_payload(
+                settings,
+                content="""<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+return total;
+```
+</review_target>""",
+            ),
+            headers=auth_headers(settings),
+        )
+
+    get_settings.cache_clear()
+
+    assert response.status_code == 200
+    data = response.json()
+    content = data["choices"][0]["message"]["content"]
+    assert f"Rule ID: {UNVALIDATED_UPSTREAM_RULE_ID}" in content
+    assert "Fix: Review carefully." in content
+    assert "Rule ID: backend/service.py" not in content
+
+
 def test_non_stream_response_format_with_upstream_live_backend_rewrites_unknown_title(
     monkeypatch,
 ):
@@ -767,6 +825,62 @@ return total;
     assert "Rule ID: custom_rule" in stream_content
     assert f"Fix: {UNVALIDATED_UPSTREAM_FIX_ADVICE}" in stream_content
     assert "Rename totalHelper before calling cacheManager." not in stream_content
+
+
+def test_stream_response_sse_format_with_upstream_live_backend_rewrites_unknown_rule_id(
+    monkeypatch,
+):
+    payload = json.dumps(
+        {
+            "findings": [
+                {
+                    "title": "Custom upstream rule",
+                    "rule_id": "Custom upstream rule",
+                    "severity": "medium",
+                    "file_path": "frontend/app.tsx",
+                    "line_number": 2,
+                    "evidence": "return total;",
+                    "fix": "Review carefully.",
+                }
+            ]
+        }
+    )
+    install_fake_upstream(
+        monkeypatch,
+        content=payload,
+        stream_chunks=[payload[:30], payload[30:62], payload[62:]],
+    )
+    monkeypatch.setenv("AGENT_API_KEY", "test-agent-key")
+    monkeypatch.setenv("AGENT_REVIEW_BACKEND", "upstream_openai_compatible")
+    monkeypatch.setenv("AGENT_UPSTREAM_MODEL", "review-upstream-v1")
+    monkeypatch.setenv("AGENT_UPSTREAM_BASE_URL", "https://example.test/v1")
+    monkeypatch.setenv("AGENT_UPSTREAM_API_KEY", "upstream-key")
+    get_settings.cache_clear()
+
+    settings = get_settings()
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/v1/chat/completions",
+            json=structured_completion_payload(
+                settings,
+                content="""<review_target path="frontend/app.tsx">
+```ts
+const total = items.length;
+return total;
+```
+</review_target>""",
+                stream=True,
+            ),
+            headers=auth_headers(settings),
+        )
+
+    get_settings.cache_clear()
+
+    assert response.status_code == 200
+    stream_content = collect_stream_content(response)
+    assert f"Rule ID: {UNVALIDATED_UPSTREAM_RULE_ID}" in stream_content
+    assert "Fix: Review carefully." in stream_content
+    assert "Rule ID: Custom upstream rule" not in stream_content
 
 
 def test_stream_response_sse_format_with_upstream_live_backend_rewrites_unknown_title(

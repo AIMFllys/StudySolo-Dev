@@ -51,7 +51,7 @@
   - `heuristic / upstream_reserved / upstream_openai_compatible` 三种 review backend seam
   - 真实 OpenAI-compatible non-stream upstream 调用，以及配置缺失、超时、HTTP 异常、空内容、非法 JSON、非法 findings 的严格回退
   - 真实 provider streaming：`stream=True + upstream_openai_compatible` 已接通，但仍坚持“稳定模板优先”，会先在服务端完整消费并校验上游 JSON findings，再按当前 SSE 外壳输出内容 chunk
-  - live upstream findings 治理已落地：会丢弃 `repo_context` findings、将 single-target foreign `file_path` 收口到 `review_target`、丢弃 multi-file diff foreign 文件、清空越界 `line_number`、去重重复 findings，并新增最小 evidence anchoring、known-rule metadata canonicalization、unknown-rule `Title:` groundedness 与 unknown-rule `Fix:` groundedness 治理；若 finding 无法被 `review_target` 的目标文本真实支撑，会在治理阶段被丢弃；若命中本地已知 `rule_id`，`title / severity / fix` 会收口到本地规则表；若为 unknown rule 且 `Title:` 或 `Fix:` 不够 grounded，则会分别收口到统一安全占位标题或占位文案，并在治理后全丢弃时严格回退到 `heuristic`
+  - live upstream findings 治理已落地：会丢弃 `repo_context` findings、将 single-target foreign `file_path` 收口到 `review_target`、丢弃 multi-file diff foreign 文件、清空越界 `line_number`、去重重复 findings，并新增最小 evidence anchoring、known-rule metadata canonicalization、unknown-rule `Rule ID` 安全治理、unknown-rule `Title:` groundedness 与 unknown-rule `Fix:` groundedness 治理；若 finding 无法被 `review_target` 的目标文本真实支撑，会在治理阶段被丢弃；若命中本地已知 `rule_id`，`title / severity / fix` 会收口到本地规则表；若为 unknown rule 且 `Rule ID` 不够干净、`Title:` 或 `Fix:` 不够 grounded，则会分别收口到统一安全占位 `rule_id`、占位标题或占位文案，并在治理后全丢弃时严格回退到 `heuristic`
   - repo-context forwarding 治理已落地：会先对 `repo_context` 做路径归一化、丢弃与 `review_target` 重复的 context、按路径去重、按 `same_dir / same_top_level / same_extension / other` 排序，并按 `4` 文件 / 单文件 `80` 行 / 总计 `200` 行预算裁剪；超限内容会以 `... [truncated]` 标记后再 forward 给 upstream
   - repo-aware utilization hints 已落地：upstream system prompt 已明确“findings 只能针对 `review_target`、`repo_context` 只能辅助解释 review target 风险”；upstream user prompt 也已补入 `review scope hint`、逐 context 的 `shared identifiers`、`usage priority`，并继续保留 `relationship / truncated` 提示
   - 定向规则逻辑测试闭环
@@ -280,7 +280,7 @@ agents/
 ### Task 4B.2：实现一个最小 Agent 样板
 
 > [!NOTE]
-> **当前真实状态**：最小 readiness-aware 协议样板已完成，且 `code-review-agent` 已进一步从 deterministic stub 推进为规则型真实审查 Agent。当前已具备结构化 repo-aware 前置输入、稳定纯文本 findings 模板、真实 OpenAI-compatible non-stream + streaming upstream、live upstream findings 治理（含 evidence anchoring、known-rule metadata canonicalization、unknown-rule `Title:` groundedness 与 unknown-rule `Fix:` groundedness 治理）、repo-context forwarding governance、repo-aware utilization hints 与严格回退；但仍不读取本地仓库文件，也未进入完整跨文件 / 全仓库推理。
+> **当前真实状态**：最小 readiness-aware 协议样板已完成，且 `code-review-agent` 已进一步从 deterministic stub 推进为规则型真实审查 Agent。当前已具备结构化 repo-aware 前置输入、稳定纯文本 findings 模板、真实 OpenAI-compatible non-stream + streaming upstream、live upstream findings 治理（含 evidence anchoring、known-rule metadata canonicalization、unknown-rule `Rule ID` 安全治理、unknown-rule `Title:` groundedness 与 unknown-rule `Fix:` groundedness 治理）、repo-context forwarding governance、repo-aware utilization hints 与严格回退；但仍不读取本地仓库文件，也未进入完整跨文件 / 全仓库推理。
 
 以 `code-review-agent` 为例，实际实现 4 个必要端点：
 
@@ -299,7 +299,7 @@ agents/
 6. `heuristic / upstream_reserved / upstream_openai_compatible` 三种内部 review backend
 7. 真实 OpenAI-compatible non-stream upstream 调用与严格回退
 8. `stream=True + upstream_openai_compatible` 时会真实消费 provider stream，但继续先在服务端归一化 findings，再按现有 SSE 外壳输出
-9. live upstream findings 治理：过滤 `repo_context` findings、收口或丢弃 foreign `file_path`、清空越界 `line_number`、去重重复 findings，并新增 evidence anchoring、known-rule metadata canonicalization、unknown-rule `Title:` groundedness 与 unknown-rule `Fix:` groundedness 治理；不能被 `review_target` 文本真实支撑的 finding 会被治理丢弃；若命中本地已知 `rule_id`，`title / severity / fix` 会收口到本地规则表；若 unknown rule 的 `Title:` 或 `Fix:` 不够 grounded，则会分别收口到统一安全占位标题或占位文案，并在治理后全丢弃时严格回退
+9. live upstream findings 治理：过滤 `repo_context` findings、收口或丢弃 foreign `file_path`、清空越界 `line_number`、去重重复 findings，并新增 evidence anchoring、known-rule metadata canonicalization、unknown-rule `Rule ID` 安全治理、unknown-rule `Title:` groundedness 与 unknown-rule `Fix:` groundedness 治理；不能被 `review_target` 文本真实支撑的 finding 会被治理丢弃；若命中本地已知 `rule_id`，`title / severity / fix` 会收口到本地规则表；若 unknown rule 的 `Rule ID`、`Title:` 或 `Fix:` 不够稳定，则会分别收口到统一安全占位 `rule_id`、占位标题或占位文案，并在治理后全丢弃时严格回退
 10. repo-context forwarding 治理：对 forwarded context 做归一化、去重、关系排序与预算裁剪，并显式标记 `truncated`
 11. repo-aware utilization hints：在 upstream prompt 中显式注入 `review scope hint`、逐 context 的 `shared identifiers`、`usage priority`，并继续保留 `relationship / truncated`
 12. 只分析最新一条 `user` 消息；历史消息仅参与 prompt token 统计
@@ -307,7 +307,7 @@ agents/
 ### Task 4B.3：编写四层契约测试
 
 > [!NOTE]
-> **当前真实状态**：已完成“协议 + 规则逻辑”双层测试闭环。`agents/_template/tests/test_contract.py` 与 `agents/code-review-agent/tests/test_contract.py` 已通过，并已补齐冻结契约中的 `/health/ready` readiness 检查；`agents/code-review-agent/tests/test_review_logic.py` 已覆盖 7 类规则命中、clean case、最新 user 消息边界、多文件 diff 路径/行号、unified diff 仅检查新增行、结构化 repo-aware 输入边界、稳定文本输出模板、live upstream non-stream / streaming 成功与 strict fallback 路径、findings 治理场景（含 evidence anchoring、known-rule metadata canonicalization、unknown-rule `Title:` groundedness 与 unknown-rule `Fix:` groundedness），以及 prompt forwarding + utilization hints 场景。当前测试基线已推进到 `87 passed`。
+> **当前真实状态**：已完成“协议 + 规则逻辑”双层测试闭环。`agents/_template/tests/test_contract.py` 与 `agents/code-review-agent/tests/test_contract.py` 已通过，并已补齐冻结契约中的 `/health/ready` readiness 检查；`agents/code-review-agent/tests/test_review_logic.py` 已覆盖 7 类规则命中、clean case、最新 user 消息边界、多文件 diff 路径/行号、unified diff 仅检查新增行、结构化 repo-aware 输入边界、稳定文本输出模板、live upstream non-stream / streaming 成功与 strict fallback 路径、findings 治理场景（含 evidence anchoring、known-rule metadata canonicalization、unknown-rule `Rule ID` 安全治理、unknown-rule `Title:` groundedness 与 unknown-rule `Fix:` groundedness），以及 prompt forwarding + utilization hints 场景。当前测试基线已推进到 `93 passed`。
 
 ```python
 # tests/test_contract.py
