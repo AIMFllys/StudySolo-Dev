@@ -88,7 +88,11 @@ def test_non_stream_response_format(client, settings):
     assert "Summary" in content
     assert "Findings" in content
     assert "Limitations" in content
-    assert "Debug artifact" in content
+    assert "- Context files supplied: 0" in content
+    assert "1. Title: Debug artifact" in content
+    assert "Rule ID: debug_artifact" in content
+    assert "Severity: low" in content
+    assert "File: <none>" in content
     assert data["usage"]["total_tokens"] == (
         data["usage"]["prompt_tokens"] + data["usage"]["completion_tokens"]
     )

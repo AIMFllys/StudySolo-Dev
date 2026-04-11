@@ -79,6 +79,7 @@ class ReviewInput:
     lines: list[ReviewLine]
     files_reviewed: tuple[str, ...] = ()
     context_file_paths: tuple[str, ...] = ()
+    review_target_path: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -332,6 +333,7 @@ def build_diff_review_input(
         lines=lines,
         files_reviewed=ordered_unique(files_reviewed),
         context_file_paths=context_file_paths,
+        review_target_path=default_file_path,
     )
 
 
@@ -373,6 +375,7 @@ def build_review_input(
         lines=lines,
         files_reviewed=files_reviewed,
         context_file_paths=context_file_paths,
+        review_target_path=default_file_path,
     )
 
 
@@ -467,7 +470,16 @@ def collect_findings(review_input: ReviewInput) -> list[ReviewFinding]:
 
     findings.extend(collect_broad_exception_findings(review_input))
 
-    findings.sort(key=lambda finding: (SEVERITY_ORDER[finding.severity], finding.position))
+    findings.sort(
+        key=lambda finding: (
+            SEVERITY_ORDER[finding.severity],
+            1 if finding.file_path is None else 0,
+            finding.file_path or "",
+            float("inf") if finding.line_number is None else finding.line_number,
+            finding.position,
+            finding.rule_id,
+        )
+    )
     return findings[:MAX_FINDINGS]
 
 
@@ -476,45 +488,43 @@ def format_file_location(file_path: str, line_number: int | None) -> str:
 
 
 def format_review(review_input: ReviewInput, findings: list[ReviewFinding]) -> str:
-    sections = ["Summary", f"- Input type: {review_input.kind}"]
+    sections = [
+        "Summary",
+        f"- Input type: {review_input.kind}",
+        f"- Files reviewed: {len(review_input.files_reviewed)}",
+        f"- Reviewed lines: {len(review_input.lines)}",
+        f"- Context files supplied: {len(review_input.context_file_paths)}",
+        f"- Findings found: {len(findings)}",
+    ]
 
-    if review_input.kind == "unified_diff":
-        sections.extend(
-            [
-                f"- Files reviewed: {len(review_input.files_reviewed)}",
-                f"- Reviewed added lines: {len(review_input.lines)}",
-                f"- Findings found: {len(findings)}",
-            ]
-        )
-    else:
-        sections.extend(
-            [
-                f"- Reviewed lines: {len(review_input.lines)}",
-                f"- Findings found: {len(findings)}",
-            ]
-        )
-
-    if review_input.context_file_paths:
-        sections.append(f"- Context files supplied: {len(review_input.context_file_paths)}")
+    if review_input.review_target_path:
+        sections.append(f"- Review target path: {review_input.review_target_path}")
 
     sections.extend(["", "Findings"])
 
     if findings:
         for index, finding in enumerate(findings, start=1):
-            sections.append(f"{index}. {finding.title} [{finding.severity}]")
-            if finding.file_path:
-                sections.append(
-                    f"   File: {format_file_location(finding.file_path, finding.line_number)}"
-                )
+            file_location = (
+                format_file_location(finding.file_path, finding.line_number)
+                if finding.file_path
+                else "<none>"
+            )
             sections.extend(
                 [
-                    f"   Evidence: `{finding.evidence}`",
+                    f"{index}. Title: {finding.title}",
+                    f"   Rule ID: {finding.rule_id}",
+                    f"   Severity: {finding.severity}",
+                    f"   File: {file_location}",
+                    f"   Evidence: {finding.evidence}",
                     f"   Fix: {finding.advice}",
                 ]
             )
     else:
-        sections.append(
-            "- No deterministic findings. This heuristic review only checks a small fixed rule set and does not prove the code is safe."
+        sections.extend(
+            [
+                "- None",
+                "  Note: No deterministic findings. This heuristic review only checks a small fixed rule set and does not prove the code is safe.",
+            ]
         )
 
     sections.extend(

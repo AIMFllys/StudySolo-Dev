@@ -55,15 +55,24 @@ def test_rule_findings_are_reported(text, expected_title, expected_kind):
 
     assert "Summary" in review
     assert f"- Input type: {expected_kind}" in review
-    assert expected_title in review
+    assert "- Context files supplied: 0" in review
+    assert f"Title: {expected_title.removesuffix(' [high]').removesuffix(' [medium]').removesuffix(' [low]')}" in review
     assert "Limitations" in review
 
 
 def test_clean_input_reports_no_findings():
     review = render_review("```ts\nconst total = items.length;\nreturn total;\n```")
 
+    assert review.splitlines()[:6] == [
+        "Summary",
+        "- Input type: code_snippet",
+        "- Files reviewed: 0",
+        "- Reviewed lines: 2",
+        "- Context files supplied: 0",
+        "- Findings found: 0",
+    ]
     assert "Findings found: 0" in review
-    assert "No deterministic findings" in review
+    assert "Findings\n- None\n  Note: No deterministic findings." in review
 
 
 def test_structured_review_target_assigns_path_to_snippet_findings():
@@ -75,7 +84,10 @@ console.log('debug');
 </review_target>"""
     )
 
-    assert "Debug artifact [low]" in review
+    assert "- Review target path: frontend/app.tsx" in review
+    assert "1. Title: Debug artifact" in review
+    assert "Rule ID: debug_artifact" in review
+    assert "Severity: low" in review
     assert "File: frontend/app.tsx:1" in review
 
 
@@ -89,7 +101,9 @@ def test_structured_review_target_path_is_used_for_headerless_diff():
 </review_target>"""
     )
 
-    assert "Unsafe HTML sink [high]" in review
+    assert "1. Title: Unsafe HTML sink" in review
+    assert "Rule ID: unsafe_html_sink" in review
+    assert "Severity: high" in review
     assert "File: frontend/unsafe.tsx:12" in review
 
 
@@ -115,8 +129,8 @@ os.system("whoami")
 
     assert "- Context files supplied: 2" in review
     assert "Findings found: 0" in review
-    assert "Debug artifact [low]" not in review
-    assert "Shell command execution [high]" not in review
+    assert "1. Title:" not in review
+    assert "Shell command execution" not in review
 
 
 def test_malformed_review_target_falls_back_to_legacy_parsing():
@@ -128,8 +142,8 @@ console.log('debug');
 ```"""
     )
 
-    assert "Debug artifact [low]" in review
-    assert "Context files supplied" not in review
+    assert "1. Title: Debug artifact" in review
+    assert "- Context files supplied: 0" in review
     assert "File: frontend/app.tsx:1" not in review
 
 
@@ -138,7 +152,9 @@ def test_broad_exception_swallow_detects_bare_except_with_nested_continue():
         "```python\ntry:\n    sync()\nexcept:\n    continue\n```"
     )
 
-    assert "Broad exception swallow [medium]" in review
+    assert "1. Title: Broad exception swallow" in review
+    assert "Rule ID: broad_exception_swallow" in review
+    assert "Severity: medium" in review
 
 
 def test_safe_shell_and_tls_usage_do_not_trigger_findings():
@@ -151,8 +167,9 @@ ssl.create_default_context()
     )
 
     assert "Findings found: 0" in review
-    assert "Shell command execution [high]" not in review
-    assert "TLS verification disabled [high]" not in review
+    assert "1. Title:" not in review
+    assert "Shell command execution" not in review
+    assert "TLS verification disabled" not in review
 
 
 def test_complete_only_analyzes_latest_user_message():
@@ -168,7 +185,7 @@ def test_complete_only_analyzes_latest_user_message():
     )
 
     assert "No deterministic findings" in result.content
-    assert "Debug artifact" not in result.content
+    assert "Title: Debug artifact" not in result.content
 
 
 def test_complete_only_uses_latest_user_message_for_structured_repo_context():
@@ -204,7 +221,7 @@ console.log('debug');
 
     assert "Findings found: 0" in result.content
     assert "- Context files supplied: 1" in result.content
-    assert "Debug artifact [low]" not in result.content
+    assert "Title: Debug artifact" not in result.content
 
 
 def test_unified_diff_only_reviews_added_lines():
@@ -235,9 +252,10 @@ diff --git a/backend/service.py b/backend/service.py
     )
 
     assert "- Files reviewed: 2" in review
-    assert "- Reviewed added lines: 2" in review
-    assert "Hardcoded secret [high]" in review
-    assert "Debug artifact [low]" in review
+    assert "- Reviewed lines: 2" in review
+    assert "1. Title: Hardcoded secret" in review
+    assert "Rule ID: hardcoded_secret" in review
+    assert "2. Title: Debug artifact" in review
     assert "File: backend/service.py:21" in review
     assert "File: frontend/app.tsx:9" in review
 
@@ -261,8 +279,8 @@ diff --git a/frontend/http.ts b/frontend/http.ts
     )
 
     assert "- Files reviewed: 2" in review
-    assert "Shell command execution [high]" in review
-    assert "TLS verification disabled [high]" in review
+    assert "Title: Shell command execution" in review
+    assert "Title: TLS verification disabled" in review
     assert "File: backend/runner.py:11" in review
     assert "File: frontend/http.ts:5" in review
 
@@ -280,7 +298,7 @@ diff --git a/frontend/app.tsx b/frontend/app.tsx
 ```"""
     )
 
-    assert review.count("Debug artifact [low]") == 1
+    assert review.count("Rule ID: debug_artifact") == 1
     assert "File: frontend/app.tsx:1" in review
 
 
@@ -298,14 +316,14 @@ diff --git a/backend/service.py b/backend/service.py
 ```"""
     )
 
-    assert review.count("Broad exception swallow [medium]") == 1
+    assert review.count("Rule ID: broad_exception_swallow") == 1
     assert "File: backend/service.py:1" in review
 
 
 def test_fragment_diff_falls_back_to_unknown_file_when_header_missing():
     review = render_review("```diff\n@@ -4,0 +12,1 @@\n+dangerouslySetInnerHTML: html\n```")
 
-    assert "Unsafe HTML sink [high]" in review
+    assert "Title: Unsafe HTML sink" in review
     assert "File: <unknown>:12" in review
 
 
@@ -329,4 +347,25 @@ diff --git a/backend/service.py b/backend/service.py
 
     assert "- Files reviewed: 2" in review
     assert "Findings found: 0" in review
-    assert "No deterministic findings" in review
+    assert "Findings\n- None\n  Note: No deterministic findings." in review
+
+
+def test_findings_sort_by_severity_then_file_path_then_line_number():
+    review = render_review(
+        """```diff
+diff --git a/frontend/z-last.tsx b/frontend/z-last.tsx
+--- a/frontend/z-last.tsx
++++ b/frontend/z-last.tsx
+@@ -2,1 +2,2 @@
++dangerouslySetInnerHTML = html
+diff --git a/backend/a-first.py b/backend/a-first.py
+--- a/backend/a-first.py
++++ b/backend/a-first.py
+@@ -10,1 +10,2 @@
++token = "sk-test-1234567890"
+```"""
+    )
+
+    assert review.index("1. Title: Hardcoded secret") < review.index("2. Title: Unsafe HTML sink")
+    assert "Rule ID: hardcoded_secret" in review
+    assert "Rule ID: unsafe_html_sink" in review
