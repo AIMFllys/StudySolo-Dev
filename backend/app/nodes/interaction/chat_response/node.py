@@ -8,6 +8,7 @@ from app.nodes._mixins import LLMStreamMixin
 class ChatResponseNode(BaseNode, LLMStreamMixin):
     node_type = "chat_response"
     category = "interaction"
+    display_name = "对话回复"
     description = "提供个性化学习建议和回复"
     is_llm_node = True
     output_format = "markdown"

@@ -15,11 +15,13 @@ from app.nodes._mixins import LLMStreamMixin, JsonOutputMixin
 class CompareNode(BaseNode, LLMStreamMixin, JsonOutputMixin):
     node_type = "compare"
     category = "generation"
+    display_name = "对比分析"
     description = "多概念多维度结构化对比辨析"
     is_llm_node = True
     output_format = "json"
     icon = "⚖️"
     color = "#06b6d4"
+    renderer = "CompareRenderer"
     config_schema = [
         {
             "key": "dimensions",

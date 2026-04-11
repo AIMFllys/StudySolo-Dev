@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 class LogicSwitchNode(BaseNode, LLMStreamMixin, JsonOutputMixin):
     node_type = "logic_switch"
     category = "analysis"
+    display_name = "逻辑分支"
     description = "根据条件判断选择执行分支"
     is_llm_node = True
     output_format = "json"

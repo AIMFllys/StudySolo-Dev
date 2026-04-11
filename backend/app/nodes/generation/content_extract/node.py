@@ -8,6 +8,7 @@ from app.nodes._mixins import LLMStreamMixin
 class ContentExtractNode(BaseNode, LLMStreamMixin):
     node_type = "content_extract"
     category = "generation"
+    display_name = "知识提炼"
     description = "根据大纲提炼核心知识点"
     is_llm_node = True
     output_format = "markdown"

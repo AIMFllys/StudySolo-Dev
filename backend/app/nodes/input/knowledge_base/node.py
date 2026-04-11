@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 class KnowledgeBaseNode(BaseNode):
     node_type = "knowledge_base"
     category = "input"
+    display_name = "知识库检索"
     description = "从用户知识库中检索相关内容"
     is_llm_node = False  # This node does NOT call LLM
     output_format = "markdown"

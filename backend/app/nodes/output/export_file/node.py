@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 class ExportFileNode(BaseNode):
     node_type = "export_file"
     category = "output"
+    display_name = "文件导出"
     description = "将学习成果导出为文件（Markdown/TXT/Word/复制）"
     is_llm_node = False
     output_format = "markdown"

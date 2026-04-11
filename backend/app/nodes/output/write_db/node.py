@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 class WriteDBNode(BaseNode):
     node_type = "write_db"
     category = "output"
+    display_name = "数据写入"
     description = "将工作流结果持久化到数据库"
     is_llm_node = False
     output_format = "json"

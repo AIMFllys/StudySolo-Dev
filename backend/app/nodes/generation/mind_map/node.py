@@ -15,11 +15,13 @@ from app.nodes._mixins import LLMStreamMixin, JsonOutputMixin
 class MindMapNode(BaseNode, LLMStreamMixin, JsonOutputMixin):
     node_type = "mind_map"
     category = "generation"
+    display_name = "思维导图"
     description = "知识结构可视化思维导图"
     is_llm_node = True
     output_format = "json"
     icon = "🧠"
     color = "#10b981"
+    renderer = "MindMapRenderer"
     config_schema = [
         {
             "key": "max_depth",

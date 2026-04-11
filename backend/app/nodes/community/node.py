@@ -46,12 +46,14 @@ def _build_knowledge_prompt(knowledge_text: str) -> str:
 class CommunityNode(BaseNode):
     node_type = "community_node"
     category = "community"
+    display_name = "社区共享节点"
     description = "社区共享节点"
     is_llm_node = True
     output_format = "markdown"
     icon = "🌐"
     color = "#0f766e"
     output_capabilities = ["preview", "compact"]
+    renderer = "CommunityNodeRenderer"
 
     def __init__(self) -> None:
         self._output_format = "markdown"

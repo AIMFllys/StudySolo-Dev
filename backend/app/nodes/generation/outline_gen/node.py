@@ -8,11 +8,13 @@ from app.nodes._mixins import LLMStreamMixin
 class OutlineGenNode(BaseNode, LLMStreamMixin):
     node_type = "outline_gen"
     category = "generation"
+    display_name = "大纲生成"
     description = "根据学习目标生成清晰的学习大纲"
     is_llm_node = True
     output_format = "markdown"
     icon = "📋"
     color = "#3b82f6"
+    renderer = "OutlineRenderer"
     config_schema = [
         {
             "key": "max_sections",

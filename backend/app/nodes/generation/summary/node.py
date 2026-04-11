@@ -8,6 +8,7 @@ from app.nodes._mixins import LLMStreamMixin
 class SummaryNode(BaseNode, LLMStreamMixin):
     node_type = "summary"
     category = "generation"
+    display_name = "总结归纳"
     description = "生成简洁的学习总结"
     is_llm_node = True
     output_format = "markdown"

@@ -21,11 +21,13 @@ logger = logging.getLogger(__name__)
 class QuizGenNode(BaseNode, LLMStreamMixin, JsonOutputMixin):
     node_type = "quiz_gen"
     category = "generation"
+    display_name = "测验生成"
     description = "生成测验题目（选择题/判断题/填空题）"
     is_llm_node = True
     output_format = "json"
     icon = "📝"
     color = "#ef4444"
+    renderer = "QuizRenderer"
     config_schema = [
         {
             "key": "question_count",

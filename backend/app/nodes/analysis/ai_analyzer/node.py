@@ -10,6 +10,7 @@ from app.nodes._mixins import LLMStreamMixin, JsonOutputMixin
 class AIAnalyzerNode(BaseNode, LLMStreamMixin, JsonOutputMixin):
     node_type = "ai_analyzer"
     category = "analysis"
+    display_name = "需求分析"
     description = "将用户学习目标解析为结构化需求 JSON"
     is_llm_node = True
     output_format = "json"

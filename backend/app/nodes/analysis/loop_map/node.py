@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 class LoopMapNode(BaseNode, LLMStreamMixin, JsonOutputMixin):
     node_type = "loop_map"
     category = "analysis"
+    display_name = "循环映射"
     description = "将内容拆分为多项，逐项处理"
     is_llm_node = True
     output_format = "json"

@@ -87,6 +87,7 @@ class BaseNode(ABC):
     # ── Class-level metadata (subclasses MUST set these) ─────────────────────
     node_type: ClassVar[str] = ""
     category: ClassVar[str] = ""            # "input" | "analysis" | "generation" | "interaction" | "output"
+    display_name: ClassVar[str] = ""
     description: ClassVar[str] = ""
     is_llm_node: ClassVar[bool] = True
     output_format: ClassVar[str] = "markdown"   # "markdown" | "json" | "passthrough"
@@ -97,6 +98,8 @@ class BaseNode(ABC):
     supports_upload: ClassVar[bool] = False
     supports_preview: ClassVar[bool] = True
     deprecated_surface: ClassVar[str | None] = None
+    renderer: ClassVar[str | None] = None
+    version: ClassVar[str] = "1.0.0"
 
     # ── System prompt (unified three-segment assembly) ─────────────────────────
 
@@ -224,6 +227,7 @@ class BaseNode(ABC):
             {
                 "type": nc.node_type,
                 "category": nc.category,
+                "display_name": nc.display_name,
                 "description": nc.description,
                 "is_llm_node": nc.is_llm_node,
                 "output_format": nc.output_format,
@@ -234,6 +238,8 @@ class BaseNode(ABC):
                 "supports_upload": nc.supports_upload,
                 "supports_preview": nc.supports_preview,
                 "deprecated_surface": nc.deprecated_surface,
+                "renderer": nc.renderer,
+                "version": nc.version,
             }
             for _, nc in sorted(cls._registry.items(), key=lambda item: item[0])
         ]

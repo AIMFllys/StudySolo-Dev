@@ -13,6 +13,7 @@ from app.nodes._mixins import LLMStreamMixin
 class MergePolishNode(BaseNode, LLMStreamMixin):
     node_type = "merge_polish"
     category = "generation"
+    display_name = "合并润色"
     description = "将多个上游输出润色合并为连贯长文"
     is_llm_node = True
     output_format = "markdown"

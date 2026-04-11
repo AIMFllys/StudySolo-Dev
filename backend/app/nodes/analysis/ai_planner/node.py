@@ -10,6 +10,7 @@ from app.nodes._mixins import LLMStreamMixin, JsonOutputMixin
 class AIPlannerNode(BaseNode, LLMStreamMixin, JsonOutputMixin):
     node_type = "ai_planner"
     category = "analysis"
+    display_name = "工作流规划"
     description = "根据结构化需求生成工作流节点和连线"
     is_llm_node = True
     output_format = "json"

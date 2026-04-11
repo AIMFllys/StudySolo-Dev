@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 class WebSearchNode(BaseNode):
     node_type = "web_search"
     category = "input"
+    display_name = "网络搜索"
     description = "联网搜索获取最新信息（GLM + 百度双引擎）"
     is_llm_node = False
     output_format = "markdown"

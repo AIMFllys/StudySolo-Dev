@@ -24,6 +24,7 @@ from app.nodes._base import BaseNode, NodeInput, NodeOutput
 class LoopGroupNode(BaseNode):
     node_type = "loop_group"
     category = "structure"
+    display_name = "循环块"
     description = "循环容器：将子节点重复执行多次"
     is_llm_node = False
     output_format = "json"

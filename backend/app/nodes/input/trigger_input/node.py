@@ -11,6 +11,7 @@ from app.nodes._base import BaseNode, NodeInput
 class TriggerInputNode(BaseNode):
     node_type = "trigger_input"
     category = "input"
+    display_name = "用户输入"
     description = "工作流触发入口，接收用户初始输入"
     is_llm_node = False
     output_format = "passthrough"

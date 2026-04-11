@@ -10,11 +10,13 @@ from app.nodes._mixins import LLMStreamMixin, JsonOutputMixin
 class FlashcardNode(BaseNode, LLMStreamMixin, JsonOutputMixin):
     node_type = "flashcard"
     category = "generation"
+    display_name = "闪卡生成"
     description = "根据知识点生成问答闪卡"
     is_llm_node = True
     output_format = "json"
     icon = "🃏"
     color = "#f59e0b"
+    renderer = "FlashcardRenderer"
     config_schema = [
         {
             "key": "card_count",
