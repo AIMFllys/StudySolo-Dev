@@ -14,9 +14,56 @@
 
 ---
 
+## 当前真实状态（2026-04-11）
+
+### Part A：已部分落地
+
+- 节点自动发现机制已真实存在，当前落在 `backend/app/nodes/__init__.py`，不是文档初稿中的 `_registry.py`
+- `backend/app/nodes/_base.py` 已具备：
+  - `display_name`
+  - `renderer`
+  - `version`
+- `/api/nodes/manifest` 已真实返回 `display_name / renderer / version`
+- 前端输出 renderer 已接入 manifest `renderer`
+
+### Part A：仍未完成
+
+- `NodeStoreDefaultView.tsx` 仍保留静态 `NODE_CATEGORIES`，尚未切到按 manifest `category` 动态分组
+- `workflow-meta.ts` 仍继续承担大量结构性元数据职责，尚未进入 deprecate 阶段
+- 节点 `version` 当前只是字段已存在，尚未形成独立版本治理 / changelog 机制
+
+### Part B：首个闭环已完成
+
+- `agents/_template/` 已从“不存在”推进为最小可运行模板
+- `agents/code-review-agent/` 已从“只有 README”推进为最小可运行实例
+- 两者都已具备：
+  - `GET /health`
+  - `GET /v1/models`
+  - `POST /v1/chat/completions`
+  - non-stream / SSE stream
+  - API Key 校验
+  - `test_contract.py`
+
+### Part B：仍未完成
+
+- `code-review-agent` 当前仍是 deterministic stub，不是完整代码审查能力
+- `backend/config/agents.yaml`、Agent Gateway、`/api/agents/*` 尚未开始
+- 其他 agent 目录仍未迁移成真实可运行骨架
+- Docker / compose / pyproject 等外圈基础设施本轮未纳入
+
+> [!NOTE]
+> 当前默认下一步不再是“补 `_template` 与 `code-review-agent` 最小骨架”，而是：
+> 1. 继续推进 **Phase 4B 能力填充**
+> 2. 或单独推进 **Phase 4A NodeStore / workflow-meta manifest-first 收口**
+
+---
+
 ## Part A：节点系统单一事实源（主系统）
 
 ### Task 4A.1：实现动态节点发现
+
+> [!NOTE]
+> **当前真实状态**：自动发现机制已实现，当前落在 `backend/app/nodes/__init__.py`。后续是否独立抽为 `_registry.py`，属于代码组织层优化，不再是“从零开始实现动态发现”。
 
 **替换当前的静态导入**：
 
@@ -74,6 +121,9 @@ def get_registry():
 
 ### Task 4A.2：扩展 Manifest API
 
+> [!NOTE]
+> **当前真实状态**：已完成。`display_name / renderer / version` 已在 `backend/app/nodes/_base.py::BaseNode.get_manifest()` 中真实返回。
+
 在 `/api/nodes/manifest` 返回的每个节点增加 `renderer` 字段：
 
 ```python
@@ -112,6 +162,9 @@ class BaseNode(ABC):
 
 ### Task 4A.3：消除前端冗余节点定义
 
+> [!NOTE]
+> **当前真实状态**：已完成前半段。前端 renderer 选择与多处 UI 文案已切到 manifest-first，但 `NodeStoreDefaultView.tsx` 的动态分组、`NodeType` 的进一步动态化，以及 `workflow-meta.ts` 的结构职责收缩尚未完成。
+
 按 Phase 3 Task 3.5 的准备工作，让前端逐步转向 manifest-first：
 
 1. `frontend/src/types/workflow.ts` 中的 `NodeType` 改为从 manifest 动态获取或作为 fallback
@@ -136,6 +189,9 @@ Step 5: 6 个月后删除 workflow-meta.ts
 
 ### Task 4A.4：节点版本管理基础设施
 
+> [!NOTE]
+> **当前真实状态**：仅字段已落地。`version` 当前统一存在，但仍固定为 `1.0.0`，尚未形成节点级版本演进和 changelog 治理。
+
 为每个节点增加版本字段：
 
 ```python
@@ -159,6 +215,9 @@ class QuizGenNode(BaseNode):
 > 📄 **开发指南**：[agents/README.md](../../../../agents/README.md)（三步创建 + 端口分配 + FAQ）
 
 ### Task 4B.1：创建模板仓库结构
+
+> [!NOTE]
+> **当前真实状态**：最小模板结构已落地，但当前范围刻意只覆盖最小运行骨架；`prompts.py`、`Dockerfile`、`docker-compose.yml`、`pyproject.toml` 仍未纳入。
 
 > [!IMPORTANT]
 > Agent 目录位于项目根级 `agents/`（不是 `services/`），每个 Agent 独立。
@@ -209,6 +268,9 @@ agents/
 
 ### Task 4B.2：实现一个最小 Agent 样板
 
+> [!NOTE]
+> **当前真实状态**：已完成最小三端点样板。`code-review-agent` 已可运行，但当前仍是 deterministic stub，未接真实代码审查能力或外部 LLM。
+
 以 `code-review-agent` 为例，实际实现 3 个必要端点：
 
 1. `GET /health` → 健康检查（返回 status, agent, version）
@@ -216,6 +278,9 @@ agents/
 3. `POST /v1/chat/completions` → Chat Completions（支持 stream/non-stream）
 
 ### Task 4B.3：编写四层契约测试
+
+> [!NOTE]
+> **当前真实状态**：已完成最小契约测试闭环。`agents/_template/tests/test_contract.py` 与 `agents/code-review-agent/tests/test_contract.py` 均已通过。
 
 ```python
 # tests/test_contract.py
@@ -295,20 +360,25 @@ def test_request_id_propagation(client): ...
 
 ### Part A（节点系统）
 
-- [ ] 动态节点发现 `_registry.py` 已实现并替代 `__init__.py` 静态导入
-- [ ] Manifest API 返回 `renderer` 和 `version` 字段
-- [ ] 前端 NodeStoreDefaultView 可从 manifest 动态渲染（带静态兜底）
-- [ ] 所有官方节点有 `version` 字段
+- [x] 节点自动发现机制已实现（当前落在 `nodes/__init__.py`）
+- [x] Manifest API 返回 `renderer` 和 `version` 字段
+- [ ] 前端 NodeStoreDefaultView 可从 manifest 动态分组渲染（带静态兜底）
+- [ ] 所有官方节点形成独立版本治理（当前仅统一字段存在）
 
 ### Part B（子后端样板）
 
-- [ ] `agents/_template/` 模板可直接复制使用
-- [ ] `agents/code-review-agent/` 至少 1 个实际 Agent 可运行
-- [ ] 四层契约测试（`test_contract.py`）全部通过
-- [ ] `agents/README.md` 开发指南已编写
-- [ ] `agent-architecture.md` 接口协议规范已冻结
+- [x] `agents/_template/` 模板已可直接复制使用
+- [x] `agents/code-review-agent/` 已有 1 个最小可运行 Agent
+- [x] 四层契约测试（`test_contract.py`）已通过最小闭环验证
+- [x] `agents/README.md` 开发指南已编写
+- [x] `agent-architecture.md` 接口协议规范已冻结
+
+> [!IMPORTANT]
+> **Phase 4 当前最准确的判断**：
+> - Part A：底座已搭起，但真正的 manifest-first 收口还没完成
+> - Part B：最小样板已完成，后续进入能力填充阶段
+> - Phase 5 的 Agent Gateway / Wiki / 治理层仍未开始，不应混入当前波次
 
 > [!IMPORTANT]
 > Part A 和 Part B 完全独立，可同时进行。Part B 由小李 负责，只需遵守 Phase 1 冻结的 Agent Gateway 契约。
 > 详细四层协议定义见 [agent-architecture.md](agent-architecture.md)。
-
