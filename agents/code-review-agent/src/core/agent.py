@@ -31,6 +31,10 @@ InputKind = Literal["unified_diff", "code_snippet", "plain_text"]
 SEVERITY_ORDER = {"high": 0, "medium": 1, "low": 2}
 MAX_FINDINGS = 5
 CODE_BLOCK_PATTERN = re.compile(r"```[^\n]*\n(.*?)```", re.DOTALL)
+DIFF_FILE_PATTERN = re.compile(r"^diff --git (?P<old>\S+) (?P<new>\S+)$")
+DIFF_HUNK_PATTERN = re.compile(
+    r"^@@ -\d+(?:,\d+)? \+(?P<new_start>\d+)(?:,\d+)? @@(?: .*)?$"
+)
 
 CODE_HINTS = (
     "def ",
@@ -52,6 +56,8 @@ class ReviewLine:
     text: str
     evidence: str
     position: int
+    file_path: str | None = None
+    line_number: int | None = None
 
 
 @dataclass(slots=True)
@@ -59,6 +65,7 @@ class ReviewInput:
     kind: InputKind
     raw_text: str
     lines: list[ReviewLine]
+    files_reviewed: tuple[str, ...] = ()
 
 
 @dataclass(slots=True)
@@ -69,6 +76,8 @@ class ReviewFinding:
     evidence: str
     advice: str
     position: int
+    file_path: str | None = None
+    line_number: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -168,36 +177,107 @@ def detect_input_kind(text: str, source_text: str) -> InputKind:
     return "plain_text"
 
 
+def normalize_diff_path(path: str) -> str | None:
+    normalized = path.strip().strip('"')
+    if not normalized or normalized == "/dev/null":
+        return None
+    if normalized.startswith(("a/", "b/")):
+        return normalized[2:]
+    return normalized
+
+
+def ordered_unique(values: list[str]) -> tuple[str, ...]:
+    seen: set[str] = set()
+    unique: list[str] = []
+    for value in values:
+        if value not in seen:
+            seen.add(value)
+            unique.append(value)
+    return tuple(unique)
+
+
+def build_diff_review_input(source_text: str) -> ReviewInput:
+    raw_lines = source_text.splitlines()
+    lines: list[ReviewLine] = []
+    files_reviewed: list[str] = []
+    current_file: str | None = None
+    current_new_line: int | None = None
+
+    for position, raw_line in enumerate(raw_lines, start=1):
+        header_match = DIFF_FILE_PATTERN.match(raw_line)
+        if header_match:
+            current_file = normalize_diff_path(header_match.group("new"))
+            current_new_line = None
+            if current_file:
+                files_reviewed.append(current_file)
+            continue
+
+        if raw_line.startswith("--- "):
+            continue
+
+        if raw_line.startswith("+++ "):
+            current_file = normalize_diff_path(raw_line[4:]) or current_file
+            if current_file:
+                files_reviewed.append(current_file)
+            continue
+
+        hunk_match = DIFF_HUNK_PATTERN.match(raw_line)
+        if hunk_match:
+            current_new_line = int(hunk_match.group("new_start"))
+            continue
+
+        if raw_line.startswith("+") and not raw_line.startswith("+++"):
+            file_path = current_file or "<unknown>"
+            files_reviewed.append(file_path)
+            content = raw_line[1:]
+            if content.strip():
+                lines.append(
+                    ReviewLine(
+                        text=content,
+                        evidence=content,
+                        position=position,
+                        file_path=file_path,
+                        line_number=current_new_line,
+                    )
+                )
+            if current_new_line is not None:
+                current_new_line += 1
+            continue
+
+        if raw_line.startswith(" ") and current_new_line is not None:
+            current_new_line += 1
+            continue
+
+        if raw_line.startswith("-") and not raw_line.startswith("---"):
+            continue
+
+    return ReviewInput(
+        kind="unified_diff",
+        raw_text=source_text,
+        lines=lines,
+        files_reviewed=ordered_unique(files_reviewed),
+    )
+
+
 def build_review_input(text: str) -> ReviewInput:
     source_text = extract_review_text(text)
     kind = detect_input_kind(source_text, text)
+
+    if kind == "unified_diff":
+        return build_diff_review_input(source_text)
+
     raw_lines = source_text.splitlines() or ([source_text] if source_text else [])
     lines: list[ReviewLine] = []
 
-    if kind == "unified_diff":
-        for position, raw_line in enumerate(raw_lines, start=1):
-            if raw_line.startswith(("diff --git", "index ", "@@", "--- ", "+++ ")):
-                continue
-            if raw_line.startswith("+") and not raw_line.startswith("+++"):
-                content = raw_line[1:]
-                if content.strip():
-                    lines.append(
-                        ReviewLine(
-                            text=content,
-                            evidence=content,
-                            position=position,
-                        )
-                    )
-    else:
-        for position, raw_line in enumerate(raw_lines, start=1):
-            if raw_line.strip():
-                lines.append(
-                    ReviewLine(
-                        text=raw_line,
-                        evidence=raw_line,
-                        position=position,
-                    )
+    for position, raw_line in enumerate(raw_lines, start=1):
+        if raw_line.strip():
+            lines.append(
+                ReviewLine(
+                    text=raw_line,
+                    evidence=raw_line,
+                    position=position,
                 )
+            )
 
     return ReviewInput(kind=kind, raw_text=source_text, lines=lines)
 
@@ -211,10 +291,15 @@ def shorten_evidence(text: str, limit: int = 96) -> str:
 
 def collect_findings(review_input: ReviewInput) -> list[ReviewFinding]:
     findings: list[ReviewFinding] = []
+    seen_rule_locations: set[tuple[str, str | None]] = set()
 
     for rule in RULES:
         for line in review_input.lines:
             if any(pattern.search(line.text) for pattern in rule.patterns):
+                dedupe_key = (rule.rule_id, line.file_path)
+                if dedupe_key in seen_rule_locations:
+                    continue
+                seen_rule_locations.add(dedupe_key)
                 findings.append(
                     ReviewFinding(
                         rule_id=rule.rule_id,
@@ -223,29 +308,49 @@ def collect_findings(review_input: ReviewInput) -> list[ReviewFinding]:
                         evidence=shorten_evidence(line.evidence),
                         advice=rule.advice,
                         position=line.position,
+                        file_path=line.file_path,
+                        line_number=line.line_number,
                     )
                 )
-                break
 
     findings.sort(key=lambda finding: (SEVERITY_ORDER[finding.severity], finding.position))
     return findings[:MAX_FINDINGS]
 
 
+def format_file_location(file_path: str, line_number: int | None) -> str:
+    return f"{file_path}:{line_number}" if line_number is not None else file_path
+
+
 def format_review(review_input: ReviewInput, findings: list[ReviewFinding]) -> str:
-    sections = [
-        "Summary",
-        f"- Input type: {review_input.kind}",
-        f"- Reviewed lines: {len(review_input.lines)}",
-        f"- Findings found: {len(findings)}",
-        "",
-        "Findings",
-    ]
+    sections = ["Summary", f"- Input type: {review_input.kind}"]
+
+    if review_input.kind == "unified_diff":
+        sections.extend(
+            [
+                f"- Files reviewed: {len(review_input.files_reviewed)}",
+                f"- Reviewed added lines: {len(review_input.lines)}",
+                f"- Findings found: {len(findings)}",
+            ]
+        )
+    else:
+        sections.extend(
+            [
+                f"- Reviewed lines: {len(review_input.lines)}",
+                f"- Findings found: {len(findings)}",
+            ]
+        )
+
+    sections.extend(["", "Findings"])
 
     if findings:
         for index, finding in enumerate(findings, start=1):
+            sections.append(f"{index}. {finding.title} [{finding.severity}]")
+            if finding.file_path:
+                sections.append(
+                    f"   File: {format_file_location(finding.file_path, finding.line_number)}"
+                )
             sections.extend(
                 [
-                    f"{index}. {finding.title} [{finding.severity}]",
                     f"   Evidence: `{finding.evidence}`",
                     f"   Fix: {finding.advice}",
                 ]

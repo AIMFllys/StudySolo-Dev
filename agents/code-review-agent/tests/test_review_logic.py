@@ -77,3 +77,78 @@ def test_unified_diff_only_reviews_added_lines():
 
     assert "- Input type: unified_diff" in review
     assert "No deterministic findings" in review
+
+
+def test_multi_file_diff_reports_file_path_and_line_number():
+    review = render_review(
+        """```diff
+diff --git a/frontend/app.tsx b/frontend/app.tsx
+--- a/frontend/app.tsx
++++ b/frontend/app.tsx
+@@ -8,2 +8,3 @@
+ const ready = true;
++console.log('debug');
+ export default ready;
+diff --git a/backend/service.py b/backend/service.py
+--- a/backend/service.py
++++ b/backend/service.py
+@@ -20,2 +20,3 @@
+ def handler():
++    token = "sk-test-1234567890"
+     return "ok"
+```"""
+    )
+
+    assert "- Files reviewed: 2" in review
+    assert "- Reviewed added lines: 2" in review
+    assert "Hardcoded secret [high]" in review
+    assert "Debug artifact [low]" in review
+    assert "File: backend/service.py:21" in review
+    assert "File: frontend/app.tsx:9" in review
+
+
+def test_same_rule_same_file_only_reports_first_hit():
+    review = render_review(
+        """```diff
+diff --git a/frontend/app.tsx b/frontend/app.tsx
+--- a/frontend/app.tsx
++++ b/frontend/app.tsx
+@@ -1,1 +1,3 @@
++console.log('first');
++console.log('second');
+ export default true;
+```"""
+    )
+
+    assert review.count("Debug artifact [low]") == 1
+    assert "File: frontend/app.tsx:1" in review
+
+
+def test_fragment_diff_falls_back_to_unknown_file_when_header_missing():
+    review = render_review("```diff\n@@ -4,0 +12,1 @@\n+dangerouslySetInnerHTML: html\n```")
+
+    assert "Unsafe HTML sink [high]" in review
+    assert "File: <unknown>:12" in review
+
+
+def test_clean_multi_file_diff_reports_no_findings():
+    review = render_review(
+        """```diff
+diff --git a/frontend/app.tsx b/frontend/app.tsx
+--- a/frontend/app.tsx
++++ b/frontend/app.tsx
+@@ -2,1 +2,2 @@
+ const total = items.length;
++const ready = total > 0;
+diff --git a/backend/service.py b/backend/service.py
+--- a/backend/service.py
++++ b/backend/service.py
+@@ -10,1 +10,2 @@
+ def handler():
++    return "ok"
+```"""
+    )
+
+    assert "- Files reviewed: 2" in review
+    assert "Findings found: 0" in review
+    assert "No deterministic findings" in review
