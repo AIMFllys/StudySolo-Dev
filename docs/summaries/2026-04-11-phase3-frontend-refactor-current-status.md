@@ -681,3 +681,41 @@
 - `workflow-meta.ts` 的 icon / theme / inputs / outputs / 结构性元数据职责
 - `canvas-node-factory.ts` 的实例默认标题语义
 - `NodeResultSlip.tsx` 对旧 `workflow:toggle-all-slips` 的兼容监听
+
+### 8.15 当前收尾判断：Phase 3 主线已完成，敏感边界冻结
+
+在补齐 `NodeResultSlip` 的 manifest-first 名称回退之后，Phase 3 当前更准确的判断已经不再是“还有若干零散尾差待补”，而是：**主线闭环已完成，剩余项均属于显式冻结的敏感边界**。
+
+#### 静态扫描确认
+1. 旧 store import 仅剩：
+   - `frontend/src/app/m/[id]/MemoryView.tsx`
+   - `frontend/src/__tests__/store-path-compat.property.test.ts`
+2. 旧 `workflow:toggle-all-slips` 的 `window.dispatchEvent(new CustomEvent(...))` 发射端仅剩：
+   - `frontend/src/app/m/[id]/MemoryView.tsx`
+3. `NodeResultSlip.tsx`
+   - 继续同时保留 typed event bus 订阅与 legacy `window` 兼容监听
+   - 目的仍然是保证 `MemoryView.tsx` 不需要在当前波次被触碰
+4. `workflow-meta.ts`
+   - 当前仍承担：
+     - `status`
+     - `icon`
+     - `theme`
+     - `inputs`
+     - `outputs`
+     - 其它结构性元数据职责
+5. `canvas-node-factory.ts`
+   - 新建节点默认实例标题仍然继续来自 `workflow-meta`
+
+#### 当前结论
+1. Phase 3 可视为已完成当前规划内主线目标：
+   - stores 重组
+   - service 主批次收口
+   - TypedEventBus 两批迁移
+   - manifest renderer 接线
+   - 六个连续的 manifest-first UI 文案闭环
+2. 当前不应继续在同一波次中顺手推进：
+   - `MemoryView.tsx`
+   - compat shim 退场
+   - `workflow-meta.ts` 结构职责收缩
+   - `canvas-node-factory.ts` 的默认实例命名语义
+3. 如果未来要继续处理上述任一项，必须单独成环，并把兼容策略、验收标准和回退路径单独定义清楚
