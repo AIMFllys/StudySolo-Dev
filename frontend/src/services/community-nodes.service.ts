@@ -83,9 +83,8 @@ export async function publishCommunityNode(
     formData.append('knowledge_file', input.knowledge_file);
   }
 
-  const response = await fetch('/api/community-nodes', {
+  const response = await authedFetch('/api/community-nodes', {
     method: 'POST',
-    credentials: 'include',
     body: formData,
   });
   if (!response.ok) {
@@ -120,7 +119,6 @@ export async function deleteCommunityNode(nodeId: string): Promise<void> {
 export async function likeCommunityNode(nodeId: string): Promise<number> {
   const response = await authedFetch(`/api/community-nodes/${nodeId}/like`, {
     method: 'POST',
-    headers: {},
   });
   if (!response.ok) {
     throw new Error(await parseApiError(response, '点赞失败'));
@@ -132,7 +130,6 @@ export async function likeCommunityNode(nodeId: string): Promise<number> {
 export async function unlikeCommunityNode(nodeId: string): Promise<number> {
   const response = await authedFetch(`/api/community-nodes/${nodeId}/like`, {
     method: 'DELETE',
-    headers: {},
   });
   if (!response.ok) {
     throw new Error(await parseApiError(response, '取消点赞失败'));

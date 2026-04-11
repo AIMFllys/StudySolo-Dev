@@ -33,6 +33,26 @@ export function buildAuthHeaders(token?: string): Record<string, string> {
   };
 }
 
+function buildRequestHeaders(
+  init?: RequestInit,
+  token?: string,
+): Headers {
+  const headers = new Headers(init?.headers);
+
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  const isFormDataBody =
+    typeof FormData !== 'undefined' && init?.body instanceof FormData;
+
+  if (!isFormDataBody && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  return headers;
+}
+
 /**
  * Parse a non-ok API response into a user-facing error message.
  */
@@ -68,10 +88,7 @@ export function credentialsFetch(
   return fetch(buildApiUrl(path), {
     credentials: 'include',
     ...init,
-    headers: {
-      ...buildAuthHeaders(token),
-      ...init?.headers,
-    },
+    headers: buildRequestHeaders(init, token),
   });
 }
 

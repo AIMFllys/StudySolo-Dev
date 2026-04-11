@@ -11,6 +11,27 @@ async function getAccessTokenFromCookieStore() {
   return cookieStore.get('access_token')?.value;
 }
 
+async function withServerAccessToken<T>(runner: (token?: string) => Promise<T>): Promise<T> {
+  const token = await getAccessTokenFromCookieStore();
+  return runner(token);
+}
+
+async function fetchRunDetail(
+  path: string,
+  token?: string,
+  includeCredentials = false,
+): Promise<WorkflowRunDetail | null> {
+  const res = await fetch(buildApiUrl(path), {
+    headers: buildAuthHeaders(token),
+    ...(includeCredentials ? { credentials: 'include' as const } : {}),
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    return null;
+  }
+  return res.json() as Promise<WorkflowRunDetail>;
+}
+
 /**
  * Fetch a run's detail for rendering in the m/[id] Server Component.
  *
@@ -22,41 +43,22 @@ async function getAccessTokenFromCookieStore() {
 export async function fetchRunForServer(
   runId: string,
 ): Promise<WorkflowRunDetail | null> {
-  const token = getAccessTokenFromCookieStore();
-
-  // Try authenticated access first (owner can always see their own runs)
-  const resolvedToken = await token;
-  if (resolvedToken) {
-    try {
-      const res = await fetch(buildApiUrl(`/api/workflow-runs/${runId}`), {
-        headers: buildAuthHeaders(resolvedToken),
-        credentials: 'include',
-        cache: 'no-store',
-      });
-      if (res.ok) {
-        return res.json() as Promise<WorkflowRunDetail>;
+  return withServerAccessToken(async (token) => {
+    if (token) {
+      try {
+        const ownerRun = await fetchRunDetail(`/api/workflow-runs/${runId}`, token, true);
+        if (ownerRun) {
+          return ownerRun;
+        }
+      } catch {
+        // Fall through to public access
       }
+    }
+
+    try {
+      return await fetchRunDetail(`/api/workflow-runs/${runId}/public`, token);
     } catch {
-      // Fall through to public access
+      return null;
     }
-  }
-
-  // Fallback: try public access (for shared runs)
-  try {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (resolvedToken) {
-      headers.Authorization = `Bearer ${resolvedToken}`;
-    }
-    const res = await fetch(buildApiUrl(`/api/workflow-runs/${runId}/public`), {
-      headers,
-      cache: 'no-store',
-    });
-    if (res.ok) {
-      return res.json() as Promise<WorkflowRunDetail>;
-    }
-  } catch {
-    // Both attempts failed
-  }
-
-  return null;
+  });
 }

@@ -1,4 +1,4 @@
-import { parseApiError } from '@/services/api-client';
+import { authedFetch, parseApiError } from '@/services/api-client';
 
 /* ── Types ─────────────────────────────────────────────── */
 
@@ -39,9 +39,8 @@ export async function inviteCollaborator(
   email: string,
   role: string = 'editor'
 ): Promise<void> {
-  const res = await fetch(`/api/workflow/${workflowId}/collaborators`, {
+  const res = await authedFetch(`/api/workflow/${workflowId}/collaborators`, {
     method: 'POST',
-    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, role }),
   });
@@ -53,9 +52,7 @@ export async function inviteCollaborator(
 export async function fetchCollaborators(
   workflowId: string
 ): Promise<Collaborator[]> {
-  const res = await fetch(`/api/workflow/${workflowId}/collaborators`, {
-    credentials: 'include',
-  });
+  const res = await authedFetch(`/api/workflow/${workflowId}/collaborators`);
   if (!res.ok) return [];
   return (await res.json()) as Collaborator[];
 }
@@ -64,9 +61,9 @@ export async function removeCollaborator(
   workflowId: string,
   userId: string
 ): Promise<void> {
-  const res = await fetch(
+  const res = await authedFetch(
     `/api/workflow/${workflowId}/collaborators/${userId}`,
-    { method: 'DELETE', credentials: 'include' }
+    { method: 'DELETE' }
   );
   if (!res.ok) {
     throw new Error(await parseApiError(res, '移除失败'));
@@ -76,17 +73,15 @@ export async function removeCollaborator(
 /* ── Invitations (invitee) ─────────────────────────────── */
 
 export async function fetchPendingInvitations(): Promise<Invitation[]> {
-  const res = await fetch('/api/workflow/invitations', {
-    credentials: 'include',
-  });
+  const res = await authedFetch('/api/workflow/invitations');
   if (!res.ok) return [];
   return (await res.json()) as Invitation[];
 }
 
 export async function acceptInvitation(invitationId: string): Promise<void> {
-  const res = await fetch(
+  const res = await authedFetch(
     `/api/workflow/invitations/${invitationId}/accept`,
-    { method: 'POST', credentials: 'include' }
+    { method: 'POST' }
   );
   if (!res.ok) {
     throw new Error(await parseApiError(res, '接受邀请失败'));
@@ -94,9 +89,9 @@ export async function acceptInvitation(invitationId: string): Promise<void> {
 }
 
 export async function rejectInvitation(invitationId: string): Promise<void> {
-  const res = await fetch(
+  const res = await authedFetch(
     `/api/workflow/invitations/${invitationId}/reject`,
-    { method: 'POST', credentials: 'include' }
+    { method: 'POST' }
   );
   if (!res.ok) {
     throw new Error(await parseApiError(res, '拒绝邀请失败'));
@@ -106,9 +101,7 @@ export async function rejectInvitation(invitationId: string): Promise<void> {
 /* ── Shared workspace ──────────────────────────────────── */
 
 export async function fetchSharedWorkflows(): Promise<SharedWorkflowItem[]> {
-  const res = await fetch('/api/workflow/shared', {
-    credentials: 'include',
-  });
+  const res = await authedFetch('/api/workflow/shared');
   if (!res.ok) return [];
   return (await res.json()) as SharedWorkflowItem[];
 }

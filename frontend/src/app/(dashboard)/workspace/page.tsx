@@ -9,6 +9,10 @@ const FREE_QUOTA_FALLBACK = {
   workflows_addon_qty: 0,
   workflows_total: 10,
   workflows_remaining: 10,
+  daily_chat_used: 0,
+  daily_chat_limit: 10,
+  daily_execution_used: 0,
+  daily_execution_limit: 5,
 };
 
 export default async function WorkspacePage() {
