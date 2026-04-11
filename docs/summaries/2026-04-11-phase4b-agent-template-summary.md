@@ -337,3 +337,56 @@ pytest 执行时出现过 workspace 根目录 `.pytest_cache` 写入权限 warni
    - 把 Phase 4 官方计划文档中的 4B 状态口径更新为“最小样板已落地，后续进入能力填充”
 
 无论走哪条，当前都不应回头把这个闭环扩成“大而全 Agent 平台重构”。
+
+## 10. 后续补充闭环：`code-review-agent` 规则集深化
+
+在最小样板闭环完成并提交后，随后又补了一个严格受控的小闭环，但仍然只停留在 Phase 4B 内部，不进入 repo-aware、Gateway 或外部模型。
+
+### 10.1 本轮新增能力
+
+`agents/code-review-agent/src/core/agent.py` 进一步从“5 条固定规则”扩展为更实用的一版本地启发式审查器：
+
+1. **新增命令执行面风险识别**
+   - `subprocess(..., shell=True)`
+   - `os.system(...)`
+   - `child_process.exec(...)` / `execSync(...)`
+2. **新增 TLS 校验关闭识别**
+   - `verify=False`
+   - `rejectUnauthorized: false`
+   - `ssl._create_unverified_context(...)`
+3. **增强宽泛吞错识别**
+   - 不再只是匹配单独一行 `except Exception:`
+   - 现可识别：
+     - `except:`
+     - `except Exception as e:`
+     - 后续缩进行中的 `pass` / `continue` / `return None`
+4. **保持原有边界不变**
+   - 仍只分析最新一条 `user` 消息
+   - 仍只对 unified diff 的新增行做检查
+   - 仍保持“同一规则在同一文件只报首次命中”的去重策略
+   - 仍输出 `Summary + Findings + Limitations` 文本，不引入 JSON findings
+
+### 10.2 新增验证
+
+`agents/code-review-agent/tests/test_review_logic.py` 已补齐针对性测试，覆盖：
+
+1. snippet 命中新规则
+2. multi-file unified diff 命中新规则并保留正确 `File: path:line`
+3. bare `except` + nested `continue` 的宽泛吞错识别
+4. 同文件同规则只报一次
+5. 安全用法不误报（如 `shell=False`、`verify=True`）
+
+### 10.3 回归结果
+
+- `pytest agents/code-review-agent/tests -q`
+  - 结果：`25 passed`
+
+### 10.4 当前 4B 正确口径
+
+截至这一补充闭环后，Phase 4B 对 `code-review-agent` 的正确描述应更新为：
+
+1. 最小 OpenAI-compatible 协议已落地
+2. 首个规则型本地真实能力已落地
+3. 多文件 diff 感知已落地
+4. 第二轮规则集深化已落地
+5. 但仍然**不是 repo-aware**，也**没有接外部 LLM**
