@@ -1211,11 +1211,18 @@ export function debugLog(message: string) {
     assert request.messages[0]["role"] == "system"
     assert request.messages[1]["role"] == "user"
     assert "Return JSON only" in request.messages[0]["content"]
+    assert "Never report a finding that exists only in repo context." in request.messages[0]["content"]
     assert "Review target path: frontend/app.tsx" in request.messages[1]["content"]
+    assert (
+        "Review scope: Review only the supplied review target text. Repo context may only help explain symbols, types, constraints, or call relationships that appear in the review target."
+        in request.messages[1]["content"]
+    )
     assert "Repo context files supplied: 1" in request.messages[1]["content"]
     assert "Repo context files forwarded: 1" in request.messages[1]["content"]
     assert "Context file 1 path: frontend/logger.ts" in request.messages[1]["content"]
     assert "Context file 1 relationship: same_dir" in request.messages[1]["content"]
+    assert "Context file 1 usage priority: high" in request.messages[1]["content"]
+    assert "Context file 1 shared identifiers: console, log" in request.messages[1]["content"]
     assert "Context file 1 truncated: no" in request.messages[1]["content"]
     assert "console.log('debug');" in request.messages[1]["content"]
 
@@ -1260,8 +1267,120 @@ export const duplicateTarget = true;
     assert "Repo context files forwarded: 1" in request.messages[1]["content"]
     assert "Context file 1 path: frontend/logger.ts" in request.messages[1]["content"]
     assert "Context file 1 relationship: same_dir" in request.messages[1]["content"]
+    assert "Context file 1 usage priority: high" in request.messages[1]["content"]
+    assert "Context file 1 shared identifiers: <none>" in request.messages[1]["content"]
     assert "Context file 1 truncated: yes" in request.messages[1]["content"]
     assert "... [truncated]" in request.messages[1]["content"]
+
+
+def test_upstream_review_request_uses_diff_scope_hint_and_medium_priority_with_single_overlap():
+    agent = CodeReviewAgent(agent_name="code-review")
+    prepared = agent.prepare_review_text(
+        """<review_target path="frontend/app.tsx">
+```diff
+diff --git a/frontend/app.tsx b/frontend/app.tsx
+--- a/frontend/app.tsx
++++ b/frontend/app.tsx
+@@ -1,1 +1,2 @@
++debugLog(message)
+```
+</review_target>
+<repo_context path="frontend/utils/logger.ts">
+```ts
+export function debugLog(input: string) {
+  return input;
+}
+```
+</repo_context>"""
+    )
+
+    request = build_upstream_review_request(
+        settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=18.0,
+        ),
+        input_kind=prepared.review_input.kind,
+        review_target_text=prepared.review_input.raw_text,
+        review_target_path=prepared.payload.review_target_path,
+        context_file_count=len(prepared.payload.context_blocks),
+        forwarded_context=prepared.forwarded_context,
+        uses_structured_input=prepared.payload.uses_structured_input,
+    )
+
+    assert (
+        "Review scope: Review only the added lines in the review target diff. Repo context may only help explain those added lines."
+        in request.messages[1]["content"]
+    )
+    assert "Context file 1 relationship: same_top_level" in request.messages[1]["content"]
+    assert "Context file 1 usage priority: medium" in request.messages[1]["content"]
+    assert "Context file 1 shared identifiers: debuglog" in request.messages[1]["content"]
+
+
+def test_upstream_review_request_reports_low_priority_when_no_overlap_exists():
+    request = build_upstream_review_request(
+        settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=18.0,
+        ),
+        input_kind="plain_text",
+        review_target_text="Please review the cache invalidation path.",
+        review_target_path="frontend/app.tsx",
+        context_file_count=1,
+        forwarded_context=(
+            upstream_review_module.UpstreamContextBlock(
+                path="docs/readme.md",
+                content="deployment steps and release notes",
+                relationship="other",
+                truncated=False,
+            ),
+        ),
+        uses_structured_input=True,
+    )
+
+    assert (
+        "Review scope: Review only the supplied review target text. Repo context may only help explain symbols, types, constraints, or call relationships that appear in the review target."
+        in request.messages[1]["content"]
+    )
+    assert "Context file 1 usage priority: low" in request.messages[1]["content"]
+    assert "Context file 1 shared identifiers: <none>" in request.messages[1]["content"]
+
+
+def test_upstream_review_request_limits_shared_identifiers_to_five_sorted_values():
+    request = build_upstream_review_request(
+        settings=UpstreamReviewSettings(
+            model="review-upstream-v1",
+            base_url="https://example.test/v1",
+            api_key="upstream-key",
+            timeout_seconds=18.0,
+        ),
+        input_kind="code_snippet",
+        review_target_text=(
+            "alpha beta gamma delta epsilon zeta eta theta payload process result"
+        ),
+        review_target_path="frontend/app.tsx",
+        context_file_count=1,
+        forwarded_context=(
+            upstream_review_module.UpstreamContextBlock(
+                path="frontend/shared.ts",
+                content=(
+                    "theta eta zeta epsilon delta gamma beta alpha payload process result"
+                ),
+                relationship="same_top_level",
+                truncated=False,
+            ),
+        ),
+        uses_structured_input=True,
+    )
+
+    assert "Context file 1 usage priority: high" in request.messages[1]["content"]
+    assert (
+        "Context file 1 shared identifiers: alpha, beta, delta, epsilon, eta"
+        in request.messages[1]["content"]
+    )
 
 
 def test_findings_sort_by_severity_then_file_path_then_line_number():

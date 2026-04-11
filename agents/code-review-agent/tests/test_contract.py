@@ -395,7 +395,13 @@ print("task")
     upstream_prompt = state["instances"][0]["calls"][0]["messages"][1]["content"]
     assert "Repo context files supplied: 5" in upstream_prompt
     assert "Repo context files forwarded: 4" in upstream_prompt
+    assert (
+        "Review scope: Review only the supplied review target text. Repo context may only help explain symbols, types, constraints, or call relationships that appear in the review target."
+        in upstream_prompt
+    )
     assert "Context file 1 path: frontend/components/button.tsx" in upstream_prompt
+    assert "Context file 1 usage priority: high" in upstream_prompt
+    assert "Context file 1 shared identifiers: <none>" in upstream_prompt
     assert "Context file 2 path: frontend/utils/math.ts" in upstream_prompt
     assert "Context file 3 path: backend/render.tsx" in upstream_prompt
     assert "Context file 4 path: docs/readme.md" in upstream_prompt
@@ -509,8 +515,14 @@ export const duplicateTarget = true;
     assert lines[0].startswith("data: ")
     assert lines[-1] == "data: [DONE]"
     upstream_prompt = state["instances"][0]["calls"][0]["messages"][1]["content"]
+    assert (
+        "Review scope: Review only the supplied review target text. Repo context may only help explain symbols, types, constraints, or call relationships that appear in the review target."
+        in upstream_prompt
+    )
     assert "Repo context files supplied: 2" in upstream_prompt
     assert "Repo context files forwarded: 1" in upstream_prompt
+    assert "Context file 1 usage priority: high" in upstream_prompt
+    assert "Context file 1 shared identifiers: <none>" in upstream_prompt
     assert "Context file 1 truncated: yes" in upstream_prompt
     assert "... [truncated]" in upstream_prompt
     assert "duplicateTarget" not in upstream_prompt

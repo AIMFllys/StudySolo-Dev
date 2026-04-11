@@ -10,6 +10,10 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 UPSTREAM_REVIEW_SYSTEM_PROMPT = """You are StudySolo's code review agent.
 Review only the supplied review target.
 Repo context is supporting reference only and must never produce standalone findings.
+Use repo context only when it helps explain a justified risk in the review target.
+Never report a finding that exists only in repo context.
+If repo context suggests a risk but you cannot tie it back to the review target, return {"findings": []}.
+If you use repo context to support a finding, the final file_path and line_number must still point to the review target or be null.
 
 Return JSON only. Do not return Markdown or prose.
 Use exactly this schema:
@@ -31,6 +35,64 @@ If there are no justified findings, return {"findings": []}.
 """
 
 JSON_CODE_BLOCK_PATTERN = re.compile(r"^```(?:json)?\s*(?P<body>.*?)\s*```$", re.DOTALL)
+IDENTIFIER_PATTERN = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]{2,}\b")
+MAX_SHARED_IDENTIFIERS = 5
+LOW_INFO_IDENTIFIERS = {
+    "and",
+    "args",
+    "async",
+    "await",
+    "attr",
+    "bool",
+    "break",
+    "call",
+    "case",
+    "catch",
+    "class",
+    "const",
+    "continue",
+    "default",
+    "def",
+    "dict",
+    "else",
+    "enum",
+    "export",
+    "false",
+    "finally",
+    "float",
+    "for",
+    "from",
+    "function",
+    "if",
+    "import",
+    "int",
+    "interface",
+    "json",
+    "let",
+    "list",
+    "map",
+    "new",
+    "none",
+    "null",
+    "pass",
+    "print",
+    "raise",
+    "return",
+    "self",
+    "set",
+    "str",
+    "switch",
+    "then",
+    "this",
+    "throw",
+    "true",
+    "try",
+    "type",
+    "var",
+    "void",
+    "while",
+    "with",
+}
 
 
 class UpstreamReviewError(Exception):
@@ -89,6 +151,7 @@ class UpstreamReviewRequest:
 
 
 ContextRelationship = Literal["same_dir", "same_top_level", "same_extension", "other"]
+UsagePriority = Literal["high", "medium", "low"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -97,6 +160,45 @@ class UpstreamContextBlock:
     content: str
     relationship: ContextRelationship
     truncated: bool = False
+
+
+def review_scope_hint(input_kind: str) -> str:
+    if input_kind == "unified_diff":
+        return (
+            "Review only the added lines in the review target diff. "
+            "Repo context may only help explain those added lines."
+        )
+    return (
+        "Review only the supplied review target text. "
+        "Repo context may only help explain symbols, types, constraints, or call relationships "
+        "that appear in the review target."
+    )
+
+
+def extract_identifiers(text: str) -> set[str]:
+    identifiers: set[str] = set()
+    for match in IDENTIFIER_PATTERN.findall(text):
+        normalized = match.lower()
+        if normalized in LOW_INFO_IDENTIFIERS:
+            continue
+        identifiers.add(normalized)
+    return identifiers
+
+
+def shared_identifiers(review_target_text: str, context_text: str) -> tuple[str, ...]:
+    shared = extract_identifiers(review_target_text).intersection(extract_identifiers(context_text))
+    return tuple(sorted(shared)[:MAX_SHARED_IDENTIFIERS])
+
+
+def usage_priority(
+    relationship: ContextRelationship,
+    shared_identifier_count: int,
+) -> UsagePriority:
+    if relationship == "same_dir" or shared_identifier_count >= 2:
+        return "high"
+    if relationship in {"same_top_level", "same_extension"} or shared_identifier_count == 1:
+        return "medium"
+    return "low"
 
 
 def has_live_upstream_configuration(settings: UpstreamReviewSettings) -> bool:
@@ -123,6 +225,7 @@ def build_upstream_review_request(
         f"- Input type: {input_kind}",
         f"- Structured input supplied: {'yes' if uses_structured_input else 'no'}",
         f"- Review target path: {target_path}",
+        f"- Review scope: {review_scope_hint(input_kind)}",
         "",
         "Review target content:",
         review_target_text or "<empty>",
@@ -133,10 +236,16 @@ def build_upstream_review_request(
     ]
 
     for index, context_block in enumerate(forwarded_context, start=1):
+        context_shared_identifiers = shared_identifiers(review_target_text, context_block.content)
+        shared_identifier_text = (
+            ", ".join(context_shared_identifiers) if context_shared_identifiers else "<none>"
+        )
         sections.extend(
             [
                 f"- Context file {index} path: {context_block.path}",
                 f"- Context file {index} relationship: {context_block.relationship}",
+                f"- Context file {index} usage priority: {usage_priority(context_block.relationship, len(context_shared_identifiers))}",
+                f"- Context file {index} shared identifiers: {shared_identifier_text}",
                 f"- Context file {index} truncated: {'yes' if context_block.truncated else 'no'}",
                 "Context content:",
                 context_block.content or "<empty>",
