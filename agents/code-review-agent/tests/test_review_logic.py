@@ -2106,8 +2106,8 @@ print("task")
         "low",
     )
     assert prepared.forwarded_context[0].shared_identifiers == (
-        "renderbadge",
-        "totalcount",
+        "render_badge",
+        "total_count",
     )
     assert prepared.forwarded_context[1].shared_identifiers == ()
 
@@ -2145,7 +2145,7 @@ export function renderBadge(totalCount: number) {
         "frontend/badge.ts",
         "frontend/cache.ts",
     )
-    assert prepared.forwarded_context[0].shared_identifiers == ("renderbadge", "totalcount")
+    assert prepared.forwarded_context[0].shared_identifiers == ("render_badge", "total_count")
     assert prepared.forwarded_context[0].usage_priority == "high"
     assert prepared.forwarded_context[1].shared_identifiers == ()
     assert prepared.forwarded_context[1].usage_priority == "medium"
@@ -2185,7 +2185,7 @@ export function formatCount(value: string) {
         "medium",
         "medium",
     )
-    assert prepared.forwarded_context[0].shared_identifiers == ("formatcount",)
+    assert prepared.forwarded_context[0].shared_identifiers == ("format_count",)
     assert prepared.forwarded_context[1].shared_identifiers == ()
 
 
@@ -2233,7 +2233,7 @@ renderBadge totalCount
         "frontend/long-c.ts",
     )
     for block in prepared.forwarded_context:
-        assert block.shared_identifiers == ("renderbadge", "totalcount")
+        assert block.shared_identifiers == ("render_badge", "total_count")
         assert block.usage_priority == "high"
         assert block.truncated is True
         assert "renderBadge(totalCount)" in block.content
@@ -2292,16 +2292,16 @@ renderBadge totalCount
         "high",
         "high",
     )
-    assert prepared.forwarded_context[0].shared_identifiers == ("renderbadge", "totalcount")
+    assert prepared.forwarded_context[0].shared_identifiers == ("render_badge", "total_count")
     assert prepared.forwarded_context[0].truncated is True
     assert prepared.forwarded_context[0].content.splitlines() == [
         "renderBadge(totalCount)",
         "... [truncated]",
     ]
-    assert prepared.forwarded_context[2].shared_identifiers == ("renderbadge", "totalcount")
+    assert prepared.forwarded_context[2].shared_identifiers == ("render_badge", "total_count")
     assert prepared.forwarded_context[2].truncated is False
     assert "renderBadge(totalCount)" in prepared.forwarded_context[2].content
-    assert prepared.forwarded_context[3].shared_identifiers == ("renderbadge", "totalcount")
+    assert prepared.forwarded_context[3].shared_identifiers == ("render_badge", "total_count")
     assert prepared.forwarded_context[3].truncated is False
 
 
@@ -2362,11 +2362,31 @@ def test_shared_identifiers_preserve_substantive_compound_tokens():
     assert shared_identifiers(
         "renderBadge(totalCount) request response",
         "const renderBadge = (totalCount) => totalCount; request response",
-    ) == ("renderbadge", "totalcount")
+    ) == ("render_badge", "total_count")
     assert shared_identifiers(
         "request_body error_count statusCode",
         "const request_body = payload; const error_count = 1; return statusCode",
-    ) == ("error_count", "request_body", "statuscode")
+    ) == ("error_count", "request_body", "status_code")
+
+
+def test_shared_identifiers_match_style_equivalent_identifiers():
+    assert shared_identifiers(
+        "requestBody statusCode",
+        "request_body status_code",
+    ) == ("request_body", "status_code")
+    assert shared_identifiers(
+        "HTTPClient apiURL",
+        "http_client api_url",
+    ) == ("api_url", "http_client")
+    assert shared_identifiers(
+        "errorCount userID",
+        "error_count user_id",
+    ) == ("error_count", "user_id")
+
+
+def test_shared_identifiers_do_not_match_reordered_subtokens():
+    assert shared_identifiers("cacheAdapter", "adapter_cache") == ()
+    assert shared_identifiers("userID", "id_user") == ()
 
 
 def test_prepare_review_text_generic_overlap_does_not_raise_usage_priority():
@@ -2396,8 +2416,53 @@ status message
         "frontend/error-handler.ts",
         "docs/error-guide.md",
     )
-    assert prepared.forwarded_context[0].shared_identifiers == ("handleerror",)
+    assert prepared.forwarded_context[0].shared_identifiers == ("handle_error",)
     assert prepared.forwarded_context[0].usage_priority == "high"
+    assert prepared.forwarded_context[1].shared_identifiers == ()
+    assert prepared.forwarded_context[1].usage_priority == "low"
+
+
+def test_prepare_review_text_style_equivalent_overlap_uses_best_continuous_window():
+    agent = CodeReviewAgent(agent_name="code-review")
+    late_overlap_context = "\n".join(
+        [f"noise {index}" for index in range(1, 84)]
+        + [
+            "const request_body = payload;",
+            "return status_code;",
+        ]
+    )
+    prepared = agent.prepare_review_text(
+        f"""<review_target path="frontend/app.tsx">
+```ts
+const requestBody = payload;
+return statusCode;
+```
+</review_target>
+<repo_context path="frontend/api.ts">
+```ts
+{late_overlap_context}
+```
+</repo_context>
+<repo_context path="docs/api.md">
+```md
+request body status code
+```
+</repo_context>"""
+    )
+
+    assert tuple(block.path for block in prepared.forwarded_context) == (
+        "frontend/api.ts",
+        "docs/api.md",
+    )
+    assert prepared.forwarded_context[0].shared_identifiers == (
+        "request_body",
+        "status_code",
+    )
+    assert prepared.forwarded_context[0].usage_priority == "high"
+    assert prepared.forwarded_context[0].truncated is True
+    assert "const request_body = payload;" in prepared.forwarded_context[0].content
+    assert "return status_code;" in prepared.forwarded_context[0].content
+    assert prepared.forwarded_context[0].content.splitlines()[0] == "noise 6"
     assert prepared.forwarded_context[1].shared_identifiers == ()
     assert prepared.forwarded_context[1].usage_priority == "low"
 
@@ -2576,7 +2641,7 @@ export function debugLog(input: string) {
     )
     assert "Context file 1 relationship: same_top_level" in request.messages[1]["content"]
     assert "Context file 1 usage priority: medium" in request.messages[1]["content"]
-    assert "Context file 1 shared identifiers: debuglog" in request.messages[1]["content"]
+    assert "Context file 1 shared identifiers: debug_log" in request.messages[1]["content"]
 
 
 def test_upstream_review_request_diff_shared_identifiers_ignore_deleted_lines():
@@ -2624,7 +2689,7 @@ export function renderBadge(totalCount: number) {
     )
 
     assert "Context file 1 path: frontend/badge.ts" in request.messages[1]["content"]
-    assert "Context file 1 shared identifiers: renderbadge, totalcount" in request.messages[1]["content"]
+    assert "Context file 1 shared identifiers: render_badge, total_count" in request.messages[1]["content"]
     assert "Context file 2 path: frontend/cache.ts" in request.messages[1]["content"]
     assert "Context file 2 shared identifiers: <none>" in request.messages[1]["content"]
     assert "legacycacheadapter" not in request.messages[1]["content"]

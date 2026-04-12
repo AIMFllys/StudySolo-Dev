@@ -764,10 +764,10 @@ renderBadge totalCount
     assert "Repo context files forwarded: 3" in upstream_prompt
     assert "Context file 1 path: frontend/long-a.ts" in upstream_prompt
     assert "Context file 1 usage priority: high" in upstream_prompt
-    assert "Context file 1 shared identifiers: renderbadge, totalcount" in upstream_prompt
+    assert "Context file 1 shared identifiers: render_badge, total_count" in upstream_prompt
     assert "Context file 2 path: frontend/long-b.ts" in upstream_prompt
     assert "Context file 2 usage priority: high" in upstream_prompt
-    assert "Context file 2 shared identifiers: renderbadge, totalcount" in upstream_prompt
+    assert "Context file 2 shared identifiers: render_badge, total_count" in upstream_prompt
     assert "Context file 3 path: frontend/long-c.ts" in upstream_prompt
     assert "renderBadge(totalCount)\n... [truncated]" in upstream_prompt
     assert "docs/review.md" not in upstream_prompt
@@ -878,17 +878,82 @@ renderBadge totalCount
     upstream_prompt = state["instances"][0]["calls"][0]["messages"][1]["content"]
     assert "Context file 1 path: frontend/visible-a.ts" in upstream_prompt
     assert "Context file 1 usage priority: high" in upstream_prompt
-    assert "Context file 1 shared identifiers: renderbadge, totalcount" in upstream_prompt
+    assert "Context file 1 shared identifiers: render_badge, total_count" in upstream_prompt
     assert "Context file 1 truncated: yes" in upstream_prompt
     assert "Context file 2 path: frontend/visible-b.ts" in upstream_prompt
     assert "Context file 3 path: frontend/utils/late.ts" in upstream_prompt
     assert "Context file 3 usage priority: high" in upstream_prompt
-    assert "Context file 3 shared identifiers: renderbadge, totalcount" in upstream_prompt
+    assert "Context file 3 shared identifiers: render_badge, total_count" in upstream_prompt
     assert "Context file 3 truncated: no" in upstream_prompt
     assert "Context file 4 path: docs/summary.md" in upstream_prompt
     assert "Context file 4 usage priority: high" in upstream_prompt
-    assert "Context file 4 shared identifiers: renderbadge, totalcount" in upstream_prompt
+    assert "Context file 4 shared identifiers: render_badge, total_count" in upstream_prompt
     assert "renderBadge(totalCount)\n... [truncated]" in upstream_prompt
+
+
+def test_non_stream_live_backend_uses_canonical_style_equivalent_window_metadata(
+    monkeypatch,
+):
+    state = install_fake_upstream(
+        monkeypatch,
+        content=json.dumps({"findings": []}),
+    )
+    monkeypatch.setenv("AGENT_API_KEY", "test-agent-key")
+    monkeypatch.setenv("AGENT_REVIEW_BACKEND", "upstream_openai_compatible")
+    monkeypatch.setenv("AGENT_UPSTREAM_MODEL", "review-upstream-v1")
+    monkeypatch.setenv("AGENT_UPSTREAM_BASE_URL", "https://example.test/v1")
+    monkeypatch.setenv("AGENT_UPSTREAM_API_KEY", "upstream-key")
+    get_settings.cache_clear()
+
+    late_overlap_context = "\n".join(
+        [f"noise {index}" for index in range(1, 84)]
+        + [
+            "const request_body = payload;",
+            "return status_code;",
+        ]
+    )
+    settings = get_settings()
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/v1/chat/completions",
+            json=structured_completion_payload(
+                settings,
+                content=f"""<review_target path="frontend/app.tsx">
+```ts
+const requestBody = payload;
+return statusCode;
+```
+</review_target>
+<repo_context path="frontend/api.ts">
+```ts
+{late_overlap_context}
+```
+</repo_context>
+<repo_context path="docs/api.md">
+```md
+request body status code
+```
+</repo_context>""",
+            ),
+            headers=auth_headers(settings),
+        )
+
+    get_settings.cache_clear()
+
+    assert response.status_code == 200
+    upstream_prompt = state["instances"][0]["calls"][0]["messages"][1]["content"]
+    assert "Repo context files supplied: 2" in upstream_prompt
+    assert "Repo context files forwarded: 2" in upstream_prompt
+    assert "Context file 1 path: frontend/api.ts" in upstream_prompt
+    assert "Context file 1 usage priority: high" in upstream_prompt
+    assert "Context file 1 shared identifiers: request_body, status_code" in upstream_prompt
+    assert "Context file 1 truncated: yes" in upstream_prompt
+    assert "const request_body = payload;" in upstream_prompt
+    assert "return status_code;" in upstream_prompt
+    assert "Context content:\nnoise 6" in upstream_prompt
+    assert "Context file 2 path: docs/api.md" in upstream_prompt
+    assert "Context file 2 usage priority: low" in upstream_prompt
+    assert "Context file 2 shared identifiers: <none>" in upstream_prompt
 
 
 def test_stream_response_sse_format_with_upstream_live_backend(monkeypatch):

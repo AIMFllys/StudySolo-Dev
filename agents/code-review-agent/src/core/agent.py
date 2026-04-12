@@ -389,7 +389,9 @@ def _preview_forwarded_context(
             kept_lines = content_lines[:line_limit]
         else:
             line_hits: list[set[str]] = [
-                upstream_review.extract_identifiers(line).intersection(shared_identifier_candidates)
+                upstream_review.repo_aware_identifiers(line).intersection(
+                    shared_identifier_candidates
+                )
                 for line in content_lines
             ]
             best_window_score: tuple[int, int, int, int] | None = None

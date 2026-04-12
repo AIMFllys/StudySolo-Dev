@@ -36,6 +36,9 @@ If there are no justified findings, return {"findings": []}.
 
 JSON_CODE_BLOCK_PATTERN = re.compile(r"^```(?:json)?\s*(?P<body>.*?)\s*```$", re.DOTALL)
 IDENTIFIER_PATTERN = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]{2,}\b")
+IDENTIFIER_SUBTOKEN_PATTERN = re.compile(
+    r"[A-Z]+(?=[A-Z][a-z]|[0-9]|$)|[A-Z]?[a-z]+|[0-9]+"
+)
 MAX_SHARED_IDENTIFIERS = 5
 LOW_INFO_IDENTIFIERS = {
     "and",
@@ -210,6 +213,29 @@ def extract_identifiers(text: str) -> set[str]:
     return identifiers
 
 
+def canonical_shared_identifier(identifier: str) -> str:
+    canonical_parts: list[str] = []
+    for segment in identifier.split("_"):
+        if not segment:
+            continue
+        subtokens = IDENTIFIER_SUBTOKEN_PATTERN.findall(segment)
+        if not subtokens:
+            canonical_parts.append(segment.lower())
+            continue
+        canonical_parts.extend(subtoken.lower() for subtoken in subtokens)
+    return "_".join(canonical_parts)
+
+
+def repo_aware_identifiers(text: str) -> set[str]:
+    identifiers: set[str] = set()
+    for match in IDENTIFIER_PATTERN.findall(text):
+        normalized = canonical_shared_identifier(match)
+        if not normalized or normalized in LOW_INFO_IDENTIFIERS:
+            continue
+        identifiers.add(normalized)
+    return identifiers
+
+
 def _filter_shared_identifier_candidates(identifiers: set[str]) -> set[str]:
     return {
         identifier
@@ -222,7 +248,9 @@ def _shared_identifier_candidates(
     review_target_text: str,
     context_text: str,
 ) -> tuple[str, ...]:
-    shared = extract_identifiers(review_target_text).intersection(extract_identifiers(context_text))
+    shared = repo_aware_identifiers(review_target_text).intersection(
+        repo_aware_identifiers(context_text)
+    )
     shared = _filter_shared_identifier_candidates(shared)
     return tuple(sorted(shared))
 
