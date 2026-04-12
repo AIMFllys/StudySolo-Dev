@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { authedFetch } from '@/services/api-client';
 import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 import type { Edge, Node } from '@xyflow/react';
 

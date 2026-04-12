@@ -146,6 +146,45 @@ export async function authedFetch(
 }
 
 /**
+ * Authenticated fetch for SSE / streaming endpoints.
+ *
+ * Unlike `authedFetch`, this returns the raw `Response` without parsing JSON,
+ * so callers can consume `response.body` as a ReadableStream.
+ *
+ * Supports `signal` for AbortController cancellation.
+ * On 401: attempts session restore once, then redirects to /login.
+ */
+export async function authedStreamFetch(
+  path: string,
+  init?: RequestInit,
+  allowRetry = true,
+): Promise<Response> {
+  const response = await credentialsFetch(path, init);
+
+  if (response.status !== 401 || path.startsWith('/api/auth/')) {
+    return response;
+  }
+
+  if (allowRetry) {
+    if (!restorePromise) {
+      restorePromise = tryRestoreSession().finally(() => {
+        restorePromise = null;
+      });
+    }
+
+    if (await restorePromise) {
+      const retriedResponse = await credentialsFetch(path, init);
+      if (retriedResponse.status !== 401) {
+        return retriedResponse;
+      }
+    }
+  }
+
+  redirectToLogin();
+  return response;
+}
+
+/**
  * Initialize cross-tab logout sync.
  * Call once at app startup (e.g. in root layout).
  * Returns an unsubscribe function.
