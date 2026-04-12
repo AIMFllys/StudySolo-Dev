@@ -1,0 +1,38 @@
+# Agent Gateway 注册表
+# 启动时加载一次，不支持 hot-reload
+# 每个 Agent 的 api_key_env 指向主后端 .env 中的环境变量名
+
+agents:
+  code-review:
+    url: http://127.0.0.1:8001
+    timeout: 45
+    max_retries: 2
+    api_key_env: AGENT_CODE_REVIEW_KEY
+    models:
+      - code-review-v1
+    enabled: true
+    description: "代码审查 Agent"
+    owner: "小李"
+
+  # 后续 Agent 迁移完成后取消注释
+  # deep-research:
+  #   url: http://127.0.0.1:8002
+  #   timeout: 45
+  #   max_retries: 2
+  #   api_key_env: AGENT_DEEP_RESEARCH_KEY
+  #   models:
+  #     - deep-research-v1
+  #   enabled: false
+  #   description: "深度研究 Agent"
+  #   owner: "小李"
+
+  # news:
+  #   url: http://127.0.0.1:8003
+  #   timeout: 45
+  #   max_retries: 2
+  #   api_key_env: AGENT_NEWS_KEY
+  #   models:
+  #     - news-v1
+  #   enabled: false
+  #   description: "新闻抓取 Agent"
+  #   owner: "小李"
