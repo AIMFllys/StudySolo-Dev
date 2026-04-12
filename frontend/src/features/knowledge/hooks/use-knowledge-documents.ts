@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { KBDocument, KnowledgeApiError } from '../types';
 import { getErrorMessage } from '../utils';
+import { authedFetch } from '@/services/api-client';
 
 async function parseJson<T>(response: Response): Promise<T | null> {
   try {
@@ -22,7 +23,7 @@ export function useKnowledgeDocuments() {
 
   const fetchDocuments = useCallback(async () => {
     try {
-      const response = await fetch('/api/knowledge', { credentials: 'include' });
+      const response = await authedFetch('/api/knowledge', {});
       if (!response.ok) {
         throw new Error('加载知识库失败');
       }
@@ -59,9 +60,8 @@ export function useKnowledgeDocuments() {
     formData.append('file', file);
 
     try {
-      const response = await fetch('/api/knowledge/upload', {
+      const response = await authedFetch('/api/knowledge/upload', {
         method: 'POST',
-        credentials: 'include',
         body: formData,
       });
 
@@ -96,9 +96,8 @@ export function useKnowledgeDocuments() {
 
   const handleDelete = useCallback(async (documentId: string) => {
     try {
-      const response = await fetch(`/api/knowledge/${documentId}`, {
+      const response = await authedFetch(`/api/knowledge/${documentId}`, {
         method: 'DELETE',
-        credentials: 'include',
       });
       if (!response.ok) {
         throw new Error('删除失败');

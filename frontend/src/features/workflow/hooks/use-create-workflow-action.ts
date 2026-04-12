@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { authedFetch } from '@/services/api-client';
 
 interface WorkflowCreateResponse {
   id: string;
@@ -22,9 +23,8 @@ export function useCreateWorkflowAction(defaultName = '未命名工作流'): Use
 
     setCreating(true);
     try {
-      const response = await fetch('/api/workflow', {
+      const response = await authedFetch('/api/workflow', {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: defaultName }),
       });

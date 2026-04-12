@@ -11,6 +11,7 @@ import {
 import { extractSseEvents } from '@/features/workflow/utils/parse-sse';
 import { applyWorkflowExecutionEvent } from '@/features/workflow/utils/workflow-execution-events';
 import { eventBus } from '@/lib/events/event-bus';
+import { authedStreamFetch } from '@/services/api-client';
 
 export type ExecutionStatus = 'idle' | 'running' | 'completed' | 'error';
 
@@ -103,9 +104,8 @@ export function useWorkflowExecution() {
       };
 
       try {
-        const response = await fetch(`/api/workflow/${id}/execute`, {
+        const response = await authedStreamFetch(`/api/workflow/${id}/execute`, {
           method: 'POST',
-          credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
           },

@@ -182,13 +182,18 @@ export function useWorkflowSync(): UseWorkflowSync {
       // Best-effort cloud save with keepalive (credentials required for session cookie)
       const payload = JSON.stringify({ nodes_json: nodes, edges_json: edges });
       if (payload.length < KEEPALIVE_MAX_BYTES) {
-        void fetch(`/api/workflow/${currentWorkflowId}`, {
-          method: 'PUT',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: payload,
-          keepalive: true,
-        });
+      // NOTE: keepalive fetch is intentionally NOT replaced with authedFetch.
+      // This runs in a useEffect cleanup (page unload), where async token refresh
+      // is unreliable. The session cookie (credentials: 'include') is sufficient
+      // for this best-effort save. If the session has expired, the request will
+      // fail silently — IndexedDB has the data and will sync on next visit.
+      void fetch(`/api/workflow/${currentWorkflowId}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+        keepalive: true,
+      });
       }
       // If payload too large, IndexedDB has it — will sync on next visit
     };

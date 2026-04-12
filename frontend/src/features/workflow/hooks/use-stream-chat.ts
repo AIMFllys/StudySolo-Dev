@@ -21,6 +21,7 @@ import { useAIChatStore, abortAIChatStream } from '@/stores/chat/use-ai-chat-sto
 import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 import { persistConversationMessage } from './chat-conversation-sync';
 import { executeCanvasActions, type CanvasAction } from './use-action-executor';
+import { authedFetch, authedStreamFetch } from '@/services/api-client';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -129,9 +130,8 @@ async function handleBuildIntent(userInput: string, thinkingDepth: ThinkingDepth
     [],
   );
 
-  const res = await fetch('/api/ai/generate-workflow', {
+  const res = await authedFetch('/api/ai/generate-workflow', {
     method: 'POST',
-    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ user_input: userInput, thinking_level: thinkingDepth }),
   });
@@ -248,10 +248,9 @@ export function useStreamChat() {
     let intent = 'CHAT';
 
     try {
-      const res = await fetch('/api/ai/chat-stream', {
+      const res = await authedStreamFetch('/api/ai/chat-stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(body),
         signal: ctrl.signal,
       });

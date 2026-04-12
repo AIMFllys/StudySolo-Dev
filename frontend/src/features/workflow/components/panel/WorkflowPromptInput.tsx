@@ -37,9 +37,8 @@ export default function WorkflowPromptInput() {
     );
 
     try {
-      const res = await fetch('/api/ai/generate-workflow', {
+      const res = await authedFetch('/api/ai/generate-workflow', {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_input: input.trim() }),
       });
