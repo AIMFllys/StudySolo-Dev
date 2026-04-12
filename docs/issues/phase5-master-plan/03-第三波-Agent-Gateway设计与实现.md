@@ -7,6 +7,20 @@
 
 ---
 
+## 0. 任务-模型分配表
+
+> ⚠️ **本波是 Phase 5 核心，模型要求最严格**
+
+| 步骤 | 任务内容 | 模型要求 | 风险等级 | 切换建议 |
+|------|---------|---------|---------|---------|
+| S3.1 | Gateway 详细设计文档 | `Claude-Opus-4.6` ⚠️ 必须 | 高 | 架构设计需最强推理能力 |
+| S3.2 | agents.yaml + registry | `MiniMax-M2.7` 或 `GLM-5.1` | 低 | YAML + 简单 Pydantic |
+| S3.3 | agent_gateway 核心实现 | `Claude-Sonnet-4.6` ⚠️ 必须 | 高 | SSE 透传、超时链、错误处理 |
+| S3.4 | /api/agents/* 路由 | `Claude-Sonnet-4.6` ⚠️ 必须 | 中高 | FastAPI + JWT 集成 |
+| S3.5 | code-review-agent 端到端 | `Claude-Sonnet-4.6` + `Cursor-Composer-2` ⚠️ 必须 | 高 | 需要本地调试环境 |
+
+---
+
 ## 1. Gateway 架构定位
 
 ### 1.1 Gateway 是什么
