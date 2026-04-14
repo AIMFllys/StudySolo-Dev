@@ -49,3 +49,18 @@ jobs:
             exit 1
           fi
           echo "Feature isolation check passed"
+
+      - name: Check no raw fetch in features
+        run: |
+          echo "Checking for raw fetch() calls in features/..."
+          # Exclude: auth captcha (public endpoints) and keepalive (unload context)
+          VIOLATIONS=$(grep -rn "await fetch(" frontend/src/features/ \
+            --include="*.ts" --include="*.tsx" \
+            | grep -v "use-slider-captcha.ts" \
+            | grep -v "keepalive" || true)
+          if [ -n "$VIOLATIONS" ]; then
+            echo "VIOLATION: Raw fetch() found in features/ (use authedFetch or authedStreamFetch):"
+            echo "$VIOLATIONS"
+            exit 1
+          fi
+          echo "Raw fetch check passed"

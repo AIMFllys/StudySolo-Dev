@@ -20,4 +20,16 @@ jobs:
         run: pip install -r agents/code-review-agent/requirements.txt
 
       - name: Run tests
-        run: pytest agents/code-review-agent/tests/ -q
+        run: |
+          RESULT=$(pytest agents/code-review-agent/tests/ -q 2>&1)
+          echo "$RESULT"
+          PASSED=$(echo "$RESULT" | grep -oP '\d+ passed' | grep -oP '\d+' | head -1)
+          if [ -z "$PASSED" ]; then
+            echo "ERROR: Could not parse test results"
+            exit 1
+          fi
+          if [ "$PASSED" -lt 177 ]; then
+            echo "REGRESSION: Expected at least 177 passed, got $PASSED"
+            exit 1
+          fi
+          echo "Baseline check passed: $PASSED >= 177"

@@ -28,3 +28,23 @@ jobs:
 
       - name: Type check
         run: pyright backend/
+
+      - name: Check dependency direction
+        run: |
+          echo "Checking backend dependency direction..."
+          # nodes/ 不应该 import services/（已知例外已排除）
+          KNOWN_EXCEPTIONS="community/node.py|knowledge_base/node.py|web_search/node.py|export_file/node.py"
+          VIOLATIONS=$(grep -r "from app.services" backend/app/nodes/ --include="*.py" \
+            | grep -v __pycache__ \
+            | grep -vE "$KNOWN_EXCEPTIONS" || true)
+          if [ -n "$VIOLATIONS" ]; then
+            echo "VIOLATION: nodes/ imports services/ (excluding known exceptions):"
+            echo "$VIOLATIONS"
+            exit 1
+          fi
+          # api/ 不应该 import engine/
+          if grep -r "from app.engine" backend/app/api/ --include="*.py" | grep -v __pycache__; then
+            echo "VIOLATION: api/ imports engine/"
+            exit 1
+          fi
+          echo "Dependency direction check passed"
