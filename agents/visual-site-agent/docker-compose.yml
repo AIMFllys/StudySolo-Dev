@@ -1,0 +1,7 @@
+services:
+  visual-site-agent:
+    build: .
+    env_file:
+      - .env
+    ports:
+      - "8005:8005"
