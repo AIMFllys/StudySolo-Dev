@@ -38,6 +38,8 @@ Desktop.ini
 .agent/skills/*
 !.agent/skills/workflow-node-builder/
 !.agent/skills/project-context/
+!.agent/skills/agent-branch-handoff/
+!.agent/skills/agent-branch-handoff/**
 .claude/
 .kiro/
 .cursor/
