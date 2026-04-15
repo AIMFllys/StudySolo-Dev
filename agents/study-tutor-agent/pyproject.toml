@@ -1,0 +1,17 @@
+[project]
+name = "study-tutor-agent"
+version = "0.1.0"
+description = "StudySolo study tutor agent"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi==0.115.12",
+  "uvicorn==0.34.3",
+  "pydantic==2.12.5",
+  "pydantic-settings==2.7.0",
+  "httpx==0.28.1",
+  "openai==1.85.0",
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
