@@ -5,8 +5,6 @@ import { History, Loader2, ExternalLink, Share2, Clock, Hash } from 'lucide-reac
 import { fetchWorkflowRuns } from '@/services/memory.service';
 import type { WorkflowRunMeta } from '@/types/memory';
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
 function formatDate(iso: string | null) {
   if (!iso) return '—';
   const d = new Date(iso);
@@ -21,8 +19,6 @@ const STATUS_DOT: Record<string, string> = {
   failed: 'bg-rose-500',
   running: 'bg-sky-500 animate-pulse',
 };
-
-// ─── Component ──────────────────────────────────────────────────────────────
 
 export default function RunHistoryPopover({ workflowId }: { workflowId: string }) {
   const [open, setOpen] = useState(false);
@@ -44,7 +40,6 @@ export default function RunHistoryPopover({ workflowId }: { workflowId: string }
     if (open) void load();
   }, [open, load]);
 
-  // Close on outside click
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
@@ -70,7 +65,6 @@ export default function RunHistoryPopover({ workflowId }: { workflowId: string }
 
       {open && (
         <div className="absolute right-0 top-full mt-1 z-[80] w-80 max-h-[400px] overflow-hidden rounded-xl border border-border/60 bg-card shadow-xl animate-in fade-in-0 slide-in-from-top-2 duration-200">
-          {/* Header */}
           <div className="sticky top-0 bg-card/95 backdrop-blur-sm border-b border-border/40 px-3 py-2 flex items-center justify-between">
             <span className="text-[11px] font-semibold font-serif text-foreground">运行历史</span>
             <button
@@ -82,7 +76,6 @@ export default function RunHistoryPopover({ workflowId }: { workflowId: string }
             </button>
           </div>
 
-          {/* List */}
           <div className="overflow-y-auto max-h-[340px] scrollbar-hide">
             {loading && runs.length === 0 ? (
               <div className="flex items-center justify-center py-8">
@@ -102,10 +95,7 @@ export default function RunHistoryPopover({ workflowId }: { workflowId: string }
                     onClick={() => window.open(`/m/${run.id}`, '_blank', 'noopener')}
                     className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left hover:bg-muted/60 transition-colors group"
                   >
-                    {/* Status dot */}
                     <span className={`h-2 w-2 rounded-full shrink-0 ${STATUS_DOT[run.status] ?? 'bg-slate-400'}`} />
-
-                    {/* Info */}
                     <div className="flex-1 min-w-0 space-y-0.5">
                       <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono">
                         <Clock className="h-2.5 w-2.5" />
@@ -115,8 +105,6 @@ export default function RunHistoryPopover({ workflowId }: { workflowId: string }
                         <p className="text-[10px] text-foreground/80 truncate">{run.input}</p>
                       )}
                     </div>
-
-                    {/* Badges */}
                     <div className="flex items-center gap-1.5 shrink-0">
                       {run.is_shared && (
                         <Share2 className="h-2.5 w-2.5 text-emerald-500" />

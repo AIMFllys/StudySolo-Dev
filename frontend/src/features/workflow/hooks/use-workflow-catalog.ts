@@ -46,8 +46,6 @@ export function useWorkflowCatalog() {
   useEffect(() => {
     // Fast path: cache already filled (from a previous node mount this session)
     if (_cache) {
-      setModels(_cache.models);
-      setIsLoading(false);
       return;
     }
 

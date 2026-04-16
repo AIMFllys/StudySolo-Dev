@@ -21,14 +21,6 @@ interface KnowledgeItem {
   updated_at: string;
 }
 
-// Map backend node types to tab filter values
-const TYPE_TO_TAB: Record<string, ContentTab> = {
-  mind_map: 'mindmap',
-  flashcard: 'flashcard',
-  quiz_gen: 'quiz',
-  export_file: 'export',
-};
-
 const TAB_TO_API_TYPE: Record<ContentTab, string | undefined> = {
   all: undefined,
   mindmap: 'mind_map',

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Crown, Loader2, Star, Zap } from 'lucide-react';
+import { ChevronDown, Crown, Star, Zap } from 'lucide-react';
 import { canAccessModel, type AIModelOption } from '@/features/workflow/constants/ai-models';
 import { type ChatModelOption } from '@/services/ai-catalog.service';
 import type { TierType } from '@/services/auth.service';

@@ -75,6 +75,7 @@ def _make_empty_supabase_mock():
     chain.select = MagicMock(return_value=chain)
     chain.eq = MagicMock(return_value=chain)
     chain.order = MagicMock(return_value=chain)
+    chain.maybe_single = MagicMock(return_value=chain)
     chain.single = MagicMock(return_value=chain)
 
     result = MagicMock()

@@ -144,7 +144,7 @@ def _make_ratings_db_mock(rating_rows: list[dict] | None = None) -> AsyncMock:
 
     def table_side_effect(table_name: str):
         tbl = MagicMock()
-        if table_name == "ss_ratings":
+        if table_name == "ss_feedback":
             tbl.select = MagicMock(return_value=_make_chain(count=len(_rows), data=_rows))
         else:
             tbl.select = MagicMock(return_value=_make_chain())
@@ -166,17 +166,13 @@ _tier_rows_st = st.lists(
     max_size=50,
 )
 
-_nps_score_st = st.integers(min_value=0, max_value=10)
-_csat_score_st = st.integers(min_value=1, max_value=5)
-
-_nps_rows_st = st.lists(
-    st.fixed_dictionaries({"rating_type": st.just("nps"), "score": _nps_score_st}),
-    min_size=0,
-    max_size=30,
-)
-
-_csat_rows_st = st.lists(
-    st.fixed_dictionaries({"rating_type": st.just("csat"), "score": _csat_score_st}),
+_feedback_rows_st = st.lists(
+    st.fixed_dictionaries(
+        {
+            "rating": st.integers(min_value=1, max_value=5),
+            "reward_applied": st.booleans(),
+        }
+    ),
     min_size=0,
     max_size=30,
 )
@@ -280,21 +276,20 @@ def test_p16_tier_counts_match_input(tier_rows: list[dict]):
 
 
 # ---------------------------------------------------------------------------
-# Property 17a: NPS score is in [-100, 100] when data exists
+# Property 17a: Avg rating is in [1, 5] when data exists
 # Validates: Requirements 13.1
 # ---------------------------------------------------------------------------
 
-@given(nps_rows=_nps_rows_st)
+@given(feedback_rows=_feedback_rows_st)
 @hyp_settings(max_examples=20)
-def test_p17_nps_score_in_valid_range(nps_rows: list[dict]):
+def test_p17_avg_rating_in_valid_range(feedback_rows: list[dict]):
     """
     **Validates: Requirements 13.1**
 
-    Property 17a: For any set of NPS ratings (scores 0-10),
-    the computed NPS score must be in [-100, 100].
-    When no data, nps_score must be None.
+    Property 17a: For any set of ss_feedback ratings (scores 1-5),
+    avg_rating must be None when no data, otherwise in [1, 5].
     """
-    mock_db = _make_ratings_db_mock(nps_rows)
+    mock_db = _make_ratings_db_mock(feedback_rows)
     token = _make_admin_token()
 
     async def _override_get_db():
@@ -310,102 +305,99 @@ def test_p17_nps_score_in_valid_range(nps_rows: list[dict]):
     assert response.status_code == 200
     body = response.json()
 
-    nps_count = body["nps_count"]
-    nps_score = body["nps_score"]
+    total_count = body["total_count"]
+    avg_rating = body["avg_rating"]
 
-    assert nps_count == len(nps_rows), f"nps_count={nps_count} != {len(nps_rows)}"
-
-    if nps_count == 0:
-        assert nps_score is None, f"nps_score should be None when no data, got {nps_score}"
-    else:
-        assert nps_score is not None
-        assert -100 <= nps_score <= 100, f"NPS score {nps_score} out of range [-100, 100]"
-
-
-# ---------------------------------------------------------------------------
-# Property 17b: CSAT avg is in [1, 5] when data exists
-# Validates: Requirements 13.1
-# ---------------------------------------------------------------------------
-
-@given(csat_rows=_csat_rows_st)
-@hyp_settings(max_examples=20)
-def test_p17_csat_avg_in_valid_range(csat_rows: list[dict]):
-    """
-    **Validates: Requirements 13.1**
-
-    Property 17b: For any set of CSAT ratings (scores 1-5),
-    the computed CSAT average must be in [1.0, 5.0].
-    When no data, csat_avg must be None.
-    """
-    mock_db = _make_ratings_db_mock(csat_rows)
-    token = _make_admin_token()
-
-    async def _override_get_db():
-        return mock_db
-
-    app.dependency_overrides[get_db] = _override_get_db
-    try:
-        client = _make_admin_client(token, raise_server_exceptions=True)
-        response = client.get("/api/admin/ratings/overview")
-    finally:
-        app.dependency_overrides.pop(get_db, None)
-
-    assert response.status_code == 200
-    body = response.json()
-
-    csat_count = body["csat_count"]
-    csat_avg = body["csat_avg"]
-
-    assert csat_count == len(csat_rows), f"csat_count={csat_count} != {len(csat_rows)}"
-
-    if csat_count == 0:
-        assert csat_avg is None, f"csat_avg should be None when no data, got {csat_avg}"
-    else:
-        assert csat_avg is not None
-        assert 1.0 <= csat_avg <= 5.0, f"CSAT avg {csat_avg} out of range [1, 5]"
-
-
-# ---------------------------------------------------------------------------
-# Property 17c: Mixed NPS + CSAT data — counts are independent
-# Validates: Requirements 13.1
-# ---------------------------------------------------------------------------
-
-@given(
-    nps_rows=_nps_rows_st,
-    csat_rows=_csat_rows_st,
-)
-@hyp_settings(max_examples=20)
-def test_p17_nps_and_csat_counts_are_independent(
-    nps_rows: list[dict], csat_rows: list[dict]
-):
-    """
-    **Validates: Requirements 13.1**
-
-    Property 17c: When both NPS and CSAT ratings exist,
-    nps_count and csat_count must independently match their input counts.
-    """
-    all_rows = nps_rows + csat_rows
-    mock_db = _make_ratings_db_mock(all_rows)
-    token = _make_admin_token()
-
-    async def _override_get_db():
-        return mock_db
-
-    app.dependency_overrides[get_db] = _override_get_db
-    try:
-        client = _make_admin_client(token, raise_server_exceptions=True)
-        response = client.get("/api/admin/ratings/overview")
-    finally:
-        app.dependency_overrides.pop(get_db, None)
-
-    assert response.status_code == 200
-    body = response.json()
-
-    assert body["nps_count"] == len(nps_rows), (
-        f"nps_count={body['nps_count']} != {len(nps_rows)}"
+    assert total_count == len(feedback_rows), (
+        f"total_count={total_count} != {len(feedback_rows)}"
     )
-    assert body["csat_count"] == len(csat_rows), (
-        f"csat_count={body['csat_count']} != {len(csat_rows)}"
+
+    if total_count == 0:
+        assert avg_rating is None, (
+            f"avg_rating should be None when no data, got {avg_rating}"
+        )
+    else:
+        assert avg_rating is not None
+        assert 1.0 <= avg_rating <= 5.0, (
+            f"avg_rating {avg_rating} out of range [1, 5]"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Property 17b: Distribution counts must match input
+# Validates: Requirements 13.1
+# ---------------------------------------------------------------------------
+
+@given(feedback_rows=_feedback_rows_st)
+@hyp_settings(max_examples=20)
+def test_p17_distribution_matches_input(feedback_rows: list[dict]):
+    """
+    **Validates: Requirements 13.1**
+
+    Property 17b: rating_distribution keys 1..5 must exactly match
+    the score frequencies in input rows.
+    """
+    mock_db = _make_ratings_db_mock(feedback_rows)
+    token = _make_admin_token()
+
+    async def _override_get_db():
+        return mock_db
+
+    app.dependency_overrides[get_db] = _override_get_db
+    try:
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/ratings/overview")
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+    assert response.status_code == 200
+    body = response.json()
+
+    distribution = body["rating_distribution"]
+    expected = {score: 0 for score in range(1, 6)}
+    for row in feedback_rows:
+        expected[int(row["rating"])] += 1
+
+    for score in range(1, 6):
+        key = str(score) if str(score) in distribution else score
+        assert distribution[key] == expected[score], (
+            f"distribution[{score}]={distribution[key]} != {expected[score]}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Property 17c: reward_applied_count must match input
+# Validates: Requirements 13.1
+# ---------------------------------------------------------------------------
+
+@given(feedback_rows=_feedback_rows_st)
+@hyp_settings(max_examples=20)
+def test_p17_reward_applied_count_matches_input(feedback_rows: list[dict]):
+    """
+    **Validates: Requirements 13.1**
+
+    Property 17c: reward_applied_count must equal number of rows where
+    reward_applied is truthy.
+    """
+    mock_db = _make_ratings_db_mock(feedback_rows)
+    token = _make_admin_token()
+
+    async def _override_get_db():
+        return mock_db
+
+    app.dependency_overrides[get_db] = _override_get_db
+    try:
+        client = _make_admin_client(token, raise_server_exceptions=True)
+        response = client.get("/api/admin/ratings/overview")
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+    assert response.status_code == 200
+    body = response.json()
+
+    expected_reward_applied = sum(1 for row in feedback_rows if row["reward_applied"])
+    assert body["reward_applied_count"] == expected_reward_applied, (
+        f"reward_applied_count={body['reward_applied_count']} != {expected_reward_applied}"
     )
 
 
@@ -439,7 +431,7 @@ def test_member_stats_empty_returns_zeros():
 
 
 def test_ratings_overview_empty_returns_nulls():
-    """GET /api/admin/ratings/overview with no ratings returns null averages."""
+    """GET /api/admin/ratings/overview with no ratings returns zero/empty stats."""
     mock_db = _make_ratings_db_mock([])
     token = _make_admin_token()
 
@@ -455,11 +447,13 @@ def test_ratings_overview_empty_returns_nulls():
 
     assert response.status_code == 200
     body = response.json()
-    assert body["nps_count"] == 0
-    assert body["nps_avg"] is None
-    assert body["nps_score"] is None
-    assert body["csat_count"] == 0
-    assert body["csat_avg"] is None
+    assert body["total_count"] == 0
+    assert body["avg_rating"] is None
+    assert body["reward_applied_count"] == 0
+    distribution = body["rating_distribution"]
+    for score in range(1, 6):
+        key = str(score) if str(score) in distribution else score
+        assert distribution[key] == 0
 
 
 def test_members_stats_without_token_returns_401():
@@ -496,9 +490,9 @@ def test_ratings_overview_without_token_returns_401():
     assert response.status_code == 401
 
 
-def test_nps_score_all_promoters():
-    """NPS score = 100 when all scores are 9 or 10."""
-    rows = [{"rating_type": "nps", "score": 10}] * 5
+def test_avg_rating_all_five_stars():
+    """avg_rating = 5.0 when all ratings are 5."""
+    rows = [{"rating": 5, "reward_applied": False}] * 5
     mock_db = _make_ratings_db_mock(rows)
     token = _make_admin_token()
 
@@ -514,12 +508,12 @@ def test_nps_score_all_promoters():
 
     assert response.status_code == 200
     body = response.json()
-    assert body["nps_score"] == 100.0
+    assert body["avg_rating"] == 5.0
 
 
-def test_nps_score_all_detractors():
-    """NPS score = -100 when all scores are 6 or below."""
-    rows = [{"rating_type": "nps", "score": 3}] * 5
+def test_avg_rating_all_one_stars():
+    """avg_rating = 1.0 when all ratings are 1."""
+    rows = [{"rating": 1, "reward_applied": True}] * 5
     mock_db = _make_ratings_db_mock(rows)
     token = _make_admin_token()
 
@@ -535,4 +529,4 @@ def test_nps_score_all_detractors():
 
     assert response.status_code == 200
     body = response.json()
-    assert body["nps_score"] == -100.0
+    assert body["avg_rating"] == 1.0

@@ -70,7 +70,7 @@ def _make_db_mock(email: str):
     mock_auth = AsyncMock()
     mock_auth.sign_in_with_password = AsyncMock(return_value=mock_result)
 
-    mock_db = AsyncMock()
+    mock_db = MagicMock()
     mock_db.auth = mock_auth
     return mock_db
 
@@ -140,7 +140,11 @@ def test_login_cookies_have_security_attributes(email: str, password: str):
     app.dependency_overrides[get_db] = _override_get_db
     app.dependency_overrides[get_anon_db] = _override_get_db
     try:
-        client = TestClient(app, raise_server_exceptions=True)
+        client = TestClient(
+            app,
+            raise_server_exceptions=True,
+            base_url="https://testserver",
+        )
         response = client.post(
             "/api/auth/login",
             json={"email": email, "password": password},

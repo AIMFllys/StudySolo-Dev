@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { NodeExecutionTrace } from '@/types';
 import { STATUS_META } from '@/features/workflow/constants/workflow-meta';
 import { formatDuration } from '@/features/workflow/utils/trace-helpers';
@@ -13,13 +13,8 @@ interface TraceStepItemProps {
 }
 
 export function TraceStepItem({ trace, nodeNameMap }: TraceStepItemProps) {
-  const [isExpanded, setIsExpanded] = useState(trace.status === 'running' || trace.status === 'error');
-
-  useEffect(() => {
-    if (trace.status === 'running' || trace.status === 'error') {
-      setIsExpanded(true);
-    }
-  }, [trace.status]);
+  const [manualExpanded, setManualExpanded] = useState(false);
+  const isExpanded = trace.status === 'running' || trace.status === 'error' || manualExpanded;
 
   const badge = STATUS_META[trace.status];
   const duration = useMemo(() => (
@@ -95,7 +90,7 @@ export function TraceStepItem({ trace, nodeNameMap }: TraceStepItemProps) {
         {trace.status === 'done' && (
           <button
             type="button"
-            onClick={() => setIsExpanded((prev) => !prev)}
+            onClick={() => setManualExpanded((prev) => !prev)}
             className="mt-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
           >
             {isExpanded ? '收起 Input / Output' : '查看 Input / Output'}

@@ -1,31 +1,32 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { fetchCollaborators, type Collaborator } from '@/services/collaboration.service';
 
 interface Props {
   workflowId: string;
 }
 
-/**
- * CollaboratorAvatars — Figma-style avatar stack in the canvas toolbar.
- * Shows accepted collaborators as overlapping circular avatars.
- */
 export default function CollaboratorAvatars({ workflowId }: Props) {
   const [collabs, setCollabs] = useState<Collaborator[]>([]);
 
-  const load = useCallback(async () => {
-    try {
-      const data = await fetchCollaborators(workflowId);
-      setCollabs(data.filter((c) => c.status === 'accepted'));
-    } catch {
-      // Viewer role cannot list collaborators — silently ignore
-    }
-  }, [workflowId]);
-
   useEffect(() => {
-    load();
-  }, [load]);
+    let cancelled = false;
+
+    void fetchCollaborators(workflowId)
+      .then((data) => {
+        if (!cancelled) {
+          setCollabs(data.filter((c) => c.status === 'accepted'));
+        }
+      })
+      .catch(() => {
+        // Viewer role cannot list collaborators — silently ignore
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [workflowId]);
 
   if (collabs.length === 0) return null;
 

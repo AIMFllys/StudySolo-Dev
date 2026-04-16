@@ -48,7 +48,8 @@ export function useWorkflowSidebarActions(
   );
 
   const onDeleteWorkflow = useCallback(
-    async (workflowId: string, _currentName: string) => {
+    async (workflowId: string, currentName: string) => {
+      void currentName;
       setProcessingWorkflowId(workflowId);
       try {
         await deleteWorkflow(workflowId);

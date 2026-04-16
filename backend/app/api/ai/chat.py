@@ -41,8 +41,8 @@ _DEPTH_INSTRUCTIONS: dict[str, str] = {
 }
 _MODIFY_FORMAT_RETRIES = 2
 _MODIFY_FORMAT_ERROR = (
-    "涓婁竴鏉¤緭鍑轰笉鏄悎娉?JSON銆傜幇鍦ㄥ彧鍏佽杩斿洖涓€涓８ JSON 瀵硅薄锛?"
-    "棣栧瓧绗﹀繀椤绘槸 {锛屼笉寰楀寘鍚?Markdown 浠ｇ爜鍧椼€佽В閲婃枃瀛楁垨棰濆鍓嶅悗缂€銆?"
+    "上一轮的输出不是合法 JSON。现在只允许返回一个纯 JSON 对象；"
+    "首字符必须是 {，不得包含 Markdown 代码块、解释文字或额外前后缀。"
 )
 _MODEL_TIER_FORBIDDEN_RESPONSE = "This model requires a paid tier."
 
@@ -126,7 +126,7 @@ async def _ai_chat_impl(
 
     canvas_summary = build_canvas_summary(body.canvas_context)
     has_canvas = bool(body.canvas_context and body.canvas_context.nodes)
-    model_identity = selected_sku.display_name if selected_sku else "StudySolo 榛樿妯″瀷"
+    model_identity = selected_sku.display_name if selected_sku else "StudySolo 默认模型"
 
     if body.intent_hint == "ACTION":
         return AIChatResponse(
@@ -299,7 +299,7 @@ async def _chat_stream_generator(
 
             canvas_summary = build_canvas_summary(body.canvas_context)
             has_canvas = bool(body.canvas_context and body.canvas_context.nodes)
-            model_identity = selected_sku.display_name if selected_sku else "StudySolo 榛樿妯″瀷"
+            model_identity = selected_sku.display_name if selected_sku else "StudySolo 默认模型"
             history_msgs = [
                 {"role": message.role, "content": message.content}
                 for message in (body.conversation_history or [])[-10:]
@@ -353,7 +353,7 @@ async def _chat_stream_generator(
                                 {
                                     "intent": "MODIFY",
                                     "done": True,
-                                    "response": "鏈兘鐢熸垚鍙墽琛岀殑鐢诲竷鎿嶄綔銆傝閲嶈瘯锛屾垨鏀圭敤鎵嬪姩缂栬緫鑺傜偣銆?",
+                                    "response": "未能生成可执行的画布操作。请重试，或改用手动编辑节点。",
                                     "error": "INVALID_CREATE_JSON",
                                     "error_detail": parse_error,
                                 },
@@ -432,7 +432,7 @@ async def _chat_stream_generator(
             logger.warning("AI router error: %s", exc)
             yield {
                 "data": json.dumps(
-                    {"error": "AI 妯″瀷璋冪敤澶辫触锛岃绋嶅悗閲嶈瘯", "done": True},
+                    {"error": "AI 模型调用失败，请稍后重试", "done": True},
                     ensure_ascii=False,
                 )
             }
@@ -441,7 +441,7 @@ async def _chat_stream_generator(
             logger.exception("AI chat stream failed: %s", exc)
             yield {
                 "data": json.dumps(
-                    {"error": "鏈嶅姟鍐呴儴閿欒锛岃绋嶅悗閲嶈瘯", "done": True},
+                    {"error": "服务内部错误，请稍后重试", "done": True},
                     ensure_ascii=False,
                 )
             }

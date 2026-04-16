@@ -31,7 +31,7 @@ export default function SessionRefresher() {
     // Keep session fresh for the lifetime of this page
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event: string, _session: unknown) => {
+    } = supabase.auth.onAuthStateChange(() => {
       // No-op: we only need the listener registered so the SDK fires
       // its internal "TOKEN_REFRESHED" machinery automatically.
     });

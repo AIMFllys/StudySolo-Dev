@@ -32,7 +32,7 @@ function formatCny(value: number) {
 export function DashboardActivityTable({ recentCalls, loading }: DashboardActivityTableProps) {
   const [page, setPage] = useState(1);
 
-  const allCalls = recentCalls?.calls ?? [];
+  const allCalls = useMemo(() => recentCalls?.calls ?? [], [recentCalls]);
   const total = allCalls.length;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const pagedCalls = useMemo(

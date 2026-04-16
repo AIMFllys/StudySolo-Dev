@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { FileText, Eye, Star, Heart, Search, Filter, AlertTriangle } from 'lucide-react';
 import { fetchMarketplace } from '@/services/workflow.service';
 import { usePanelStore } from '@/stores/ui/use-panel-store';
@@ -10,7 +9,6 @@ import type { WorkflowMeta } from '@/types/workflow';
 type FilterType = 'all' | 'official' | 'featured' | 'public';
 
 export default function WorkflowExamplesPanel() {
-  const router = useRouter();
   const [workflows, setWorkflows] = useState<WorkflowMeta[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -28,8 +26,11 @@ export default function WorkflowExamplesPanel() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setFetchError(null);
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setLoading(true);
+      setFetchError(null);
+    });
 
     const params: Parameters<typeof fetchMarketplace>[0] = {};
     if (filter !== 'all') params.filter = filter;

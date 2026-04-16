@@ -1,6 +1,6 @@
 # AI 工作流系统底层原理
 
-> **最后更新**: 2026-03-24 · 深度结合项目实际代码与架构的完整底层原理文档
+> **最后更新**: 2026-04-16 · 深度结合项目实际代码与架构的完整底层原理文档
 
 ---
 
@@ -103,7 +103,7 @@ WorkflowCanvasLoader.tsx 启动
 
 ## 三、核心引擎深度解析
 
-### 3.1 DAG 执行引擎 (`engine/executor.py`)
+### 3.1 DAG 执行引擎 (`engine/`)
 
 这是整个系统的"心脏"。DAG = Directed Acyclic Graph (有向无环图)，是计算机科学中描述任务依赖关系的标准数据结构。
 
@@ -117,6 +117,21 @@ DAG:      A → B → D
 ```
 
 DAG 允许部分任务并行，效率更高。
+
+**执行引擎模块化架构（Phase 2 重构后）**：
+
+```
+backend/app/engine/
+├── __init__.py          # 模块导出
+├── executor.py          # 主编排器（对外入口）
+├── topology.py          # 拓扑排序、分支过滤、等待逻辑
+├── node_runner.py       # 单节点执行、输入构建、LLM 调用
+├── loop_runner.py       # 循环组容器迭代
+├── level_runner.py      # 层级并行调度 + SSE 流式推送
+├── context.py           # ExecutionContext 黑板模型
+├── events.py            # SSE 事件格式化
+└── sse.py               # SSE 响应封装
+```
 
 **executor.py 核心逻辑（简化版）**:
 
@@ -389,6 +404,8 @@ class ExecutionContext:
 | **交互** | `chat_response` | 聊天响应 | 与用户进行对话交互 |
 | **输出** | `export_file` | 文件导出 | 将结果导出为 MD/DOCX/PDF |
 | **输出** | `write_db` | 写入数据库 | 将结果保存到数据库 |
+| **结构** | `loop_group` | 循环容器 | 循环区域的结构容器 |
+| **扩展** | `community_node` | 社区节点 | 用户自定义的社区节点 |
 
 ---
 
@@ -479,10 +496,11 @@ AIStepNode 内部使用 react-markdown 渲染 Markdown
 | 修改目标 | 必须同步检查的文件 |
 |----------|------------------|
 | 新增节点类型 | `backend/app/nodes/{category}/{node_name}/`, `config.yaml`, `frontend/src/types/workflow.ts`, `workflow-meta.ts` |
-| 修改执行引擎 | `executor.py`, `_base.py`, `ai_router.py`, `api/ai.py` |
+| 修改执行引擎 | `engine/executor.py`, `engine/topology.py`, `engine/node_runner.py`, `engine/level_runner.py`, `services/llm/router.py` |
 | 修改画布交互 | `WorkflowCanvas.tsx`, `use-workflow-store.ts`, `workflow.css` |
 | 修改 SSE 协议 | `engine/events.py`, `use-workflow-execution.ts`, `types/workflow-events.ts` |
-| 修改保存同步 | `use-workflow-sync.ts`, `workflow.service.ts`, `api/workflow.py` |
+| 修改保存同步 | `use-workflow-sync.ts`, `workflow.service.ts`, `api/workflow/crud.py` |
+| 修改 AI 路由 | `backend/config.yaml`, `services/llm/router.py`, `services/ai_catalog_service.py` |
 
 ---
 

@@ -48,7 +48,7 @@ export async function getDocContent(slug: string): Promise<{
 
   // 解析 frontmatter
   const frontmatterMatch = fileContent.match(/^---\n([\s\S]*?)\n---\n/);
-  let frontmatter: Partial<DocMeta> = {};
+  const frontmatter: Partial<DocMeta> = {};
   let content = fileContent;
 
   if (frontmatterMatch) {

@@ -19,10 +19,6 @@ import LoopGroupNode from '@/features/workflow/components/nodes/LoopGroupNode';
 import AnimatedEdge from '@/features/workflow/components/canvas/edges/AnimatedEdge';
 import SequentialEdge from '@/features/workflow/components/canvas/edges/SequentialEdge';
 
-/**
- * Shared node type registry — mirrors WorkflowCanvas.tsx.
- * All 20 node types render through AIStepNode (read-only by ReactFlow props).
- */
 const readOnlyNodeTypes: NodeTypes = {
   trigger_input: AIStepNode,
   ai_analyzer: AIStepNode,
@@ -42,6 +38,11 @@ const readOnlyNodeTypes: NodeTypes = {
   export_file: AIStepNode,
   logic_switch: AIStepNode,
   loop_map: AIStepNode,
+  agent_code_review: AIStepNode,
+  agent_deep_research: AIStepNode,
+  agent_news: AIStepNode,
+  agent_study_tutor: AIStepNode,
+  agent_visual_site: AIStepNode,
   community_node: AIStepNode,
   generating: GeneratingNode,
   annotation: AnnotationNode,
@@ -71,7 +72,7 @@ function ReadOnlyCanvasInner({ nodes, edges, className }: ReadOnlyCanvasProps) {
         color: 'var(--edge-marker-color, #78716c)',
       },
     }),
-    []
+    [],
   );
 
   const fitViewOptions = useMemo(() => ({ padding: 0.2 }), []);
@@ -85,12 +86,10 @@ function ReadOnlyCanvasInner({ nodes, edges, className }: ReadOnlyCanvasProps) {
         nodeTypes={readOnlyNodeTypes}
         edgeTypes={readOnlyEdgeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
-        /* ── All editing disabled ── */
         nodesDraggable={false}
         nodesConnectable={false}
         edgesFocusable={false}
         elementsSelectable={false}
-        /* ── Navigation enabled ── */
         panOnDrag
         zoomOnScroll
         zoomOnPinch
@@ -111,18 +110,6 @@ function ReadOnlyCanvasInner({ nodes, edges, className }: ReadOnlyCanvasProps) {
   );
 }
 
-/**
- * ReadOnlyCanvas — renders a workflow graph in view-only mode.
- *
- * Features:
- *   ✅ All node types rendered (with outputs visible)
- *   ✅ Zoom (scroll + pinch) and pan (drag)
- *   ❌ No node dragging, connecting, selecting, or editing
- *   ❌ No context menus, toolbar, or bottom drawer
- *
- * Usage:
- *   <ReadOnlyCanvas nodes={wf.nodes_json} edges={wf.edges_json} className="min-h-[500px]" />
- */
 export default function ReadOnlyCanvas(props: ReadOnlyCanvasProps) {
   return (
     <ReactFlowProvider>

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getConfigs, updateConfig } from '@/services/admin.service';
 import type { ConfigEntry } from '@/types/admin';
-import { EmptyState, PageHeader } from '@/features/admin/shared';
+import { PageHeader } from '@/features/admin/shared';
 import { ConfigEditorTable } from './ConfigEditorTable';
 
 export function AdminConfigPageView() {

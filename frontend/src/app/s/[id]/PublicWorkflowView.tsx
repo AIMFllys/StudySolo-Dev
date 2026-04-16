@@ -1,15 +1,16 @@
 'use client';
 
-import { Heart, Star, GitFork, Pencil, LogIn, X, Share } from 'lucide-react';
+import { Heart, Star, GitFork, Pencil, X, Share } from 'lucide-react';
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
 import { ApiError, toggleLike, toggleFavorite, forkWorkflow } from '@/services/workflow.service';
 import type { WorkflowPublicView } from '@/types/workflow';
+import { LoginPromptDialog } from './LoginPromptDialog';
 
 const ReadOnlyCanvas = dynamic(
-  () => import('@/components/workflow/ReadOnlyCanvas'),
+  () => import('@/features/workflow/components/canvas/ReadOnlyCanvas'),
   { ssr: false, loading: () => <CanvasPlaceholder /> }
 );
 
@@ -19,61 +20,6 @@ function CanvasPlaceholder() {
       <div className="text-center text-muted-foreground">
         <div className="h-8 w-8 mx-auto mb-2 rounded-full border-2 border-muted-foreground/30 border-t-foreground animate-spin" />
         <p className="text-xs">加载画布预览...</p>
-      </div>
-    </div>
-  );
-}
-
-/** Lightweight login-redirect confirmation dialog */
-function LoginPromptDialog({
-  onConfirm,
-  onCancel,
-}: {
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-auto">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"
-        onClick={onCancel}
-      />
-      {/* Dialog */}
-      <div className="relative bg-background border border-border rounded-xl shadow-xl px-6 py-5 max-w-sm w-full mx-4 animate-in zoom-in-95 fade-in duration-200">
-        <button
-          onClick={onCancel}
-          className="absolute top-3 right-3 p-1 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-        >
-          <X className="h-4 w-4" />
-        </button>
-
-        <div className="flex flex-col items-center text-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-            <LogIn className="h-5 w-5 text-foreground" />
-          </div>
-          <h3 className="text-sm font-serif font-semibold text-foreground">
-            需要登录
-          </h3>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            此操作需要登录后才能使用。<br />
-            是否跳转至登录页面？
-          </p>
-          <div className="flex items-center gap-2 mt-1 w-full">
-            <button
-              onClick={onCancel}
-              className="flex-1 rounded-md border border-border px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors"
-            >
-              暂不登录
-            </button>
-            <button
-              onClick={onConfirm}
-              className="flex-1 rounded-md bg-foreground text-background px-3 py-2 text-xs font-medium hover:opacity-90 transition-opacity"
-            >
-              前往登录
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );

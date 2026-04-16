@@ -10,22 +10,23 @@ interface ExecutionProgressHeaderProps {
 }
 
 export function ExecutionProgressHeader({ session, onClose }: ExecutionProgressHeaderProps) {
-  const [elapsedMs, setElapsedMs] = useState(() =>
-    session.totalDurationMs ?? Math.round(performance.now() - session.startedAt),
-  );
+  const [runningElapsedMs, setRunningElapsedMs] = useState(0);
 
   useEffect(() => {
     if (session.overallStatus !== 'running') {
-      setElapsedMs(session.totalDurationMs ?? Math.round(performance.now() - session.startedAt));
       return;
     }
 
     const timer = window.setInterval(() => {
-      setElapsedMs(Math.round(performance.now() - session.startedAt));
+      setRunningElapsedMs(Math.round(performance.now() - session.startedAt));
     }, 500);
 
     return () => window.clearInterval(timer);
-  }, [session.overallStatus, session.startedAt, session.totalDurationMs]);
+  }, [session.overallStatus, session.startedAt]);
+
+  const elapsedMs = session.overallStatus === 'running'
+    ? runningElapsedMs
+    : (session.totalDurationMs ?? 0);
 
   const progress = session.totalCount > 0
     ? Math.min(100, Math.round((session.completedCount / session.totalCount) * 100))

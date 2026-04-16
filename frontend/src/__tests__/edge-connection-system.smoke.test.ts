@@ -10,25 +10,8 @@ function mockEdge(id: string, source: string, target: string, data: Record<strin
   return { id, source, target, type: 'sequential' as const, animated: false, data };
 }
 
-// Helper: mock node data
-function mockNode(id: string, type: string, extra: Record<string, unknown> = {}) {
-  return {
-    id,
-    type,
-    position: { x: 0, y: 0 },
-    data: { label: `Node ${id}`, type, status: 'pending', ...extra },
-  };
-}
-
 describe('Task 5.1: Branch labels auto-assignment', () => {
   it('assigns sequential branch letters A, B, C for logic_switch edges', () => {
-    const nodes = [
-      mockNode('ls1', 'logic_switch'),
-      mockNode('n1', 'chat_response'),
-      mockNode('n2', 'chat_response'),
-      mockNode('n3', 'chat_response'),
-    ];
-
     // Simulate building edges sequentially
     const existingEdges: ReturnType<typeof mockEdge>[] = [];
 

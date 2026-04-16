@@ -7,6 +7,7 @@ export default function AdminLoginLayout({ children }: { children: React.ReactNo
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
         rel="stylesheet"
       />
+      {/* eslint-disable-next-line @next/next/no-page-custom-font */}
       <link
         href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Work+Sans:wght@300;400;600&family=JetBrains+Mono:wght@400;700&display=swap"
         rel="stylesheet"

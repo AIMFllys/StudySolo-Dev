@@ -24,6 +24,7 @@ _install_supabase_stub()
 import os
 
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from jose import jwt
 
@@ -182,6 +183,12 @@ async def test_verify_code_invalid_attempts_exhaust_latest_code():
 
 
 def test_missing_captcha_secret_is_rejected(monkeypatch):
-    monkeypatch.delenv("CAPTCHA_SECRET", raising=False)
-    with pytest.raises(RuntimeError, match="CAPTCHA_SECRET 未配置"):
+    monkeypatch.setattr(
+        captcha_module,
+        "get_settings",
+        lambda: type("Settings", (), {"captcha_secret": ""})(),
+    )
+    with pytest.raises(HTTPException) as exc_info:
         captcha_module._get_captcha_secret()
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.detail == "验证码服务暂时不可用，请联系管理员"

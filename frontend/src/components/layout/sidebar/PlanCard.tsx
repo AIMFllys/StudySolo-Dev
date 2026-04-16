@@ -1,5 +1,5 @@
 import { CheckCircle2, Circle, Loader } from 'lucide-react';
-import { parsePlanResponse, type ParsedPlan, type PlanStep } from '@/features/workflow/utils/parse-plan-xml';
+import { parsePlanResponse } from '@/features/workflow/utils/parse-plan-xml';
 import { useState, useMemo } from 'react';
 import { useActionExecutor } from '@/features/workflow/hooks/use-action-executor';
 import { planStepsToActions } from '@/features/workflow/utils/plan-executor';

@@ -5,7 +5,7 @@
  * Uses Shiki for syntax-highlighted JSON display.
  */
 
-import React, { useMemo } from "react";
+import React from "react";
 import type { NodeRendererProps } from "../index";
 
 export const JsonRenderer: React.FC<NodeRendererProps> = ({
@@ -13,7 +13,7 @@ export const JsonRenderer: React.FC<NodeRendererProps> = ({
     isStreaming,
     compact = false,
 }) => {
-    const formattedJson = useMemo(() => {
+    const formattedJson = (() => {
         if (!output) return "";
         try {
             const parsed = JSON.parse(output);
@@ -21,9 +21,9 @@ export const JsonRenderer: React.FC<NodeRendererProps> = ({
         } catch {
             return output; // Return raw if not valid JSON yet (streaming)
         }
-    }, [output]);
+    })();
 
-    const summaryText = useMemo(() => {
+    const summaryText = (() => {
         if (!output) return "";
         try {
             const parsed = JSON.parse(output) as Record<string, unknown> | unknown[];
@@ -43,7 +43,7 @@ export const JsonRenderer: React.FC<NodeRendererProps> = ({
             const compactText = output.replace(/\s+/g, ' ').trim();
             return compactText.slice(0, 120);
         }
-    }, [output]);
+    })();
 
     if (!output) {
         return (

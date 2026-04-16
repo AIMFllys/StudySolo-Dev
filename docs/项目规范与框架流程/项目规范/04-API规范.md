@@ -1,6 +1,6 @@
 # StudySolo API 规范
 
-> 最后更新：2026-04-11（Phase 2 重构完成）
+> 最后更新：2026-04-16（与 `backend/app/api/router.py` 对齐）
 > 文档编码：UTF-8（无 BOM） / LF
 > 事实源：`backend/app/api/*`、`backend/app/models/*`、`frontend/src/types/*`
 
@@ -56,8 +56,14 @@
 | `POST` | `/api/auth/forgot-password` | 发起重置 |
 | `POST` | `/api/auth/reset-password` | 重置密码 |
 | `GET` | `/api/auth/me` | 当前用户 |
-| `POST` | `/api/auth/captcha/generate` | 生成拼图验证码 |
-| `POST` | `/api/auth/captcha/verify` | 校验拼图验证码 |
+| `POST` | `/api/auth/captcha-challenge` | 生成拼图验证码 challenge |
+| `POST` | `/api/auth/captcha-token` | 校验拼图并换取 token |
+| `POST` | `/api/auth/consent` | 提交同意书 |
+| `GET` | `/api/auth/consent/status` | 查询同意书状态 |
+| `POST` | `/api/auth/sync-session` | 同步会话 |
+| `POST` | `/api/auth/send-code` | 发送验证码 |
+| `POST` | `/api/auth/resend-verification` | 重发验证邮件 |
+| `POST` | `/api/auth/reset-password-with-code` | 使用验证码重置密码 |
 
 **来源**：`backend/app/api/auth/`
 
@@ -112,6 +118,11 @@
 | 方法 | 路径 | 用途 | 来源文件 |
 | --- | --- | --- | --- |
 | `GET` | `/api/workflow-runs` | 执行记录列表 | `api/workflow/runs.py` |
+| `GET` | `/api/workflow-runs/by-workflow/{workflow_id}` | 指定工作流的运行记录 | `api/workflow/runs.py` |
+| `GET` | `/api/workflow-runs/all` | 当前用户全部运行记录 | `api/workflow/runs.py` |
+| `GET` | `/api/workflow-runs/{run_id}` | 运行详情 | `api/workflow/runs.py` |
+| `GET` | `/api/workflow-runs/{run_id}/public` | 公开运行详情 | `api/workflow/runs.py` |
+| `POST` | `/api/workflow-runs/{run_id}/share` | 切换运行记录分享状态 | `api/workflow/runs.py` |
 
 ## 4. AI 接口
 
@@ -137,7 +148,7 @@
 | 方法 | 路径 | 用途 | 来源文件 |
 | --- | --- | --- | --- |
 | `GET` | `/api/ai/models/catalog` | 用户侧模型目录 | `api/ai/catalog.py` |
-| `GET` | `/api/ai/models/list` | 模型列表 | `api/ai/models.py` |
+| `GET` | `/api/ai/chat/models` | 聊天模型列表（轻量） | `api/ai/models.py` |
 
 ## 5. AI 聊天请求契约
 
@@ -227,6 +238,7 @@
 | `GET` | `/api/usage/overview?range=24h|7d|30d` | 总览 |
 | `GET` | `/api/usage/live?window=5m|60m` | 实时窗口 |
 | `GET` | `/api/usage/timeseries?range=24h|7d|30d&source=assistant|workflow|all` | 时序数据 |
+| `GET` | `/api/usage/quota` | 当前用户配额 |
 
 ### 9.2 后台侧
 
@@ -283,6 +295,21 @@
 | `GET/PUT` | `/api/admin/config` | 系统配置 | `api/admin/config.py` |
 | `GET` | `/api/admin/audit-logs` | 审计日志 | `api/admin/audit.py` |
 
+## 11.1 Agent / 优惠 / 社区节点域（补充）
+
+| 方法 | 路径 | 用途 | 来源文件 |
+| --- | --- | --- | --- |
+| `GET` | `/api/agents` | Agent 列表 | `api/agents.py` |
+| `POST` | `/api/agents/{name}/chat` | 调用指定 Agent | `api/agents.py` |
+| `GET` | `/api/agents/{name}/health` | Agent 健康检查 | `api/agents.py` |
+| `POST` | `/api/discounts/redeem` | 兑换码核销 | `api/discounts.py` |
+| `GET` | `/api/community-nodes/` | 社区节点列表 | `api/community_nodes.py` |
+| `POST` | `/api/community-nodes/` | 发布社区节点 | `api/community_nodes.py` |
+| `GET` | `/api/community-nodes/mine` | 我的社区节点 | `api/community_nodes.py` |
+| `GET` | `/api/community-nodes/{id}` | 社区节点详情 | `api/community_nodes.py` |
+| `POST` | `/api/community-nodes/{id}/like` | 社区节点点赞 | `api/community_nodes.py` |
+| `POST` | `/api/community-nodes/generate-schema` | 生成节点 schema | `api/community_nodes.py` |
+
 ### 10.4 AI 模型管理
 
 | 方法 | 路径 | 用途 | 来源文件 |
@@ -303,7 +330,7 @@
 - `vendor` 表示模型厂商
 - 目录展示必须来自 catalog API
 - 新图表和新接口统一使用 `*_cny`
-- 文档不得遗漏已存在的 `feedback`、`usage`、`workflow_social`、`workflow_collaboration`、`admin_models`
+- 文档不得遗漏已存在的 `feedback`、`usage`、`workflow_social`、`workflow_collaboration`、`admin_models`、`agents`、`discounts`、`community-nodes`
 
 ## 13. Phase 2 重构变更记录
 

@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createEventBus,
   eventBus,
-  normalizeToggleAllSlipsDetail,
   type EventMap,
 } from '@/lib/events/event-bus';
 
@@ -90,12 +89,5 @@ describe('workflow event bus', () => {
       },
     });
     expect(closeHandler).toHaveBeenCalledWith(undefined);
-  });
-
-  it('normalizes legacy slip toggle payloads for MemoryView compatibility', () => {
-    expect(normalizeToggleAllSlipsDetail(true)).toBe(true);
-    expect(normalizeToggleAllSlipsDetail({ expanded: false })).toBe(false);
-    expect(normalizeToggleAllSlipsDetail({})).toBeNull();
-    expect(normalizeToggleAllSlipsDetail(undefined)).toBeNull();
   });
 });

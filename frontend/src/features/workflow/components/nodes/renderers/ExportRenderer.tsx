@@ -7,7 +7,7 @@
  * and displays it as a card with download / copy buttons.
  */
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import type { NodeRendererProps } from "../index";
 
 interface ExportInfo {
@@ -78,7 +78,7 @@ export default function ExportRenderer({ output, isStreaming, compact = false }:
     const exportInfo = useMemo(() => parseExportOutput(output), [output]);
     const [copied, setCopied] = useState(false);
 
-    const handleCopy = useCallback(async () => {
+    const handleCopy = async () => {
         if (!exportInfo?.copyContent) return;
         try {
             await navigator.clipboard.writeText(exportInfo.copyContent);
@@ -95,7 +95,7 @@ export default function ExportRenderer({ output, isStreaming, compact = false }:
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
         }
-    }, [exportInfo?.copyContent]);
+    };
 
     // While streaming, show raw output
     if (isStreaming) {

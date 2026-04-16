@@ -3,9 +3,11 @@ import { notFound, redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import WorkflowCanvasLoader from '@/app/(dashboard)/workspace/[id]/WorkflowCanvasLoader';
 import WorkflowPageShell from '@/app/(dashboard)/workspace/[id]/WorkflowPageShell';
-import { fetchWorkflowContentForServer } from '@/services/workflow.server.service';
+import {
+  checkWorkflowOwnership,
+  fetchWorkflowContentForServer,
+} from '@/services/workflow.server.service';
 import CanvasTraceLoader from '@/features/workflow/components/canvas/CanvasTraceLoader';
-import { buildApiUrl, buildAuthHeaders } from '@/services/api-client';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -13,21 +15,6 @@ interface Props {
 
 // Reserved route segments that should not be treated as workflow IDs
 const RESERVED_SEGMENTS = ['new', 'create', 'edit', 'settings'];
-
-/** Check if current user is the workflow owner via lightweight API call. */
-async function checkIsOwner(workflowId: string, token?: string): Promise<boolean> {
-  try {
-    const res = await fetch(buildApiUrl(`/api/workflow/${workflowId}/public`), {
-      headers: buildAuthHeaders(token),
-      next: { revalidate: 0 },
-    });
-    if (!res.ok) return false;
-    const data = await res.json();
-    return data.is_owner === true;
-  } catch {
-    return false;
-  }
-}
 
 export default async function PrivateCanvasPage({ params }: Props) {
   const { id } = await params;
@@ -48,7 +35,7 @@ export default async function PrivateCanvasPage({ params }: Props) {
   const cookieStore = await cookies();
   const token = cookieStore.get('access_token')?.value;
   const isOwner = workflow.is_public
-    ? await checkIsOwner(id, token)
+    ? await checkWorkflowOwnership(id, token)
     : true; // If not public, only owner can reach here (via check_workflow_access)
 
   return (

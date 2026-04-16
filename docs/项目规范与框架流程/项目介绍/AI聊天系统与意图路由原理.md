@@ -1,6 +1,6 @@
 # AI 聊天系统与意图路由原理
 
-> **最后更新**: 2026-03-24 · 深度剖析 StudySolo 产品中 AI 聊天交互的完整底层原理
+> **最后更新**: 2026-04-16 · 深度剖析 StudySolo 产品中 AI 聊天交互的完整底层原理
 
 ---
 
@@ -535,16 +535,17 @@ conversationStore (Zustand)
 | 修改目标 | 必须同步检查的文件 |
 |----------|------------------|
 | 修改 AI 人设/能力 | `prompts/identity.md` |
-| 修改意图分类 | `prompts/intent_classifier.md`, `ai_chat_stream.py` |
+| 修改意图分类 | `prompts/intent_classifier.md`, `api/ai/chat.py` |
 | 修改 Chat 模式行为 | `prompts/mode_chat.md` |
 | 修改 Plan 模式行为 | `prompts/mode_plan.md`, `PlanCard.tsx` |
 | 修改 Create 模式行为 | `prompts/mode_create.md`, `use-action-executor.ts` |
 | 新增画布操作类型 | `mode_create.md` (AI 工具表) + `use-action-executor.ts` (前端执行) + `models/ai_chat.py` (数据模型) |
-| 修改画布序列化 | `use-canvas-context.ts` (前端) + `ai_chat.py/_build_canvas_summary` (后端) + `models/ai_chat.py` |
-| 修改模型选择 | `ModelSelector.tsx`, `ai-models.ts`, `ai_chat_stream.py/_call_with_model` |
-| 修改思考深度 | `SidebarAIPanel.tsx`, `ai_chat_stream.py/_DEPTH_INSTRUCTIONS`, `prompt_loader.py/DEPTH_LABELS` |
-| 修改流式通信 | `use-stream-chat.ts` (前端 SSE) + `ai_chat_stream.py` (后端 SSE) |
+| 修改画布序列化 | `use-canvas-context.ts` (前端) + `api/ai/chat.py/_build_canvas_summary` (后端) + `models/ai_chat.py` |
+| 修改模型选择 | `ModelSelector.tsx`, `ai-models.ts`, `api/ai/chat.py/_call_with_model` |
+| 修改思考深度 | `SidebarAIPanel.tsx`, `api/ai/chat.py/_DEPTH_INSTRUCTIONS`, `prompt_loader.py/DEPTH_LABELS` |
+| 修改流式通信 | `use-stream-chat.ts` (前端 SSE) + `api/ai/chat.py` (后端 SSE) |
+| 修改 AI 路由 | `backend/config.yaml`, `services/llm/router.py`, `services/ai_catalog_service.py` |
 
 ---
 
-*本文档基于 StudySolo 产品实际代码撰写，所有数据流和文件路径与 `backend/app/api/ai_chat*.py`、`backend/app/prompts/`、`frontend/src/features/workflow/hooks/` 下的真实实现一一对应。*
+*本文档基于 StudySolo 产品实际代码撰写，所有数据流和文件路径与 `backend/app/api/ai/*.py`、`backend/app/prompts/`、`frontend/src/features/workflow/hooks/` 下的真实实现一一对应。*

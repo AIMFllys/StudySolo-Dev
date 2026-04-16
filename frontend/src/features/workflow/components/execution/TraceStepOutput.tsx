@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { NodeExecutionTrace } from '@/types';
 import { resolveRenderer } from '@/features/workflow/components/nodes';
@@ -16,10 +16,14 @@ const OUTPUT_COLLAPSED_MAX_H = 400;
 
 export function TraceStepOutput({ trace, compact }: TraceStepOutputProps) {
   const { manifestItem } = useNodeManifestItem(trace.nodeType);
-  const Renderer = resolveRenderer({
-    nodeType: trace.nodeType,
-    rendererName: manifestItem?.renderer,
-  });
+  const Renderer = useMemo(
+    () =>
+      resolveRenderer({
+        nodeType: trace.nodeType,
+        rendererName: manifestItem?.renderer,
+      }),
+    [manifestItem?.renderer, trace.nodeType],
+  );
   const output = trace.status === 'running'
     ? trace.streamingOutput
     : (trace.finalOutput ?? trace.streamingOutput);
@@ -43,6 +47,7 @@ export function TraceStepOutput({ trace, compact }: TraceStepOutputProps) {
           className={`p-2 ${!expanded && !isStreaming ? 'overflow-hidden' : 'overflow-y-auto scrollbar-hide'}`}
           style={!expanded && !isStreaming ? { maxHeight: OUTPUT_COLLAPSED_MAX_H } : undefined}
         >
+          {/* eslint-disable-next-line react-hooks/static-components */}
           <Renderer
             output={output}
             format={trace.outputFormat ?? 'markdown'}

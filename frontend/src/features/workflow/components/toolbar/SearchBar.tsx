@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { X, ChevronUp, ChevronDown } from 'lucide-react';
 import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 import type { AIStepNodeData } from '@/types';
@@ -23,13 +23,16 @@ export default function SearchBar({ onClose }: SearchBarProps) {
   const setSelectedNodeId = useWorkflowStore((s) => s.setSelectedNodeId);
 
   // Find matching nodes
-  const matchingNodes = query.trim()
-    ? nodes.filter((n) => {
-        const data = n.data as unknown as AIStepNodeData;
-        const label = data?.label ?? '';
-        return label.toLowerCase().includes(query.toLowerCase());
-      })
-    : [];
+  const matchingNodes = useMemo(() => {
+    if (!query.trim()) {
+      return [];
+    }
+    return nodes.filter((n) => {
+      const data = n.data as unknown as AIStepNodeData;
+      const label = data?.label ?? '';
+      return label.toLowerCase().includes(query.toLowerCase());
+    });
+  }, [nodes, query]);
 
   const totalMatches = matchingNodes.length;
 
@@ -78,11 +81,6 @@ export default function SearchBar({ onClose }: SearchBarProps) {
     [goNext, goPrev, onClose]
   );
 
-  // Reset index when query changes
-  useEffect(() => {
-    setCurrentIndex(0);
-  }, [query]);
-
   return (
     <div className="canvas-search-bar">
       <input
@@ -91,7 +89,10 @@ export default function SearchBar({ onClose }: SearchBarProps) {
         className="canvas-search-input"
         placeholder="搜索节点名称..."
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
+        onChange={(e) => {
+          setCurrentIndex(0);
+          setQuery(e.target.value);
+        }}
         onKeyDown={handleKeyDown}
       />
 

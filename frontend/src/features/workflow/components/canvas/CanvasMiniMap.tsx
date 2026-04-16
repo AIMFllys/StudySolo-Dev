@@ -16,10 +16,6 @@ export default function CanvasMiniMap() {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Stable refs so native DOM listener always uses latest state
-  const isLargeRef = useRef(isLarge);
-  isLargeRef.current = isLarge;
-
   // ── Native DOM contextmenu listener ────────────────────────────────────────
   // MiniMap internally destructures props without ...rest, so onContextMenu
   // passed as a React prop is silently dropped. We attach directly to the

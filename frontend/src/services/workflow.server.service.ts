@@ -79,6 +79,23 @@ export async function fetchPublicWorkflowForServer(
   return withServerAccessToken((token) => fetchPublicWorkflow(workflowId, token));
 }
 
+export async function checkWorkflowOwnership(
+  workflowId: string,
+  token?: string,
+): Promise<boolean> {
+  try {
+    const res = await fetch(buildApiUrl(`/api/workflow/${workflowId}/public`), {
+      headers: buildAuthHeaders(token),
+      next: { revalidate: 0 },
+    });
+    if (!res.ok) return false;
+    const data = await res.json();
+    return data.is_owner === true;
+  } catch {
+    return false;
+  }
+}
+
 export interface UserWorkflowQuota {
   tier: string;
   workflows_used: number;

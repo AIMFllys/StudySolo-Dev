@@ -3,9 +3,9 @@
 import { ArrowLeft, Save, Loader2, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import RightPanel from '@/components/layout/RightPanel';
-import CollaborationPopover from '@/components/workflow/CollaborationPopover';
-import CollaboratorAvatars from '@/components/workflow/CollaboratorAvatars';
-import RunHistoryPopover from '@/components/workflow/RunHistoryPopover';
+import CollaborationPopover from '@/features/workflow/components/collaboration/CollaborationPopover';
+import CollaboratorAvatars from '@/features/workflow/components/collaboration/CollaboratorAvatars';
+import RunHistoryPopover from '@/features/workflow/components/history/RunHistoryPopover';
 import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 import { useSettingsStore } from '@/stores/ui/use-settings-store';
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { memo, useCallback } from 'react';
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 
 interface BranchInfo {

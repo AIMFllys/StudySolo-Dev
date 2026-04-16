@@ -32,7 +32,11 @@ export function CommunityNodeList() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    queueMicrotask(() => {
+      if (!cancelled) {
+        setLoading(true);
+      }
+    });
     void listCommunityNodes({
       page,
       perPage: 10,

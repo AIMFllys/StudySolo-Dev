@@ -1,6 +1,6 @@
 'use client';
 
-import type { DragEvent } from 'react';
+import { useMemo, type DragEvent } from 'react';
 import { Heart, PackageOpen, Settings2 } from 'lucide-react';
 
 import { getCommunityCategoryLabel, getCommunityIcon } from '@/features/community-nodes/constants/catalog';
@@ -17,7 +17,7 @@ export function CommunityNodeCard({
   onToggleLike,
   onManage,
 }: CommunityNodeCardProps) {
-  const Icon = getCommunityIcon(node.icon);
+  const Icon = useMemo(() => getCommunityIcon(node.icon), [node.icon]);
 
   const payload: CommunityNodeInsertPayload = {
     id: node.id,
@@ -44,6 +44,7 @@ export function CommunityNodeCard({
     >
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted/40">
+          {/* eslint-disable-next-line react-hooks/static-components */}
           <Icon className="h-4 w-4 text-foreground" />
         </div>
         <div className="min-w-0 flex-1">

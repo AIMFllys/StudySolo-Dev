@@ -20,7 +20,9 @@ export function ExecutionTraceList({ session, nodeNameMap, embedded = false }: E
   const [activeChainId, setActiveChainId] = useState<number | null>(null);
 
   useEffect(() => {
-    setActiveChainId(null);
+    queueMicrotask(() => {
+      setActiveChainId(null);
+    });
   }, [session.sessionId]);
 
   const filteredTraces = useMemo(() => {

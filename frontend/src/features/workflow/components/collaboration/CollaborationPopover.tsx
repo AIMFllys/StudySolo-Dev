@@ -80,10 +80,8 @@ export default function CollaborationPopover({ workflowId, isPublic }: Props) {
 
   return (
     <>
-      {/* Backdrop */}
       <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
 
-      {/* Popover */}
       <div className="absolute right-0 top-full mt-1 z-50 w-80 bg-background border border-border rounded-lg shadow-xl animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-border">
           <h3 className="text-xs font-serif font-semibold">邀请协作者</h3>
@@ -96,7 +94,6 @@ export default function CollaborationPopover({ workflowId, isPublic }: Props) {
         </div>
 
         <div className="p-3 space-y-3">
-          {/* Invite form */}
           <div className="flex gap-1.5">
             <div className="relative flex-1">
               <Mail className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
@@ -118,7 +115,6 @@ export default function CollaborationPopover({ workflowId, isPublic }: Props) {
             </button>
           </div>
 
-          {/* Role selector */}
           <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
             <span>角色：</span>
             <label className="flex items-center gap-1 cursor-pointer">
@@ -143,7 +139,6 @@ export default function CollaborationPopover({ workflowId, isPublic }: Props) {
             </label>
           </div>
 
-          {/* Collaborator list */}
           {collabs.length > 0 && (
             <div className="border-t border-dashed border-border pt-2">
               <p className="text-[10px] text-muted-foreground mb-1.5 font-medium">
@@ -194,7 +189,6 @@ export default function CollaborationPopover({ workflowId, isPublic }: Props) {
             </div>
           )}
 
-          {/* Share link section */}
           <div className="border-t border-dashed border-border pt-2">
             <p className="text-[10px] text-muted-foreground mb-1.5 font-medium flex items-center gap-1">
               <Link className="h-3 w-3" />

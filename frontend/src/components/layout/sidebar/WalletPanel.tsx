@@ -158,22 +158,18 @@ export default function WalletPanel() {
                   <span className="font-bold border border-current/20 px-1 py-0.5 rounded-sm leading-none tracking-widest">{getTierLabel(userTier)}</span>
                 </div>
                 {/* 到期日 */}
-                {user?.tier_expires_at && userTier !== 'free' && (() => {
-                  const exp = new Date(user.tier_expires_at);
-                  const diffMs = exp.getTime() - Date.now();
-                  const diffDays = Math.ceil(diffMs / 86400000);
-                  const label = diffDays > 0 ? `剩余 ${diffDays} 天` : '已到期';
-                  const isExpiring = diffDays <= 7 && diffDays > 0;
-                  return (
-                    <div className={`flex items-center gap-1 font-mono text-[9px] mt-1 tracking-wider ${
-                      diffDays <= 0 ? 'opacity-60 line-through' : isExpiring ? 'text-amber-600 dark:text-amber-400' : 'opacity-50'
-                    }`}>
-                      <span>{label}</span>
-                      <span className="opacity-50">·</span>
-                      <span>{exp.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })} 到期</span>
-                    </div>
-                  );
-                })()}
+                {user?.tier_expires_at && userTier !== 'free' && (
+                  <div className="mt-1 flex items-center gap-1 font-mono text-[9px] tracking-wider opacity-60">
+                    <span>到期日</span>
+                    <span className="opacity-50">·</span>
+                    <span>
+                      {new Date(user.tier_expires_at).toLocaleDateString('zh-CN', {
+                        month: 'numeric',
+                        day: 'numeric',
+                      })}
+                    </span>
+                  </div>
+                )}
               </div>
               <ChevronRight className="h-4 w-4 opacity-40 transition-transform group-hover:translate-x-1 group-hover:opacity-100" />
             </div>
@@ -220,7 +216,7 @@ export default function WalletPanel() {
           </div>
           
           <div className="node-paper-bg border-[1.5px] border-border/50 rounded-xl overflow-hidden shadow-sm">
-            {EXTERNAL_PROVIDERS.map((item, idx) => (
+            {EXTERNAL_PROVIDERS.map((item) => (
               <ExternalApiItem key={item.provider} item={item} />
             ))}
           </div>

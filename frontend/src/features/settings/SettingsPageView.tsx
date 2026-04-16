@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Settings as SettingsIcon, Cookie } from 'lucide-react';
+import { Settings as SettingsIcon } from 'lucide-react';
 import {
   useSettingsStore,
   type AccentColor,
