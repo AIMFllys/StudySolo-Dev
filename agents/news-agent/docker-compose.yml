@@ -1,0 +1,7 @@
+services:
+  news-agent:
+    build: .
+    ports:
+      - "8004:8004"
+    env_file:
+      - .env
