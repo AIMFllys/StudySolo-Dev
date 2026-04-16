@@ -48,10 +48,10 @@
 
 ### 废弃路径（不要使用）
 
-以下路径已废弃，统一迁移到 `docs/team/refactor/`：
+以下路径已废弃，统一迁移到 `docs/issues/TeamRefactor/`：
 
-- `docs/plan/TeamNewRefactor/*` → `docs/team/refactor/*`
-- `docs/Plans/TNRCodex/*` → `docs/team/refactor/codex-analysis/*`
+- `docs/plan/TeamNewRefactor/*` → `docs/issues/TeamRefactor/*`
+- `docs/Plans/TNRCodex/*` → `docs/issues/TeamRefactor/codex-analysis/*`
 
 ### 当前规范文档结构
 
@@ -101,14 +101,14 @@ docs/
 
 | 优先级 | 文档位置 | 说明 |
 |--------|---------|------|
-| **L0（最高）** | `docs/team/*.md` | 团队协作铁规 |
+| **L0（最高）** | `docs/项目规范与框架流程/项目规范/*.md` | 团队协作铁规 |
 | **L0** | `.github/CODEOWNERS` | 代码所有权，GitHub 系统强制 |
 | **L0** | `shared/docs/conventions/` | 共享层事实，跨项目稳定 |
-| **L1** | `docs/team/refactor/final-plan/` | 重构实施方案 |
+| **L1** | `docs/issues/TeamRefactor/final-plan/` | 重构实施方案 |
 | **L1** | `docs/项目规范与框架流程/` | 功能 SOP |
 | **L2** | `agents/README.md` | Agent 开发指南 |
-| **L3（参考）** | `docs/team/refactor/claude-analysis/` | 历史分析，只读 |
-| **L3（参考）** | `docs/team/refactor/codex-analysis/` | 历史分析，只读 |
+| **L3（参考）** | `docs/issues/TeamRefactor/claude-analysis/` | 历史分析，只读 |
+| **L3（参考）** | `docs/issues/TeamRefactor/codex-analysis/` | 历史分析，只读 |
 
 ## 6. 重构状态（2026-04-12）
 

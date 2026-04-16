@@ -21,6 +21,32 @@ _RETRYABLE_EXCEPTIONS = (httpx.ConnectError, httpx.ConnectTimeout)
 class AgentCaller:
     """执行对子后端 Agent 的 HTTP 调用."""
 
+    async def fetch_models(
+        self,
+        url: str,
+        *,
+        timeout: int,
+        headers: dict[str, str],
+    ) -> list[str]:
+        """Fetch available model ids from the Agent runtime."""
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                resp = await client.get(f"{url}/v1/models", headers=headers)
+            if resp.status_code >= 400:
+                return []
+            payload = resp.json()
+            data = payload.get("data", [])
+            if isinstance(data, list):
+                models = [
+                    str(item.get("id")).strip()
+                    for item in data
+                    if isinstance(item, dict) and str(item.get("id", "")).strip()
+                ]
+                return models
+            return []
+        except Exception:
+            return []
+
     async def call(
         self,
         url: str,

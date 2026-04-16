@@ -97,7 +97,7 @@ StudySolo/
 | **introduce/** | Vite + React SPA | Nginx 静态文件托管 | `studyflow.1037solo.com/introduce/` | [introduce/README.md](./introduce/README.md) |
 | **shared/** | TypeScript | Git Submodule | — | [shared/README.md](./shared/README.md) |
 
-> **Wiki 说明**：Wiki 功能嵌入主前端 Route Group（`/wiki`），不再作为独立子项目。文档源在 `docs/wiki-content/`，详见 [wiki-init-plan.md](./docs/team/refactor/final-plan/wiki-init-plan.md)。
+> **Wiki 说明**：Wiki 功能嵌入主前端 Route Group（`/wiki`），不再作为独立子项目。文档源在 `docs/wiki-content/`，详见 [wiki-init-plan.md](./docs/issues/TeamRefactor/final-plan/wiki-init-plan.md)。
 
 ## 🚀 快速开始
 

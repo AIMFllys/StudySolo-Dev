@@ -1,0 +1,123 @@
+def auth_headers(settings):
+    return {
+        "Authorization": f"Bearer {settings.api_key}",
+        "X-Request-Id": "req-template-123",
+    }
+
+
+def completion_payload(settings, stream: bool = False):
+    return {
+        "model": settings.model_id,
+        "messages": [{"role": "user", "content": "Review this snippet"}],
+        "stream": stream,
+    }
+
+
+def test_health_endpoint(client, settings):
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "ok"
+
+
+def test_health_ready_endpoint(client):
+    response = client.get("/health/ready")
+
+    assert response.status_code == 200
+    assert response.json() == {"ready": True}
+
+
+def test_models_endpoint(client, settings):
+    response = client.get("/v1/models")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["object"] == "list"
+    assert data["data"][0]["id"] in settings.models
+
+
+def test_rejects_invalid_api_key(client, settings):
+    response = client.post(
+        "/v1/chat/completions",
+        json=completion_payload(settings),
+        headers={"Authorization": "Bearer invalid-key"},
+    )
+
+    assert response.status_code == 401
+    body = response.json()
+    assert body["error"]["code"] == "invalid_api_key"
+
+
+def test_rejects_invalid_model(client, settings):
+    response = client.post(
+        "/v1/chat/completions",
+        json={"model": "unknown-model", "messages": completion_payload(settings)["messages"]},
+        headers=auth_headers(settings),
+    )
+
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "invalid_request"
+
+
+def test_rejects_empty_messages(client, settings):
+    response = client.post(
+        "/v1/chat/completions",
+        json={"model": settings.model_id, "messages": []},
+        headers=auth_headers(settings),
+    )
+
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "invalid_request"
+
+
+def test_non_stream_response_format(client, settings):
+    response = client.post(
+        "/v1/chat/completions",
+        json=completion_payload(settings),
+        headers=auth_headers(settings),
+    )
+
+    assert response.status_code == 200
+    assert response.headers["X-Request-Id"] == "req-template-123"
+    data = response.json()
+    assert data["object"] == "chat.completion"
+    assert data["model"] in settings.models
+    assert data["choices"][0]["message"]["role"] == "assistant"
+    assert data["choices"][0]["message"]["content"]
+    assert data["usage"]["total_tokens"] == (
+        data["usage"]["prompt_tokens"] + data["usage"]["completion_tokens"]
+    )
+
+
+def test_stream_response_sse_format(client, settings):
+    response = client.post(
+        "/v1/chat/completions",
+        json=completion_payload(settings, stream=True),
+        headers=auth_headers(settings),
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/event-stream")
+    assert response.headers["X-Request-Id"] == "req-template-123"
+
+    lines = [line for line in response.text.splitlines() if line]
+    assert lines[0].startswith("data: ")
+    assert any("chat.completion.chunk" in line for line in lines[:-1])
+    assert lines[-1] == "data: [DONE]"
+
+
+def test_responses_api_sync_path(client, settings):
+    response = client.post(
+        "/v1/responses",
+        json={
+            "model": settings.model_id,
+            "input": "Latest AI coding trends",
+            "stream": False,
+        },
+        headers=auth_headers(settings),
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["object"] == "response"
+    assert data["status"] == "completed"

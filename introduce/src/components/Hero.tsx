@@ -4,14 +4,30 @@ import { useInView } from '../hooks/useInView';
 /* === MOUSE PARALLAX HOOK === */
 function useParallax() {
   const [pos, setPos] = useState({ x: 0, y: 0 });
+  const rafRef = useRef<number | null>(null);
   useEffect(() => {
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced || window.innerWidth < 900) {
+      setPos({ x: 0, y: 0 });
+      return;
+    }
+
     const handler = (e: MouseEvent) => {
-      const x = (e.clientX / window.innerWidth - 0.5) * 20;
-      const y = (e.clientY / window.innerHeight - 0.5) * 20;
-      setPos({ x, y });
+      if (rafRef.current !== null) return;
+      rafRef.current = window.requestAnimationFrame(() => {
+        const x = (e.clientX / window.innerWidth - 0.5) * 20;
+        const y = (e.clientY / window.innerHeight - 0.5) * 20;
+        setPos({ x, y });
+        rafRef.current = null;
+      });
     };
     window.addEventListener('mousemove', handler, { passive: true });
-    return () => window.removeEventListener('mousemove', handler);
+    return () => {
+      window.removeEventListener('mousemove', handler);
+      if (rafRef.current !== null) {
+        window.cancelAnimationFrame(rafRef.current);
+      }
+    };
   }, []);
   return pos;
 }
@@ -73,7 +89,7 @@ export default function Hero({ onStart, onGuide }: HeroProps) {
       className="grid-bg"
       style={{
         position: 'relative',
-        minHeight: '100vh',
+        minHeight: '100dvh',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
@@ -98,7 +114,7 @@ export default function Hero({ onStart, onGuide }: HeroProps) {
           marginBottom: 16,
           opacity: titleVisible ? 1 : 0,
           transform: titleVisible ? 'translateY(0)' : 'translateY(24px)',
-          transition: 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.05s',
+          transition: 'opacity 0.8s var(--ease-standard) 0.05s, transform 0.8s var(--ease-standard) 0.05s',
         }}>
           <span className="label" style={{ 
             fontWeight: 600, 
@@ -126,7 +142,7 @@ export default function Hero({ onStart, onGuide }: HeroProps) {
           marginBottom: 32,
           opacity: titleVisible ? 1 : 0,
           transform: titleVisible ? 'translateY(0)' : 'translateY(24px)',
-          transition: 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s',
+          transition: 'opacity 0.8s var(--ease-standard) 0.1s, transform 0.8s var(--ease-standard) 0.1s',
         }}>
           将繁杂的信息
           <br />
@@ -143,7 +159,7 @@ export default function Hero({ onStart, onGuide }: HeroProps) {
           lineHeight: 1.8,
           opacity: titleVisible ? 1 : 0,
           transform: titleVisible ? 'translateY(0)' : 'translateY(20px)',
-          transition: 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s',
+          transition: 'opacity 0.8s var(--ease-standard) 0.3s, transform 0.8s var(--ease-standard) 0.3s',
         }}>
           一款为终身学习者打造的研究引擎。<br/>
           通过清晰的工作流，化繁为简<br/>
@@ -157,7 +173,7 @@ export default function Hero({ onStart, onGuide }: HeroProps) {
           flexWrap: 'wrap',
           opacity: titleVisible ? 1 : 0,
           transform: titleVisible ? 'translateY(0)' : 'translateY(20px)',
-          transition: 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s',
+          transition: 'opacity 0.8s var(--ease-standard) 0.4s, transform 0.8s var(--ease-standard) 0.4s',
         }}>
           <button className="btn-primary btn-blue" onClick={onStart} style={{ padding: '16px 40px', fontSize: 16 }}>
             进入平台核心 →

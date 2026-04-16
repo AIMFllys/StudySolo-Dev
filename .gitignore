@@ -71,8 +71,6 @@ Desktop.ini
 !/docs/issue/**
 !/docs/issues/
 !/docs/issues/**
-!/docs/team/
-!/docs/team/**
 !/docs/Updates/
 !/docs/Updates/**
 !/docs/pencil/
@@ -109,3 +107,6 @@ tmp/
 
 # Trae IDE (case-insensitive fix)
 .trae/
+
+# Cursor local ignore file
+.cursorignore

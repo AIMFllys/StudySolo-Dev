@@ -88,6 +88,8 @@ export async function executeCanvasActions(actions: CanvasAction[]): Promise<Exe
                   model_route: '',   // User selects model via NodeModelSelector
                   status: 'pending',
                   output: '',
+                  output_format: 'markdown',
+                  config: {},
                 },
               };
               nodes = [...nodes, newNode];

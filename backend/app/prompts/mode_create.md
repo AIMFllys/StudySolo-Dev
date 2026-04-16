@@ -135,6 +135,22 @@
 - 推荐主链：`trigger_input` → `outline_gen` → `content_extract` → `summary`
 - 按需补充 `flashcard`、`quiz_gen`、`mind_map`
 
+## Agent 节点选择规则
+
+当用户需求明显落在以下子后端能力域时，优先使用对应 Agent 节点，而不是普通通用节点：
+
+- `agent_code_review`：代码审查、补丁评估、错误定位、PR 评估
+- `agent_deep_research`：深度研究、长链综述、资料归纳
+- `agent_news`：最新资讯、新闻追踪、时间线整理
+- `agent_study_tutor`：讲解答疑、学习辅导、学习方案建议
+- `agent_visual_site`：网页结构、页面草案、HTML 起稿
+
+注意：
+
+- Agent 节点固定绑定到自己的子 Agent，不能切换成别的 Agent
+- Agent 节点的 `model_route` 语义不同于普通节点：它表示该 Agent 自己暴露的模型 ID
+- 如果不确定用户要哪个 Agent，优先使用普通节点，不要强行塞入 Agent 节点
+
 ## Few-shot 示例
 
 示例 1：在现有画布最后追加一个闪卡节点

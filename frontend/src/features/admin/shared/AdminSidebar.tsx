@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAdminSidebarNavigation } from '@/features/admin/hooks/use-admin-sidebar-navigation';
@@ -17,6 +17,7 @@ export const ADMIN_NAV_ITEMS = [
   { href: '/admin-analysis/models', label: '模型配置', icon: 'neurology', group: 'system' },
   { href: '/admin-analysis/audit', label: '审计日志', icon: 'shield_person', group: 'system' },
   { href: '/admin-analysis/config', label: '系统设置', icon: 'tune', group: 'system' },
+  { href: '/admin-analysis/diagnostics', label: '系统诊断', icon: 'stethoscope', group: 'system' },
 ];
 
 const GROUP_LABELS: Record<string, string> = { main: '管理', data: '数据', system: '系统' };
@@ -34,14 +35,13 @@ export function AdminSidebar() {
 
   // Pinned = expanded (persisted); unpinned = icon-only
   // 默认展开，读取缓存若为 'false' 则收起
-  const [pinned, setPinned] = useState(true);
-
-  useEffect(() => {
+  const [pinned, setPinned] = useState(() => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored === 'false') setPinned(false);
-    } catch { /* ignore */ }
-  }, []);
+      return localStorage.getItem(STORAGE_KEY) !== 'false';
+    } catch {
+      return true;
+    }
+  });
 
   const togglePin = () => {
     setPinned((prev) => {

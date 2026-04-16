@@ -101,6 +101,8 @@ class BaseNode(ABC):
     renderer: ClassVar[str | None] = None
     version: ClassVar[str] = "1.0.0"
     changelog: ClassVar[dict[str, str] | None] = None
+    model_source: ClassVar[str | None] = None
+    agent_name: ClassVar[str | None] = None
 
     # ── System prompt (unified three-segment assembly) ─────────────────────────
 
@@ -222,10 +224,19 @@ class BaseNode(ABC):
         return cls._registry.get(node_type)
 
     @classmethod
+    def is_manifest_available(cls) -> bool:
+        """Allow subclasses to hide themselves from the manifest."""
+        return True
+
+    @classmethod
     def get_manifest(cls) -> list[dict[str, Any]]:
         """Return metadata for all registered nodes (consumed by frontend)."""
-        return [
-            {
+        manifest: list[dict[str, Any]] = []
+        for _, nc in sorted(cls._registry.items(), key=lambda item: item[0]):
+            if not nc.is_manifest_available():
+                continue
+            model_source = nc.model_source or ("catalog" if nc.is_llm_node else "none")
+            manifest.append({
                 "type": nc.node_type,
                 "category": nc.category,
                 "display_name": nc.display_name,
@@ -242,6 +253,7 @@ class BaseNode(ABC):
                 "renderer": nc.renderer,
                 "version": nc.version,
                 "changelog": nc.changelog,
-            }
-            for _, nc in sorted(cls._registry.items(), key=lambda item: item[0])
-        ]
+                "model_source": model_source,
+                "agent_name": nc.agent_name,
+            })
+        return manifest

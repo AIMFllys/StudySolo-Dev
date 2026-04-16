@@ -14,25 +14,68 @@ agents:
     description: "代码审查 Agent"
     owner: "小李"
 
-  # 后续 Agent 迁移完成后取消注释
-  # deep-research:
-  #   url: http://127.0.0.1:8002
-  #   timeout: 45
-  #   max_retries: 2
-  #   api_key_env: AGENT_DEEP_RESEARCH_KEY
-  #   models:
-  #     - deep-research-v1
-  #   enabled: false
-  #   description: "深度研究 Agent"
-  #   owner: "小李"
+  deep-research:
+    url: http://127.0.0.1:8002
+    timeout: 90
+    max_retries: 2
+    api_key_env: AGENT_DEEP_RESEARCH_KEY
+    models:
+      - research-agent
+    enabled: true
+    description: "深度研究 Agent"
+    owner: "主系统"
 
-  # news:
-  #   url: http://127.0.0.1:8003
-  #   timeout: 45
-  #   max_retries: 2
-  #   api_key_env: AGENT_NEWS_KEY
-  #   models:
-  #     - news-v1
-  #   enabled: false
-  #   description: "新闻抓取 Agent"
-  #   owner: "小李"
+  news:
+    url: http://127.0.0.1:8003
+    timeout: 90
+    max_retries: 2
+    api_key_env: AGENT_NEWS_KEY
+    models:
+      - last30days-quick
+      - last30days
+      - last30days-deep
+    enabled: true
+    description: "新闻研究 Agent"
+    owner: "主系统"
+    capabilities:
+      - news-tracking
+      - time-sensitive-analysis
+      - source-summary
+    skills_ready: false
+    mcp_ready: false
+
+  study-tutor:
+    url: http://127.0.0.1:8004
+    timeout: 90
+    max_retries: 2
+    api_key_env: AGENT_STUDY_TUTOR_KEY
+    models:
+      - tutor-core
+      - tutor-deep
+    enabled: true
+    description: "学习辅导 Agent"
+    owner: "主系统"
+    capabilities:
+      - tutoring
+      - explanation
+      - study-planning
+    skills_ready: false
+    mcp_ready: false
+
+  visual-site:
+    url: http://127.0.0.1:8005
+    timeout: 90
+    max_retries: 2
+    api_key_env: AGENT_VISUAL_SITE_KEY
+    models:
+      - visual-site-v1
+      - html-draft-v1
+    enabled: true
+    description: "可视化站点 Agent"
+    owner: "主系统"
+    capabilities:
+      - visual-layout
+      - html-draft
+      - page-structure
+    skills_ready: false
+    mcp_ready: false

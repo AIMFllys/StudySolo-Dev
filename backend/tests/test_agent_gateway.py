@@ -8,18 +8,26 @@ import json
 import os
 import textwrap
 import time
+from types import SimpleNamespace
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import httpx
 import pytest
 import pytest_asyncio
+from fastapi.testclient import TestClient
 
+from app.main import app
+from app.api import agents as agents_api
+from app.core.deps import get_current_user
+from app.middleware import auth as auth_middleware
 from app.services.agent_gateway.models import AgentCallResult, AgentMeta
+from app.services.agent_gateway.models import AgentModelsResult
 from app.services.agent_gateway.registry import AgentRegistry
 from app.services.agent_gateway.health import HealthChecker
 from app.services.agent_gateway.caller import AgentCaller
 from app.services.agent_gateway.gateway import AgentGateway
+from tests._helpers import TEST_JWT_SECRET, make_bearer_headers
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -301,3 +309,119 @@ class TestAgentGateway:
         assert headers["Authorization"] == "Bearer my-secret"
         assert headers["X-Request-Id"] == "req-1"
         assert headers["X-User-Id"] == "user-1"
+
+    @pytest.mark.asyncio
+    async def test_get_models_uses_runtime_models_when_available(self, gateway: AgentGateway):
+        with patch.object(gateway.health, "is_healthy", return_value=True), \
+             patch.object(gateway.caller, "fetch_models", return_value=["runtime-v1", "runtime-v2"]):
+            result = await gateway.get_models("test-agent", user_id="user-1")
+
+        assert isinstance(result, AgentModelsResult)
+        assert result.models == ["runtime-v1", "runtime-v2"]
+        assert result.source == "runtime"
+        assert result.healthy is True
+
+    @pytest.mark.asyncio
+    async def test_get_models_falls_back_to_registry_when_runtime_unavailable(self, gateway: AgentGateway):
+        with patch.object(gateway.health, "is_healthy", return_value=False), \
+             patch.object(gateway.caller, "fetch_models", return_value=[]):
+            result = await gateway.get_models("test-agent", user_id="user-1")
+
+        assert isinstance(result, AgentModelsResult)
+        assert result.models == ["test-v1"]
+        assert result.source == "registry-fallback"
+        assert result.healthy is False
+
+
+def _install_auth_stub(monkeypatch):
+    async def fake_get_db():
+        class _User:
+            id = "user-1"
+            email = "user-1@example.com"
+
+        class _Response:
+            user = _User()
+
+        class _Auth:
+            async def get_user(self, _token: str):
+                return _Response()
+
+        class _Db:
+            auth = _Auth()
+
+        return _Db()
+
+    monkeypatch.setattr(auth_middleware, "get_db", fake_get_db)
+    return make_bearer_headers("user-1", email="user-1@example.com", secret=TEST_JWT_SECRET)
+
+
+def test_list_agents_route_returns_enabled_agents_with_health(monkeypatch):
+    headers = _install_auth_stub(monkeypatch)
+    fake_gateway = SimpleNamespace(
+        list_enabled_with_health=AsyncMock(return_value=[
+            (
+                AgentMeta(
+                    name="test-agent",
+                    url="http://127.0.0.1:8001",
+                    models=["test-v1"],
+                    enabled=True,
+                    description="测试 Agent",
+                    owner="主系统",
+                    capabilities=["review"],
+                    skills_ready=False,
+                    mcp_ready=False,
+                ),
+                False,
+            )
+        ]),
+    )
+    app.dependency_overrides[agents_api.get_gateway] = lambda: fake_gateway
+    app.dependency_overrides[get_current_user] = lambda: {"id": "user-1", "email": "user-1@example.com", "role": "user", "tier": "free"}
+    client = TestClient(app, raise_server_exceptions=False)
+
+    try:
+        response = client.get("/api/agents", headers=headers)
+    finally:
+        app.dependency_overrides.pop(agents_api.get_gateway, None)
+        app.dependency_overrides.pop(get_current_user, None)
+
+    assert response.status_code == 200, response.text
+    assert response.json() == [{
+        "name": "test-agent",
+        "description": "测试 Agent",
+        "models": ["test-v1"],
+        "owner": "主系统",
+        "healthy": False,
+        "capabilities": ["review"],
+        "skills_ready": False,
+        "mcp_ready": False,
+    }]
+
+
+def test_get_agent_models_route_returns_runtime_first_result(monkeypatch):
+    headers = _install_auth_stub(monkeypatch)
+    fake_gateway = SimpleNamespace(
+        get_models=AsyncMock(return_value=AgentModelsResult(
+            agent="test-agent",
+            healthy=True,
+            source="runtime",
+            models=["runtime-v1", "runtime-v2"],
+        )),
+    )
+    app.dependency_overrides[agents_api.get_gateway] = lambda: fake_gateway
+    app.dependency_overrides[get_current_user] = lambda: {"id": "user-1", "email": "user-1@example.com", "role": "user", "tier": "free"}
+    client = TestClient(app, raise_server_exceptions=False)
+
+    try:
+        response = client.get("/api/agents/test-agent/models", headers=headers)
+    finally:
+        app.dependency_overrides.pop(agents_api.get_gateway, None)
+        app.dependency_overrides.pop(get_current_user, None)
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {
+        "agent": "test-agent",
+        "healthy": True,
+        "source": "runtime",
+        "models": ["runtime-v1", "runtime-v2"],
+    }

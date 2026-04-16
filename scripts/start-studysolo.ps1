@@ -14,7 +14,9 @@
 
 param (
     [int]$BackendPort = 2038,
-    [int]$FrontendPort = 2037
+    [int]$FrontendPort = 2037,
+    [switch]$StartAgents = $true,
+    [switch]$AutoInstallDeps = $true
 )
 
 # 动态获取当前脚本所在目录的上一级作为项目根目录
@@ -22,6 +24,8 @@ $ProjectDir = (Get-Item -Path $PSScriptRoot).Parent.FullName
 
 $ErrorActionPreference = "SilentlyContinue"
 $Host.UI.RawUI.WindowTitle = "🚀 StudySolo Dev Launcher"
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [Console]::OutputEncoding
 
 # ==========================================
 # 🎨 界面渲染函数
@@ -102,63 +106,83 @@ function Test-And-KillPort([int]$Port, [string]$ServiceName) {
     }
 }
 
-function Start-Backend {
-    $backendDir = Join-Path $ProjectDir "backend"
-    if (-not (Test-Path $backendDir)) {
-        Write-ErrorMsg "找不到后端目录: $backendDir"
-        return
+function Get-EnvValue([string]$EnvFile, [string]$Key) {
+    if (-not (Test-Path $EnvFile)) {
+        return $null
     }
-    Write-Info "正在注入后端引擎 (FastAPI)..."
-    
-    $venvPath = Join-Path $backendDir ".venv"
-    $venvPython = Join-Path $venvPath "Scripts\python.exe"
-    
-    # 如果虚拟环境不存在，先创建并安装依赖
+    $line = Get-Content $EnvFile | Where-Object { $_ -match "^\s*$Key\s*=" } | Select-Object -First 1
+    if (-not $line) {
+        return $null
+    }
+    return ($line -replace "^\s*$Key\s*=\s*", "").Trim()
+}
+
+function Ensure-VenvAndDeps([string]$ServiceDir, [string]$ServiceName) {
+    $venvPython = Join-Path $ServiceDir ".venv\Scripts\python.exe"
+    $requirementsPath = Join-Path $ServiceDir "requirements.txt"
+
     if (-not (Test-Path $venvPython)) {
-        Write-Warning "未检测到可用虚拟环境，正在自动创建 .venv ..."
-        $setupCmd = "cd '$backendDir'; "
-        $setupCmd += "python -m venv .venv; "
-        $setupCmd += ".\.venv\Scripts\Activate.ps1; "
-        $setupCmd += "python -m pip install --upgrade pip; "
-        $setupCmd += "pip install -r requirements.txt; "
-        $setupCmd += "Write-Host ''; "
-        $setupCmd += "Write-Host '==============================' -ForegroundColor Green; "
-        $setupCmd += "Write-Host '  虚拟环境创建完成！依赖已安装！' -ForegroundColor Green; "
-        $setupCmd += "Write-Host '  请重新运行 start-studysolo.ps1 启动服务' -ForegroundColor Yellow; "
-        $setupCmd += "Write-Host '==============================' -ForegroundColor Green; "
-        $setupCmd += "Read-Host '按回车键关闭此窗口'"
-        Start-Process powershell -ArgumentList "-NoExit -Command `"$setupCmd`"" -WindowStyle Normal
-        Write-Warning "后端虚拟环境正在创建中，请等待完成后重新运行本脚本！"
-        return
+        Write-Warning "$ServiceName 未检测到 .venv，正在自动创建 ..."
+        & python -m venv (Join-Path $ServiceDir ".venv")
+        if ($LASTEXITCODE -ne 0 -or -not (Test-Path $venvPython)) {
+            Write-ErrorMsg "$ServiceName 创建虚拟环境失败。"
+            return $false
+        }
     }
 
-    # 虚拟环境存在但依赖可能不完整：验证 uvicorn 是否可导入
-    & $venvPython -c "import uvicorn" 2>$null
-    if ($LASTEXITCODE -ne 0) {
-        Write-Warning "检测到后端依赖不完整，正在安装 requirements.txt ..."
-        $repairCmd = "cd '$backendDir'; "
-        $repairCmd += ".\.venv\Scripts\Activate.ps1; "
-        $repairCmd += "python -m pip install --upgrade pip; "
-        $repairCmd += "pip install -r requirements.txt; "
-        $repairCmd += "Write-Host ''; "
-        $repairCmd += "Write-Host '==============================' -ForegroundColor Green; "
-        $repairCmd += "Write-Host '  后端依赖安装完成！' -ForegroundColor Green; "
-        $repairCmd += "Write-Host '  请重新运行 start-studysolo.ps1 启动服务' -ForegroundColor Yellow; "
-        $repairCmd += "Write-Host '==============================' -ForegroundColor Green; "
-        $repairCmd += "Read-Host '按回车键关闭此窗口'"
-        Start-Process powershell -ArgumentList "-NoExit -Command `"$repairCmd`"" -WindowStyle Normal
-        Write-Warning "后端依赖修复窗口已打开，请等待安装完成后重试。"
-        return
+    if (-not $AutoInstallDeps) {
+        return $true
     }
-    
-    # 构建启动命令
-    $cmd = "cd '$backendDir'; "
-    $cmd += ".\.venv\Scripts\Activate.ps1; "
-    $cmd += "uvicorn app.main:app --reload --port $BackendPort --host 0.0.0.0"
-    
-    # 启动新窗口执行
+
+    if (Test-Path $requirementsPath) {
+        & $venvPython -m pip install --upgrade pip
+        & $venvPython -m pip install -r $requirementsPath
+        if ($LASTEXITCODE -ne 0) {
+            Write-ErrorMsg "$ServiceName 依赖安装失败。"
+            return $false
+        }
+    }
+    else {
+        Write-Warning "$ServiceName 未找到 requirements.txt，跳过依赖安装。"
+    }
+
+    return $true
+}
+
+function Start-PythonService {
+    param (
+        [string]$ServiceName,
+        [string]$ServiceDir,
+        [int]$Port,
+        [string]$CommandBody,
+        [string[]]$RequiredEnvKeys = @(),
+        [string[]]$BlockedEnvValues = @("replace-with-a-strong-secret")
+    )
+
+    if (-not (Test-Path $ServiceDir)) {
+        Write-ErrorMsg "找不到 $ServiceName 目录: $ServiceDir"
+        return $false
+    }
+
+    $envPath = Join-Path $ServiceDir ".env"
+    foreach ($key in $RequiredEnvKeys) {
+        $value = Get-EnvValue -EnvFile $envPath -Key $key
+        if ([string]::IsNullOrWhiteSpace($value) -or ($BlockedEnvValues -contains $value)) {
+            Write-ErrorMsg "$ServiceName 的 .env 缺少或未正确配置 `$key。请先完善: $envPath"
+            return $false
+        }
+    }
+
+    if (-not (Ensure-VenvAndDeps -ServiceDir $ServiceDir -ServiceName $ServiceName)) {
+        return $false
+    }
+
+    Test-And-KillPort -Port $Port -ServiceName $ServiceName
+
+    $cmd = "cd '$ServiceDir'; .\.venv\Scripts\Activate.ps1; $CommandBody"
     Start-Process powershell -ArgumentList "-NoExit -Command `"$cmd`"" -WindowStyle Normal
-    Write-Success "后端引擎点火成功！"
+    Write-Success "$ServiceName 启动完成。"
+    return $true
 }
 
 function Start-Frontend {
@@ -213,6 +237,81 @@ function Start-Frontend {
     Write-Success "前端视界面板已展开！"
 }
 
+function Start-CoreBackend {
+    $backendDir = Join-Path $ProjectDir "backend"
+    Write-Info "正在注入主后端引擎 (FastAPI)..."
+    return (Start-PythonService `
+        -ServiceName "Main Backend" `
+        -ServiceDir $backendDir `
+        -Port $BackendPort `
+        -CommandBody "python -m uvicorn app.main:app --reload --port $BackendPort --host 0.0.0.0")
+}
+
+function Start-Agents {
+    if (-not $StartAgents) {
+        Write-Warning "已按参数跳过 Agent 组启动。"
+        return
+    }
+
+    Write-Host ""
+    Write-Host "=== 🤖 Agent 启动层 ===" -ForegroundColor Magenta
+
+    $agentsRoot = Join-Path $ProjectDir "agents"
+    $services = @(
+        @{
+            Name = "Code Review Agent"
+            Dir = Join-Path $agentsRoot "code-review-agent"
+            Port = 8001
+            Cmd = "python -m src.main"
+            RequiredKeys = @("AGENT_API_KEY")
+            Blocked = @()
+        },
+        @{
+            Name = "Deep Research Agent"
+            Dir = Join-Path $agentsRoot "deep-research-agent"
+            Port = 8002
+            Cmd = "python -m src.main"
+            RequiredKeys = @("AGENT_API_KEY")
+            Blocked = @()
+        },
+        @{
+            Name = "News Agent"
+            Dir = Join-Path $agentsRoot "news-agent"
+            Port = 8003
+            Cmd = "python -m src.main"
+            RequiredKeys = @("AGENT_API_KEY")
+            Blocked = @()
+        },
+        @{
+            Name = "Study Tutor Agent"
+            Dir = Join-Path $agentsRoot "study-tutor-agent"
+            Port = 8004
+            Cmd = "python -m src.main"
+            RequiredKeys = @("AGENT_API_KEY")
+            Blocked = @("replace-with-a-strong-secret")
+        },
+        @{
+            Name = "Visual Site Agent"
+            Dir = Join-Path $agentsRoot "visual-site-agent"
+            Port = 8005
+            Cmd = "python -m src.main"
+            RequiredKeys = @("AGENT_API_KEY")
+            Blocked = @("replace-with-a-strong-secret")
+        }
+    )
+
+    foreach ($svc in $services) {
+        Write-Info "正在启动 $($svc.Name) ..."
+        Start-PythonService `
+            -ServiceName $svc.Name `
+            -ServiceDir $svc.Dir `
+            -Port $svc.Port `
+            -CommandBody $svc.Cmd `
+            -RequiredEnvKeys $svc.RequiredKeys `
+            -BlockedEnvValues $svc.Blocked | Out-Null
+    }
+}
+
 # ==========================================
 # 🚀 启动序列
 # ==========================================
@@ -228,10 +327,9 @@ if (-not (Test-Path $ProjectDir)) {
 
 Show-Spinner 1 "初始化全栈启动协议"
 
-# 1. 端口检查与释放
+# 1. 端口检查与释放（前端）
 Write-Host ""
 Write-Host "=== 🛡️ 资源接管层 ===" -ForegroundColor Magenta
-Test-And-KillPort $BackendPort "Backend"
 Test-And-KillPort $FrontendPort "Frontend"
 
 Show-Spinner 1 "正在分配运行内存与通道"
@@ -239,9 +337,11 @@ Show-Spinner 1 "正在分配运行内存与通道"
 # 2. 启动服务
 Write-Host ""
 Write-Host "=== ⚙️ 核心启动层 ===" -ForegroundColor Magenta
-Start-Backend
+Start-CoreBackend | Out-Null
 Start-Sleep -Seconds 1
 Start-Frontend
+Start-Sleep -Seconds 1
+Start-Agents
 
 # 3. 完成结算
 Write-Host ""
@@ -249,6 +349,13 @@ Write-Host "=== 🎯 系统已就绪 ===" -ForegroundColor Magenta
 Write-Host "  ✨ [ 前端控制台 ] -> http://127.0.0.1:$FrontendPort" -ForegroundColor Green
 Write-Host "  ✨ [ 后端 API 根地址 ] -> http://127.0.0.1:$BackendPort" -ForegroundColor Green
 Write-Host "  ✨ [ Swagger 接口文档 ] -> http://127.0.0.1:$BackendPort/docs" -ForegroundColor Green
+if ($StartAgents) {
+    Write-Host "  ✨ [ Code Review Agent ] -> http://127.0.0.1:8001/health" -ForegroundColor Green
+    Write-Host "  ✨ [ Deep Research Agent ] -> http://127.0.0.1:8002/health" -ForegroundColor Green
+    Write-Host "  ✨ [ News Agent ] -> http://127.0.0.1:8003/health" -ForegroundColor Green
+    Write-Host "  ✨ [ Study Tutor Agent ] -> http://127.0.0.1:8004/health" -ForegroundColor Green
+    Write-Host "  ✨ [ Visual Site Agent ] -> http://127.0.0.1:8005/health" -ForegroundColor Green
+}
 Write-Host ""
 Write-Host "祝您开发愉快（代码永无 Bug）！🎉" -ForegroundColor Yellow
 Write-Host ""

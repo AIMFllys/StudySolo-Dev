@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import {
   BrainCircuit, ChevronDown, ChevronRight, ChevronsUpDown,
-  FileTerminal, LayoutGrid, LibraryBig, Network, NotebookPen, Search, X,
+  Bot, FileTerminal, LayoutGrid, LibraryBig, Network, NotebookPen, Search, X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useNodeManifest } from '@/features/workflow/hooks/use-node-manifest';
@@ -25,6 +25,7 @@ const NODE_STORE_GROUP_ICONS: Record<NodeStoreGroupId, LucideIcon> = {
   content: NotebookPen,
   data: LibraryBig,
   logic: Network,
+  agent: Bot,
 };
 
 type NodeStoreTagCategory = NodeStoreGroup & { icon: LucideIcon };
@@ -39,7 +40,7 @@ function TagFilterBar({
   onSelect: (id: NodeStoreCategoryId) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const allTags = [
+  const allTags: Array<{ id: NodeStoreCategoryId; label: string; icon: LucideIcon }> = [
     { id: ALL_NODE_STORE_CATEGORY_ID, label: '全部', icon: LayoutGrid },
     ...categories.map((c) => ({ id: c.id, label: c.label, icon: c.icon })),
   ];
