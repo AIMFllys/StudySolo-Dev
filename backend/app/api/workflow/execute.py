@@ -351,6 +351,11 @@ _NODE_CATEGORY_MAP: dict[str, str] = {
     "export_file": "output",
     "write_db": "output",
     "loop_group": "structure",
+    "agent_code_review": "agent",
+    "agent_deep_research": "agent",
+    "agent_news": "agent",
+    "agent_study_tutor": "agent",
+    "agent_visual_site": "agent",
 }
 
 
@@ -383,6 +388,9 @@ def _accumulate_trace(
     elif event_type == "node_done" and nid in node_traces:
         node_traces[nid]["final_output"] = payload.get("full_output")
         node_traces[nid]["status"] = "done"
+        metadata = payload.get("metadata")
+        if isinstance(metadata, dict) and isinstance(metadata.get("resolved_model_route"), str):
+            node_traces[nid]["model_route"] = metadata["resolved_model_route"]
         start = node_timers.get(nid)
         if start is not None:
             node_traces[nid]["duration_ms"] = int((time.monotonic() - start) * 1000)
@@ -415,7 +423,7 @@ async def _save_traces(
             "final_output": trace.get("final_output"),
             "output_format": node_data.get("output_format"),
             "duration_ms": trace.get("duration_ms"),
-            "model_route": node_data.get("model_route"),
+            "model_route": trace.get("model_route") or node_data.get("model_route"),
             "is_parallel": trace.get("is_parallel", False),
             "parallel_group_id": trace.get("parallel_group_id"),
             "error_message": trace.get("error_message"),

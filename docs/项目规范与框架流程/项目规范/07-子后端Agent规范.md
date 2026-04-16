@@ -1,8 +1,8 @@
 # 子后端 Agent 规范
 
-> 文档版本：2.0.0
+> 文档版本：3.0.0
 > 创建时间：2026-04-09
-> 最后更新：2026-04-11
+> 最后更新：2026-04-16
 > 权威来源：`agents/README.md` + `docs/issues/TeamRefactor/final-plan/agent-architecture.md`
 
 ---
@@ -56,10 +56,10 @@ StudySolo/
 │   │   └── README.md
 │   │
 │   ├── code-review-agent/                  ← 小李 开发中
-│   ├── deep-research-agent/                ← 迁移自 ResearchAgents
-│   ├── news-agent/                         ← 迁移自 NewsAgents
-│   ├── study-tutor-agent/                  ← 规划中
-│   └── visual-site-agent/                  ← 规划中
+│   ├── deep-research-agent/                ← 已迁移，已注册 Gateway（8002）
+│   ├── news-agent/                         ← 已迁移，已注册 Gateway（8003）
+│   ├── study-tutor-agent/                  ← 阶段版已落地，未注册 Gateway（8004）
+│   └── visual-site-agent/                  ← 阶段版已落地，未注册 Gateway（8005）
 │
 └── backend/
     └── config/
@@ -115,6 +115,22 @@ class MyNewAgent:
 ### Step 3：注册到 Gateway
 
 在 `backend/config/agents.yaml` 中添加配置。
+
+### Step 3.1：接入 Agent 节点专区
+
+> 团队协作、PR Merge 后验收、以及“是否已完成工作流节点产品化交付”的口径，以 [Agent 分支提交 SOP](../功能流程/团队协作/Agent分支提交SOP.md) 为准。
+
+如果该 Agent 需要直接暴露到工作流画布，还必须同步新增固定 Agent 节点：
+
+- 后端：`backend/app/nodes/agent/<node_type>/node.py`
+- 前端：`frontend/src/types/workflow.ts`、`workflow-meta.ts`、Node Store 分组、NodeModelSelector
+- 提示词：`backend/app/prompts/*`、`backend/app/nodes/analysis/ai_planner/prompt.md`
+
+约束：
+
+- 一个 Agent 节点只绑定一个 Agent
+- Agent 节点模型来源固定为 `/api/agents/{name}/models`
+- 如果运行时 `/v1/models` 不可用，则回退 `agents.yaml.models`
 
 ### Step 4：运行四层契约测试
 
@@ -246,12 +262,29 @@ A：**不可以。** 团队统一使用 Python + FastAPI，降低维护成本。
 
 ### 10.2 Phase 5 完成状态
 
-- ✅ `backend/config/agents.yaml` Agent 注册表已创建
+- ✅ `backend/config/agents.yaml` 已注册 5 个 Agent：`code-review`、`deep-research`、`news`、`study-tutor`、`visual-site`
 - ✅ Agent Gateway 主后端接入层已实现（`backend/app/services/agent_gateway/`）
-- ✅ `/api/agents/*` 路由已接入（`backend/app/api/agents.py`）
-- ✅ `code-review-agent` 可通过 Gateway 端到端调用（non-stream + stream）
-- ⬜ `deep-research-agent` 迁移（小李，后续 lane）
-- ⬜ `news-agent` 迁移（小李，后续 lane）
+- ✅ `/api/agents/*` 路由已接入，支持 Agent 列表、健康状态与模型发现
+- ✅ 5 个 Agent 节点已接入画布 Agent 分区，固定映射到对应子后端 Agent
+- ✅ Agent 节点模型来源已切换为“运行时 `/v1/models` 优先，`agents.yaml.models` 回退”
+
+### 10.3 Agent 成熟度三维度（代码 / 测试 / Gateway）
+
+| Agent | 代码存在 | 测试状态 | Gateway 注册状态 |
+|------|---------|---------|-----------------|
+| code-review-agent | ✅ | ✅（177 passed） | ✅ |
+| deep-research-agent | ✅ | ✅ | ✅（端口 8002） |
+| news-agent | ✅ | ✅ | ✅（端口 8003） |
+| study-tutor-agent | ✅ | ✅（35 passed） | ❌（未注册） |
+| visual-site-agent | ✅ | ✅（30 passed） | ❌（未注册） |
+
+### 10.4 端口事实源说明
+
+- Gateway 端口事实源以 `backend/config/agents.yaml` 为准。
+- 各 Agent README 中的 `AGENT_PORT` 仅作为该 Agent 本地开发默认值，不代表 Gateway 实际注册端口。
+- 当前需重点对齐的冲突：
+  - `deep-research-agent`：README 为 8005，但 Gateway 已注册 8002。
+  - `news-agent`：README 为 8004，但 Gateway 已注册 8003。
 
 ## 11. 参考文档
 

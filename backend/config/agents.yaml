@@ -37,3 +37,45 @@ agents:
     enabled: true
     description: "新闻研究 Agent"
     owner: "主系统"
+    capabilities:
+      - news-tracking
+      - time-sensitive-analysis
+      - source-summary
+    skills_ready: false
+    mcp_ready: false
+
+  study-tutor:
+    url: http://127.0.0.1:8004
+    timeout: 90
+    max_retries: 2
+    api_key_env: AGENT_STUDY_TUTOR_KEY
+    models:
+      - tutor-core
+      - tutor-deep
+    enabled: true
+    description: "学习辅导 Agent"
+    owner: "主系统"
+    capabilities:
+      - tutoring
+      - explanation
+      - study-planning
+    skills_ready: false
+    mcp_ready: false
+
+  visual-site:
+    url: http://127.0.0.1:8005
+    timeout: 90
+    max_retries: 2
+    api_key_env: AGENT_VISUAL_SITE_KEY
+    models:
+      - visual-site-v1
+      - html-draft-v1
+    enabled: true
+    description: "可视化站点 Agent"
+    owner: "主系统"
+    capabilities:
+      - visual-layout
+      - html-draft
+      - page-structure
+    skills_ready: false
+    mcp_ready: false

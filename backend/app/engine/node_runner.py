@@ -229,7 +229,15 @@ async def stream_single_node_events(
     else:
         result.output = output.content
         result.metadata = dict(output.metadata or {})
-        yield sse_event("node_done", {"node_id": node_id, "full_output": output.content}, event_meta)
+        yield sse_event(
+            "node_done",
+            {
+                "node_id": node_id,
+                "full_output": output.content,
+                "metadata": result.metadata,
+            },
+            event_meta,
+        )
         yield sse_event("node_status", {"node_id": node_id, "status": "done"}, event_meta)
         return
 

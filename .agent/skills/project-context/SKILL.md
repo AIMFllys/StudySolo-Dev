@@ -267,7 +267,7 @@ backend/app/
 - **前端元数据**：`frontend/src/features/workflow/constants/workflow-meta.ts`（Phase 3 确认继续承担结构职责）
 - **Manifest API**：`api/nodes.py` → `/api/nodes/manifest`
 
-### 7.2 节点分类（19 种节点）
+### 7.2 节点分类（24 种内置节点 + 1 种社区节点）
 
 | 类别 | 节点类型 | 说明 |
 |------|---------|------|
@@ -277,6 +277,7 @@ backend/app/
 | 交互 | `chat_response` | 1 种 |
 | 输出 | `export_file`, `write_db` | 2 种 |
 | 结构 | `loop_group` | 前端虚拟容器 |
+| Agent | `agent_code_review`, `agent_deep_research`, `agent_news`, `agent_study_tutor`, `agent_visual_site` | 5 种固定子后端 Agent 节点 |
 
 ### 7.3 节点状态
 
@@ -287,6 +288,8 @@ backend/app/
 - 后端 manifest 是节点定义的唯一事实源
 - 前端 `RENDERER_REGISTRY` 从 manifest 动态读取
 - `workflow-meta.ts` 仍承担 `status / icon / theme / inputs / outputs` 结构职责
+- Agent 节点 manifest 额外暴露 `model_source="agent"` 与 `agent_name`
+- 普通 LLM 节点的 `model_route` 是主 AI catalog `sku_id`；Agent 节点的 `model_route` 是子 Agent 自己的 model id
 
 ## 8. AI 域规则
 
@@ -324,17 +327,17 @@ backend/app/
 agents/
 ├── README.md                    # 开发总指南（权威）
 ├── _template/                   # 模板（复制即用）✅
-├── code-review-agent/           # 代码审查（小李）✅ 可运行
-├── deep-research-agent/         # 深度研究（迁移中）
-├── news-agent/                  # 新闻抓取（迁移中）
-├── study-tutor-agent/           # 学习专家（规划中）
-└── visual-site-agent/           # 可视化网站生成（规划中）
+├── code-review-agent/           # 代码审查（已注册）
+├── deep-research-agent/         # 深度研究（已注册）
+├── news-agent/                  # 新闻抓取（已注册）
+├── study-tutor-agent/           # 学习专家（已注册）
+└── visual-site-agent/           # 可视化网站生成（已注册）
 ```
 
 ### 9.2 Agent 协议（权威）
 
 - `docs/issues/TeamRefactor/final-plan/agent-architecture.md`（四层协议 ✅ 已冻结）
-- `backend/config/agents.yaml`（注册配置 ⚠️ Phase 5 实现）
+- `backend/config/agents.yaml`（注册配置，当前已有 5 个启用 Agent）
 - `agents/README.md`（开发指南 ✅ 已完成）
 
 ### 9.3 端口分配
@@ -355,7 +358,7 @@ agents/
 - `code-review-agent` 已完成当前 owner 侧的 Phase 4B 治理收口，真实测试基线为 `pytest agents/code-review-agent/tests -q -> 177 passed`
 - 当前 `code-review-agent` 仍不读取本地仓库文件，不做 embedding / AST / 跨文件推理，也不透传 provider usage / model
 - 其他 Agent 扩展、骨架补全和迁移不属于当前 owner 的默认主线；除非出现阻塞 Gateway 的真实缺口，否则不要继续深挖 `code-review-agent` 的 4B 细节
-- 当前 owner 的默认下一主线是 Phase 5：`Agent Gateway`、根级治理、文档与代码对齐、CI/CD 增强
+- 当前代码基线已经包含 Agent Gateway、Agent 节点专区、Agent 模型发现与提示词联动
 
 ## 10. 数据库与共享边界
 

@@ -130,6 +130,10 @@ export function applyWorkflowExecutionEvent(
 
     if (event === 'node_done') {
       const data = JSON.parse(payload) as Extract<WorkflowSSEEvent, { type: 'node_done' }>;
+      const resolvedModelRoute =
+        typeof data.metadata?.resolved_model_route === 'string'
+          ? data.metadata.resolved_model_route
+          : undefined;
       deps.setSelectedNodeId(data.node_id);
       deps.updateNodeData(data.node_id, {
         output: data.full_output,
@@ -144,6 +148,7 @@ export function applyWorkflowExecutionEvent(
         loopGroupId: data.loop_group_id,
         iteration: data.iteration,
         phase: data.phase,
+        modelRoute: resolvedModelRoute,
         lastActivityAt: eventTime,
       });
       return false;

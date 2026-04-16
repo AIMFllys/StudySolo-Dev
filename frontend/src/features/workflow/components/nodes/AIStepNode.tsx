@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useCallback, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Settings2 } from 'lucide-react';
 import type { AIStepNodeData } from '@/types';
@@ -26,15 +26,19 @@ function AIStepNode({ data, selected, type, id }: NodeProps) {
   const typeMeta = getNodeTypeMeta(nodeType);
   const nodeTheme = getNodeTheme(nodeType);
   const { manifestItem } = useNodeManifestItem(nodeType);
-  const HeaderIcon = isCommunityNode
-    ? getCommunityIcon(nodeData.community_icon)
-    : typeMeta.icon;
+  const HeaderIcon = useMemo(
+    () => (isCommunityNode ? getCommunityIcon(nodeData.community_icon) : typeMeta.icon),
+    [isCommunityNode, nodeData.community_icon, typeMeta.icon],
+  );
   const description = resolveCanvasNodeDescription({
     nodeType,
     isCommunityNode,
     inputHint: nodeData.input_hint,
     manifestItem,
   });
+  const shouldShowModelSelector = manifestItem
+    ? manifestItem.model_source !== 'none'
+    : typeMeta.requiresModel;
   const statusBadge = status === 'running' ? '(ACTIVE)' : status === 'waiting' ? '(WAIT)' : '';
   
   // Independent Selection Trackers
@@ -98,6 +102,7 @@ function AIStepNode({ data, selected, type, id }: NodeProps) {
           {/* Header */}
           <div className="flex items-center justify-between mb-5">
             <div className={`flex items-center gap-2 text-[11px] font-mono tracking-wider uppercase font-bold ${nodeTheme.headerTextColor}`}>
+              {/* eslint-disable-next-line react-hooks/static-components */}
               <HeaderIcon className="h-3.5 w-3.5" />
               #{id.slice(0, 3)}_{nodeTheme.category} {statusBadge}
               {isLogicSwitch && (
@@ -107,8 +112,15 @@ function AIStepNode({ data, selected, type, id }: NodeProps) {
               )}
             </div>
             <div className="flex items-center gap-1.5">
-              {typeMeta.requiresModel && (
-                <NodeModelSelector nodeId={id} currentModel={model_route ?? ''} nodeThemeColor="currentColor" />
+              {shouldShowModelSelector && (
+                <NodeModelSelector
+                  nodeId={id}
+                  nodeType={nodeType}
+                  currentModel={model_route ?? ''}
+                  nodeThemeColor="currentColor"
+                  modelSource={manifestItem?.model_source}
+                  agentName={manifestItem?.agent_name}
+                />
               )}
               <button
                 type="button"

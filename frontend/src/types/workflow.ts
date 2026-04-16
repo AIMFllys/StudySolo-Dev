@@ -29,6 +29,13 @@ import type { Edge, Node } from '@xyflow/react';
  *
  * ── 结构节点 (1) ──
  * loop_group      — 循环容器块
+ *
+ * ── Agent 节点 (5) ──
+ * agent_code_review   — 代码审查 Agent
+ * agent_deep_research — 深度研究 Agent
+ * agent_news          — 新闻追踪 Agent
+ * agent_study_tutor   — 学习辅导 Agent
+ * agent_visual_site   — 可视化站点 Agent
  */
 export type NodeType =
   | 'trigger_input'
@@ -54,7 +61,13 @@ export type NodeType =
   // ── 结构节点 ──
   | 'loop_group'
   // ── 社区节点 ──
-  | 'community_node';
+  | 'community_node'
+  // ── Agent 节点 ──
+  | 'agent_code_review'
+  | 'agent_deep_research'
+  | 'agent_news'
+  | 'agent_study_tutor'
+  | 'agent_visual_site';
 
 /** 节点生命周期状态 */
 export type NodeStatus =
@@ -86,6 +99,8 @@ export interface NodeConfigFieldSchema {
   dynamic_options?: boolean;
 }
 
+export type NodeModelSource = 'none' | 'catalog' | 'agent';
+
 export interface NodeManifestItem {
   type: NodeType;
   category: string;
@@ -103,6 +118,8 @@ export interface NodeManifestItem {
   renderer: string | null;
   version: string;
   changelog: Record<string, string> | null;
+  model_source: NodeModelSource;
+  agent_name?: string | null;
 }
 
 /** AI 步骤节点数据（存储在 WorkflowNode.data 中） */

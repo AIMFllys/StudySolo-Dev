@@ -27,6 +27,11 @@ class NodeType(str, Enum):
     write_db = "write_db"
     logic_switch = "logic_switch"
     loop_map = "loop_map"
+    agent_code_review = "agent_code_review"
+    agent_deep_research = "agent_deep_research"
+    agent_news = "agent_news"
+    agent_study_tutor = "agent_study_tutor"
+    agent_visual_site = "agent_visual_site"
 
 
 # LLM node types (require system prompts)
@@ -42,6 +47,11 @@ LLM_NODE_TYPES = {
     NodeType.mind_map,
     NodeType.quiz_gen,
     NodeType.merge_polish,
+    NodeType.agent_code_review,
+    NodeType.agent_deep_research,
+    NodeType.agent_news,
+    NodeType.agent_study_tutor,
+    NodeType.agent_visual_site,
 }
 
 # Non-LLM node types

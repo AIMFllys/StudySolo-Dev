@@ -1,6 +1,6 @@
 import type { NodeManifestItem, NodeType } from '@/types';
 
-export type NodeStoreGroupId = 'trigger' | 'ai' | 'content' | 'data' | 'logic';
+export type NodeStoreGroupId = 'trigger' | 'ai' | 'content' | 'data' | 'logic' | 'agent';
 export const ALL_NODE_STORE_CATEGORY_ID = 'all';
 export type NodeStoreCategoryId = NodeStoreGroupId | typeof ALL_NODE_STORE_CATEGORY_ID;
 export type NodeStoreGroupMode = 'dynamic' | 'static-fallback';
@@ -32,6 +32,7 @@ const STATIC_NODE_STORE_GROUPS: readonly NodeStoreGroupDefinition[] = [
   { id: 'content', label: '内容生成', types: ['outline_gen', 'summary', 'flashcard', 'quiz_gen', 'mind_map', 'chat_response'] },
   { id: 'data', label: '输出 & 存储', types: ['write_db', 'export_file'] },
   { id: 'logic', label: '逻辑控制', types: ['compare', 'logic_switch', 'loop_map', 'loop_group'] },
+  { id: 'agent', label: 'Agent 专区', types: ['agent_code_review', 'agent_deep_research', 'agent_news', 'agent_study_tutor', 'agent_visual_site'] },
 ];
 
 const NODE_TYPE_TO_GROUP_ID: Record<NodeType, NodeStoreGroupId | null> = {
@@ -55,6 +56,11 @@ const NODE_TYPE_TO_GROUP_ID: Record<NodeType, NodeStoreGroupId | null> = {
   loop_map: 'logic',
   loop_group: 'logic',
   community_node: null,
+  agent_code_review: 'agent',
+  agent_deep_research: 'agent',
+  agent_news: 'agent',
+  agent_study_tutor: 'agent',
+  agent_visual_site: 'agent',
 };
 
 function cloneGroup(group: NodeStoreGroupDefinition): NodeStoreGroup {
@@ -73,8 +79,10 @@ function resolveGroupIdForNodeType(nodeType: string): NodeStoreGroupId | null {
   return NODE_TYPE_TO_GROUP_ID[nodeType as NodeType];
 }
 
-export function getStaticNodeStoreGroups(): NodeStoreGroup[] {
-  return STATIC_NODE_STORE_GROUPS.map(cloneGroup);
+export function getStaticNodeStoreGroups(includeAgent = true): NodeStoreGroup[] {
+  return STATIC_NODE_STORE_GROUPS
+    .filter((group) => includeAgent || group.id !== 'agent')
+    .map(cloneGroup);
 }
 
 export function groupManifestForNodeStore(
@@ -119,7 +127,7 @@ export function resolveNodeStoreGroupsForView(
   if (isLoading || error || manifest.length === 0) {
     return {
       mode: 'static-fallback',
-      groups: getStaticNodeStoreGroups(),
+      groups: getStaticNodeStoreGroups(false),
       unmappedManifestTypes: [],
     };
   }

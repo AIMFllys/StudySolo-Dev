@@ -37,6 +37,11 @@ EXPECTED_TYPES = {
     "loop_map",
     "loop_group",
     "community_node",
+    "agent_code_review",
+    "agent_deep_research",
+    "agent_news",
+    "agent_study_tutor",
+    "agent_visual_site",
 }
 
 OFFICIAL_NODE_TYPES = EXPECTED_TYPES - {"community_node"}
@@ -93,6 +98,11 @@ def test_node_manifest_route_exposes_frozen_contract_fields(monkeypatch):
         assert item["deprecated_surface"] is None or isinstance(item["deprecated_surface"], str)
         assert item["renderer"] == EXPECTED_RENDERERS.get(node_type)
         assert isinstance(item["version"], str) and SEMVER_PATTERN.match(item["version"])
+        assert item["model_source"] in {"none", "catalog", "agent"}
+        if item["model_source"] == "agent":
+            assert isinstance(item["agent_name"], str) and item["agent_name"]
+        else:
+            assert item["agent_name"] is None
         if node_type in OFFICIAL_NODE_TYPES:
             assert isinstance(item["changelog"], dict) and item["changelog"]
             assert item["version"] in item["changelog"]
@@ -115,3 +125,8 @@ def test_node_manifest_route_keeps_known_display_name_mappings_stable(monkeypatc
     assert manifest_by_type["summary"]["display_name"] == "总结归纳"
     assert manifest_by_type["loop_group"]["display_name"] == "循环块"
     assert manifest_by_type["community_node"]["display_name"] == "社区共享节点"
+    assert manifest_by_type["agent_code_review"]["display_name"] == "代码审查 Agent"
+    assert manifest_by_type["agent_code_review"]["model_source"] == "agent"
+    assert manifest_by_type["agent_code_review"]["agent_name"] == "code-review"
+    assert manifest_by_type["summary"]["model_source"] == "catalog"
+    assert manifest_by_type["trigger_input"]["model_source"] == "none"

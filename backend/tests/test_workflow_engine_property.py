@@ -9,6 +9,8 @@ Validates: Requirements 5.9, 6.3, 6.4, 6.11
 
 import json
 from collections import defaultdict
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import pytest
 from hypothesis import given, settings, assume
@@ -19,6 +21,10 @@ from app.engine.executor import (
     _get_all_downstream_helper,
     topological_sort,
 )
+from app.engine.events import parse_sse_frame
+from app.engine.node_runner import NodeExecutionResult, stream_single_node_events
+from app.nodes._base import NodeInput
+from app.services.agent_gateway.models import AgentCallResult, AgentMeta
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -171,3 +177,108 @@ def test_failed_node_downstream_marked_pending(node_ids, edge_pairs):
         assert nid_pos > failed_pos, (
             f"Downstream node {nid} at position {nid_pos} should be after failed node at {failed_pos}"
         )
+
+
+@pytest.mark.asyncio
+async def test_agent_node_stream_events_parse_openai_sse_chunks(monkeypatch):
+    from app.nodes.agent import base as agent_base
+
+    async def fake_stream():
+        yield b'data: {"choices":[{"delta":{"role":"assistant"}}]}\n\n'
+        yield b'data: {"choices":[{"delta":{"content":"Alpha"}}]}\n\n'
+        yield b'data: {"choices":[{"delta":{"content":"Beta"}}]}\n\n'
+        yield b'data: [DONE]\n\n'
+
+    fake_gateway = SimpleNamespace(
+        registry=SimpleNamespace(
+            get=lambda name: AgentMeta(name=name, url="http://127.0.0.1:8001", models=["code-review-v1"], enabled=True),
+        ),
+        call_stream=AsyncMock(return_value=(fake_stream(), "req-1")),
+    )
+    monkeypatch.setattr(agent_base, "get_agent_gateway", lambda: fake_gateway)
+    monkeypatch.setattr(
+        agent_base,
+        "get_agent_registry",
+        lambda: SimpleNamespace(get=lambda name: AgentMeta(name=name, url="http://127.0.0.1:8001", models=["code-review-v1"], enabled=True)),
+    )
+
+    result = NodeExecutionResult(node_id="node-1")
+    node_config = {
+        "id": "node-1",
+        "type": "agent_code_review",
+        "data": {
+            "label": "代码审查",
+            "type": "agent_code_review",
+            "model_route": "",
+            "config": {},
+        },
+    }
+
+    events = [
+        event
+        async for event in stream_single_node_events(
+            node_id="node-1",
+            node_config=node_config,
+            upstream_outputs={"src": "diff --git a.py b.py"},
+            implicit_context={"user_id": "user-1"},
+            result=result,
+        )
+    ]
+
+    node_done_event = next(event for event in events if event.startswith("event: node_done"))
+    event_type, payload = parse_sse_frame(node_done_event)
+    assert event_type == "node_done"
+    assert payload["full_output"] == "AlphaBeta"
+    assert payload["metadata"]["resolved_model_route"] == "code-review-v1"
+    assert result.output == "AlphaBeta"
+
+
+@pytest.mark.asyncio
+async def test_agent_node_gateway_errors_propagate_to_status(monkeypatch):
+    from app.nodes.agent import base as agent_base
+
+    fake_gateway = SimpleNamespace(
+        registry=SimpleNamespace(
+            get=lambda name: AgentMeta(name=name, url="http://127.0.0.1:8001", models=["code-review-v1"], enabled=True),
+        ),
+        call_stream=AsyncMock(return_value=AgentCallResult(
+            status_code=503,
+            error="Agent unavailable: code-review",
+            request_id="req-1",
+        )),
+    )
+    monkeypatch.setattr(agent_base, "get_agent_gateway", lambda: fake_gateway)
+    monkeypatch.setattr(
+        agent_base,
+        "get_agent_registry",
+        lambda: SimpleNamespace(get=lambda name: AgentMeta(name=name, url="http://127.0.0.1:8001", models=["code-review-v1"], enabled=True)),
+    )
+
+    result = NodeExecutionResult(node_id="node-err")
+    node_config = {
+        "id": "node-err",
+        "type": "agent_code_review",
+        "data": {
+            "label": "代码审查",
+            "type": "agent_code_review",
+            "model_route": "",
+            "config": {},
+        },
+    }
+
+    events = [
+        event
+        async for event in stream_single_node_events(
+            node_id="node-err",
+            node_config=node_config,
+            upstream_outputs={},
+            implicit_context={"user_id": "user-1"},
+            result=result,
+        )
+    ]
+
+    node_status_event = events[-1]
+    event_type, payload = parse_sse_frame(node_status_event)
+    assert event_type == "node_status"
+    assert payload["status"] == "error"
+    assert "Agent unavailable" in payload["error"]

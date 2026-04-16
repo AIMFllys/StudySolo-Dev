@@ -39,6 +39,7 @@ export function createDefaultNodeData(nodeType: string): Record<string, unknown>
     model_route: '',
     status: 'pending',
     output: '',
+    output_format: 'markdown',
     config: {},
   };
 }

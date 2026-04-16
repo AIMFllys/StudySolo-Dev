@@ -55,6 +55,8 @@ describe('node manifest service', () => {
         renderer: 'QuizRenderer',
         version: '1.0.0',
         changelog: { '1.0.0': '初始版本' },
+        model_source: 'catalog',
+        agent_name: null,
       },
     ];
     authedFetchMock.mockResolvedValueOnce(jsonResponse(payload));
@@ -85,6 +87,8 @@ describe('node manifest service', () => {
         renderer: null,
         version: '1.0.0',
         changelog: { '1.0.0': '初始版本' },
+        model_source: 'catalog',
+        agent_name: null,
       },
     ];
     authedFetchMock.mockResolvedValueOnce(jsonResponse(payload));

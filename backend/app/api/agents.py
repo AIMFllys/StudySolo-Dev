@@ -9,7 +9,7 @@ Endpoints:
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 from starlette.responses import StreamingResponse
 
 from app.core.deps import get_current_user
-from app.services.agent_gateway import AgentCallResult, AgentGateway
+from app.services.agent_gateway import AgentCallResult, AgentGateway, AgentModelsResult
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +42,17 @@ class AgentInfo(BaseModel):
     description: str
     models: list[str]
     owner: str
+    healthy: bool
+    capabilities: list[str] = Field(default_factory=list)
+    skills_ready: bool = False
+    mcp_ready: bool = False
+
+
+class AgentModelsResponse(BaseModel):
+    agent: str
+    healthy: bool
+    source: Literal["runtime", "registry-fallback"]
+    models: list[str]
 
 
 class AgentHealthResponse(BaseModel):
@@ -94,17 +105,35 @@ async def list_agents(
     _user: dict = Depends(get_current_user),
     gateway: AgentGateway = Depends(get_gateway),
 ) -> list[AgentInfo]:
-    """返回所有已注册且健康的 Agent."""
-    agents = await gateway.discover()
+    """返回所有已启用 Agent，并附带健康状态."""
+    agents = await gateway.list_enabled_with_health()
     return [
         AgentInfo(
-            name=a.name,
-            description=a.description,
-            models=a.models,
-            owner=a.owner,
+            name=agent.name,
+            description=agent.description,
+            models=agent.models,
+            owner=agent.owner,
+            healthy=healthy,
+            capabilities=agent.capabilities,
+            skills_ready=agent.skills_ready,
+            mcp_ready=agent.mcp_ready,
         )
-        for a in agents
+        for agent, healthy in agents
     ]
+
+
+@router.get("/{name}/models", response_model=AgentModelsResponse)
+async def get_agent_models(
+    name: str,
+    user: dict = Depends(get_current_user),
+    gateway: AgentGateway = Depends(get_gateway),
+) -> AgentModelsResponse:
+    """返回指定 Agent 的可选模型列表."""
+    user_id = user.get("id")
+    result = await gateway.get_models(name, user_id=user_id)
+    if isinstance(result, AgentCallResult):
+        raise HTTPException(status_code=result.status_code, detail=result.error or "Agent lookup failed")
+    return AgentModelsResponse(**result.model_dump())
 
 
 @router.post("/{name}/chat")

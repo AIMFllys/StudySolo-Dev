@@ -41,6 +41,16 @@
 | chat_response | 💬 学习回复 | 自由对话回答 | true |
 </INTERACTION>
 
+<AGENT category="Agent" dag_rule="必须有至少一条入边；固定绑定到对应子后端 Agent">
+| 类型 | 标签 | 用途 | is_llm_node |
+|------|------|------|-------------|
+| agent_code_review | 🧪 代码审查 Agent | 代码审查、补丁评估、错误定位 | true |
+| agent_deep_research | 🔎 深度研究 Agent | 深度综述、长链资料研究 | true |
+| agent_news | 📰 新闻追踪 Agent | 最新资讯、新闻追踪、时间线整理 | true |
+| agent_study_tutor | 🎓 学习辅导 Agent | 讲解答疑、学习建议 | true |
+| agent_visual_site | 🧱 可视化站点 Agent | 页面结构、页面草案、HTML 起稿 | true |
+</AGENT>
+
 <OUTPUT category="输出" dag_rule="出度必须=0, 放在工作流最末端">
 | 类型 | 标签 | 用途 | is_llm_node |
 |------|------|------|-------------|
@@ -138,6 +148,12 @@ knowledge_base 和 web_search 可以同时存在，形成并行输入：
 9. 当用户提及"导出""下载""PDF""Word""保存文件"时，在工作流末尾添加 **export_file** 节点
 10. export_file 的 label 中应包含格式指定（如："📥 导出为 PDF"）
 11. **export_file** 和 **write_db** 都是终端节点，可以并列存在
+12. 当需求涉及代码审查、补丁评估、错误定位时，优先使用 **agent_code_review**
+13. 当需求涉及深度综述、资料研究、长链分析时，优先使用 **agent_deep_research**
+14. 当需求涉及最新资讯、新闻追踪、事件进展时，优先使用 **agent_news**
+15. 当需求涉及讲解答疑、学习路径、因材施教时，优先使用 **agent_study_tutor**
+16. 当需求涉及网页结构、页面草案、HTML 起稿时，优先使用 **agent_visual_site**
+17. Agent 节点的 `model_route` 默认为空字符串；不要为 Agent 节点伪造主 catalog SKU
 
 ---
 

@@ -11,7 +11,7 @@ from collections.abc import AsyncIterator
 
 from .caller import AgentCaller
 from .health import HealthChecker
-from .models import AgentCallResult, AgentMeta
+from .models import AgentCallResult, AgentMeta, AgentModelsResult
 from .registry import AgentRegistry
 
 logger = logging.getLogger(__name__)
@@ -30,10 +30,12 @@ class AgentGateway:
     - 记录审计日志（stdout JSON）
     """
 
-    def __init__(self, registry: AgentRegistry) -> None:
+    def __init__(self, registry: AgentRegistry, *, model_cache_ttl: int = 30) -> None:
         self.registry = registry
         self.caller = AgentCaller()
         self.health = HealthChecker()
+        self._model_cache_ttl = model_cache_ttl
+        self._models_cache: dict[str, tuple[AgentModelsResult, float]] = {}
 
     # ── Discovery ───────────────────────────────────────────────
 
@@ -42,6 +44,57 @@ class AgentGateway:
         enabled = self.registry.list_enabled()
         results = await self.health.check_all(enabled)
         return [a for a in enabled if results.get(a.name, False)]
+
+    async def list_enabled_with_health(self) -> list[tuple[AgentMeta, bool]]:
+        """Return every enabled agent plus its current health state."""
+        enabled = self.registry.list_enabled()
+        health_map = await self.health.check_all(enabled)
+        return [(agent, health_map.get(agent.name, False)) for agent in enabled]
+
+    async def get_models(
+        self,
+        agent_name: str,
+        *,
+        user_id: str | None = None,
+    ) -> AgentModelsResult | AgentCallResult:
+        """Return models for a registered Agent with runtime-first fallback."""
+        agent = self.registry.get(agent_name)
+        if not agent or not agent.enabled:
+            return AgentCallResult(
+                status_code=404,
+                error=f"Agent not found: {agent_name}",
+                request_id=uuid.uuid4().hex,
+            )
+
+        now = time.monotonic()
+        cached = self._models_cache.get(agent_name)
+        if cached and (now - cached[1]) < self._model_cache_ttl:
+            return cached[0]
+
+        request_id = uuid.uuid4().hex
+        headers = self._build_headers(agent, request_id, user_id)
+        healthy = await self.health.is_healthy(agent)
+        source = "registry-fallback"
+        models = list(agent.models)
+
+        if healthy:
+            runtime_models = await self.caller.fetch_models(
+                agent.url,
+                timeout=min(agent.timeout, 15),
+                headers=headers,
+            )
+            if runtime_models:
+                models = runtime_models
+                source = "runtime"
+
+        result = AgentModelsResult(
+            agent=agent.name,
+            healthy=healthy,
+            source=source,
+            models=models,
+        )
+        self._models_cache[agent_name] = (result, now)
+        return result
 
     # ── Non-stream call ─────────────────────────────────────────
 
