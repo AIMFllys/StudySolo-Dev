@@ -3,7 +3,7 @@
 > 状态：Phase 4B（小李 主导）+ Phase 5（Gateway 集成）
 > 技术栈：Python 3.11+ / FastAPI / uvicorn
 > 协议：OpenAI Chat Completions 兼容
-> 详细接口规范：[agent-architecture.md](../docs/team/refactor/final-plan/agent-architecture.md)
+> 详细接口规范：[agent-architecture.md](../docs/issues/TeamRefactor/final-plan/agent-architecture.md)
 
 ---
 
@@ -242,7 +242,7 @@ my-new-agent:
 
 ## 四层兼容性要求（速查）
 
-每个 Agent 必须满足以下四层兼容性。详细规范见 [agent-architecture.md](../docs/team/refactor/final-plan/agent-architecture.md)
+每个 Agent 必须满足以下四层兼容性。详细规范见 [agent-architecture.md](../docs/issues/TeamRefactor/final-plan/agent-architecture.md)
 
 ### Layer 1: Request（请求层）
 

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useInView } from '../hooks/useInView';
 
 /* Architecture based strictly on actual system */
@@ -45,6 +46,15 @@ const ROUTING = [
 
 export default function Architecture() {
   const [ref, inView] = useInView<HTMLDivElement>(0.15);
+  const [activeRoute, setActiveRoute] = useState(0);
+
+  useEffect(() => {
+    if (!inView) return;
+    const timer = window.setInterval(() => {
+      setActiveRoute((prev) => (prev + 1) % ROUTING.length);
+    }, 1800);
+    return () => window.clearInterval(timer);
+  }, [inView]);
 
   return (
     <section id="arch" style={{
@@ -133,7 +143,11 @@ export default function Architecture() {
               </thead>
               <tbody>
                 {ROUTING.map((r, i) => (
-                  <tr key={i} style={{ borderBottom: i === ROUTING.length - 1 ? 'none' : '1px solid var(--border-subtle)' }}>
+                  <tr
+                    key={i}
+                    className={`route-row ${inView && i === activeRoute ? 'active' : ''}`}
+                    style={{ borderBottom: i === ROUTING.length - 1 ? 'none' : '1px solid var(--border-subtle)' }}
+                  >
                     <td style={{ padding: '16px 24px', fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 600, color: 'var(--accent-blue)' }}>{r.from}</td>
                     <td style={{ padding: '16px 24px', fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--text-primary)' }}>{r.to}</td>
                     <td style={{ padding: '16px 24px', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-secondary)' }}>{r.protocol}</td>
@@ -151,7 +165,7 @@ export default function Architecture() {
                         borderRadius: 999,
                         width: 'fit-content',
                       }}>
-                        <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent-emerald)' }} />
+                        <span className={inView && i === activeRoute ? 'flow-pulse' : ''} style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent-emerald)' }} />
                         ONLINE
                       </span>
                     </td>
@@ -179,15 +193,7 @@ export default function Architecture() {
               overflow: 'hidden',
               opacity: inView ? 1 : 0,
               transform: inView ? 'translateY(0)' : 'translateY(24px)',
-              transition: `opacity 0.6s ease ${i * 0.1}s, transform 0.6s ease ${i * 0.1}s, box-shadow 0.3s ease, transform 0.3s ease`,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0,0,0,0.1)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.05)';
+              transition: `opacity 0.6s var(--ease-standard) ${i * 0.1}s, transform 0.6s var(--ease-standard) ${i * 0.1}s, box-shadow var(--dur-fast) var(--ease-standard)`,
             }}
             >
               {/* Subtle gradient background based on brand color */}

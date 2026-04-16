@@ -67,7 +67,7 @@ git checkout -b fix/38-sse-disconnect
 | `ci` | CI/CD 配置 |
 | `revert` | 回滚 |
 
-**Scope 范围（可选）：** 详见 [Scope 参考表](docs/team/commit-conventions.md#23-scope-参考)
+**Scope 范围（可选）：** 详见 [Scope 参考表](docs/项目规范与框架流程/项目规范/10-Git与协作规范.md#23-scope-参考)
 
 **示例：**
 ```bash
@@ -199,7 +199,7 @@ powershell -ExecutionPolicy Bypass -File "scripts\start-studysolo.ps1"
 
 ## Review 评论约定
 
-详细规范见 [PR 与 Code Review](docs/team/pr-workflow.md)。快速参考：
+详细规范见 [Git 与协作规范](docs/项目规范与框架流程/项目规范/10-Git与协作规范.md)。快速参考：
 
 | 前缀 | 含义 | 是否阻塞合并 |
 |------|------|:----------:|

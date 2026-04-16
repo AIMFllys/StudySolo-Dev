@@ -333,7 +333,7 @@ agents/
 
 ### 9.2 Agent 协议（权威）
 
-- `docs/team/refactor/final-plan/agent-architecture.md`（四层协议 ✅ 已冻结）
+- `docs/issues/TeamRefactor/final-plan/agent-architecture.md`（四层协议 ✅ 已冻结）
 - `backend/config/agents.yaml`（注册配置 ⚠️ Phase 5 实现）
 - `agents/README.md`（开发指南 ✅ 已完成）
 
@@ -381,15 +381,15 @@ agents/
 
 | 优先级 | 文档位置 | 说明 |
 |--------|---------|------|
-| **L0（最高）** | `docs/team/*.md` | 团队协作铁规 |
+| **L0（最高）** | `docs/项目规范与框架流程/项目规范/*.md` | 项目规范统一权威 |
 | **L0** | `.github/CODEOWNERS` | GitHub 代码所有权 |
-| **L0** | `docs/team/refactor/contracts/` | Phase 1 冻结契约（不可修改） |
+| **L0** | `docs/issues/TeamRefactor/contracts/` | Phase 1 冻结契约（不可修改） |
 | **L1** | `docs/项目规范与框架流程/项目规范/` | 技术规范主体（整合后统一入口） |
-| **L1** | `docs/team/refactor/final-plan/` | 重构执行计划（只记录阶段状态） |
+| **L1** | `docs/issues/TeamRefactor/final-plan/` | 重构执行计划（只记录阶段状态） |
 | **L2** | `agents/README.md` | Agent 开发指南 |
 | **L2** | 本文档 | AI 编程速查（索引 + 摘要） |
-| **L3（参考）** | `docs/team/refactor/claude-analysis/` | 历史分析，只读 |
-| **L3（参考）** | `docs/team/refactor/codex-analysis/` | 历史分析，只读 |
+| **L3（参考）** | `docs/issues/TeamRefactor/claude-analysis/` | 历史分析，只读 |
+| **L3（参考）** | `docs/issues/TeamRefactor/codex-analysis/` | 历史分析，只读 |
 
 ## 12. 重构状态（2026-04-12）
 
@@ -408,9 +408,9 @@ agents/
 
 **规范层**（整合后）：
 - `docs/项目规范与框架流程/项目规范/00-规范索引.md` — 规范统一入口
-- `docs/team/refactor/final-plan/00-索引.md` — 重构总览
-- `docs/team/refactor/final-plan/agent-architecture.md` — 四层协议（冻结）
-- `docs/team/refactor/contracts/` — Phase 1 冻结契约
+- `docs/issues/TeamRefactor/final-plan/00-索引.md` — 重构总览
+- `docs/issues/TeamRefactor/final-plan/agent-architecture.md` — 四层协议（冻结）
+- `docs/issues/TeamRefactor/contracts/` — Phase 1 冻结契约
 - `docs/issues/phase5-master-plan/00-总览与执行顺序.md` — Phase 5 完整规划
 
 **代码层**：

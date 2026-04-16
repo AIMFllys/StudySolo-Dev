@@ -181,4 +181,4 @@ export function debugLog(message: string) {
 ## 参考
 
 - [Agent 开发指南](../README.md)
-- [接口协议规范](../../docs/team/refactor/final-plan/agent-architecture.md)
+- [接口协议规范](../../docs/issues/TeamRefactor/final-plan/agent-architecture.md)

@@ -20,9 +20,9 @@
 
 提交 Agent 分支时，按以下优先级执行：
 
-1. `docs/team/commit-conventions.md`（分支与 commit 规范）
-2. `docs/team/pr-workflow.md`（PR 与合并规则）
-3. `docs/team/interface-sync.md`（接口冻结与文档先行）
+1. `docs/项目规范与框架流程/项目规范/10-Git与协作规范.md`（分支、commit、PR 规范）
+2. `docs/项目规范与框架流程/项目规范/02-模块边界规范.md`（接口冻结与边界规则）
+3. `docs/项目规范与框架流程/项目介绍/项目介绍.md`（团队职责）
 4. `docs/issues/TeamRefactor/contracts/agent-gateway-contract.md`（冻结契约）
 5. `agents/README.md` 与 `docs/项目规范与框架流程/项目规范/07-子后端Agent规范.md`（Agent 实现与测试规范）
 
@@ -222,9 +222,9 @@ Merge 完 Agent PR 后，审核负责人继续完成以下事项：
 
 提交 Agent 分支时，按以下优先级执行：
 
-1. `docs/team/commit-conventions.md`（分支与 commit 规范）
-2. `docs/team/pr-workflow.md`（PR 与合并规则）
-3. `docs/team/interface-sync.md`（接口冻结与文档先行）
+1. `docs/项目规范与框架流程/项目规范/10-Git与协作规范.md`（分支、commit、PR 规范）
+2. `docs/项目规范与框架流程/项目规范/02-模块边界规范.md`（接口冻结与边界规则）
+3. `docs/项目规范与框架流程/项目介绍/项目介绍.md`（团队职责）
 4. `docs/issues/TeamRefactor/contracts/agent-gateway-contract.md`（冻结契约）
 5. `agents/README.md` 与 `docs/项目规范与框架流程/项目规范/07-子后端Agent规范.md`（Agent 实现与测试规范）
 

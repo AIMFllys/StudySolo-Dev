@@ -30,13 +30,17 @@ function useFonts() {
 /* ===== Scroll Reveal ===== */
 function ScrollReveal() {
   useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') {
+      document.querySelectorAll('.reveal').forEach((el) => el.classList.add('visible'));
+      return;
+    }
     const obs = new IntersectionObserver(
       (entries) => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); }),
       { threshold: 0.1 }
     );
     document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
     return () => obs.disconnect();
-  });
+  }, []);
   return null;
 }
 
@@ -144,9 +148,13 @@ const PAGES = [
 function FloatingPageNav() {
   const { pathname } = useLocation();
   const [expanded, setExpanded] = useState(false);
+  const [touchExpanded, setTouchExpanded] = useState(false);
+  const isExpanded = expanded || touchExpanded;
 
   return (
-    <div style={{
+    <div
+      onClick={() => setTouchExpanded((prev) => !prev)}
+      style={{
       position: 'fixed',
       left: 0,
       top: '50%',
@@ -155,7 +163,8 @@ function FloatingPageNav() {
       display: 'flex',
       flexDirection: 'column',
       gap: 0,
-    }}>
+    }}
+    >
       {PAGES.map((page) => {
         const isActive = pathname === page.path;
         const Icon = page.icon;
@@ -168,7 +177,7 @@ function FloatingPageNav() {
               display: 'flex',
               alignItems: 'center',
               gap: 8,
-              padding: expanded ? '10px 16px' : '10px 10px',
+              padding: isExpanded ? '10px 16px' : '10px 10px',
               background: isActive ? 'var(--accent-blue)' : 'rgba(255,255,255,0.95)',
               color: isActive ? '#ffffff' : 'var(--text-secondary)',
               textDecoration: 'none',
@@ -176,12 +185,13 @@ function FloatingPageNav() {
               borderRight: `1px solid ${isActive ? 'var(--accent-blue)' : 'var(--border-subtle)'}`,
               borderTop: '1px solid var(--border-subtle)',
               borderBottom: '1px solid var(--border-subtle)',
-              transition: 'all 0.2s ease',
+              transition: 'all var(--dur-fast) var(--ease-standard)',
               backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
               boxShadow: '2px 0 8px rgba(0,0,0,0.08)',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
-              maxWidth: expanded ? 200 : 44,
+              maxWidth: isExpanded ? 200 : 44,
             }}
             onMouseEnter={() => setExpanded(true)}
             onMouseLeave={() => setExpanded(false)}
@@ -189,7 +199,7 @@ function FloatingPageNav() {
             <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Icon size={18} strokeWidth={isActive ? 2.5 : 2} color={isActive ? '#ffffff' : 'currentColor'} />
             </span>
-            {expanded && (
+            {isExpanded && (
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <span style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 600, lineHeight: 1 }}>{page.label}</span>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, opacity: 0.6, letterSpacing: '0.05em' }}>{page.eng}</span>
@@ -211,7 +221,7 @@ export default function App() {
       <ScrollToTop />
       <PageLoader />
       <ScrollReveal />
-      <div style={{ background: 'var(--bg-canvas)', minHeight: '100vh' }}>
+      <div style={{ background: 'var(--bg-canvas)', minHeight: '100dvh' }}>
         <Navbar />
         <FloatingPageNav />
         <main>

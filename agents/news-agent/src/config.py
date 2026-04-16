@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     model_id: str = "last30days"
     api_key: str = "news-agent-secret"
     host: str = "127.0.0.1"
-    port: int = 8004
+    port: int = 8003
 
     model_config = SettingsConfigDict(
         env_prefix="AGENT_",

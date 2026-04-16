@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     model_id: str = "research-agent"
     api_key: str = "research-agent-secret"
     host: str = "127.0.0.1"
-    port: int = 8005
+    port: int = 8002
     storage_path: str = "./storage"
 
     model_config = SettingsConfigDict(

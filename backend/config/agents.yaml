@@ -15,7 +15,7 @@ agents:
     owner: "小李"
 
   deep-research:
-    url: http://127.0.0.1:8005
+    url: http://127.0.0.1:8002
     timeout: 90
     max_retries: 2
     api_key_env: AGENT_DEEP_RESEARCH_KEY
@@ -26,7 +26,7 @@ agents:
     owner: "主系统"
 
   news:
-    url: http://127.0.0.1:8004
+    url: http://127.0.0.1:8003
     timeout: 90
     max_retries: 2
     api_key_env: AGENT_NEWS_KEY
