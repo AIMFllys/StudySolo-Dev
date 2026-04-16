@@ -17,6 +17,12 @@ export interface NavItem {
   children?: NavItem[];
 }
 
+export interface FlatNavItem {
+  title: string;
+  slug: string;
+  breadcrumbs: string[];
+}
+
 /** TOC 标题项 */
 export interface TOCItem {
   id: string;
@@ -33,6 +39,32 @@ interface MetaItem {
 type MetaConfig = Record<string, MetaItem>;
 
 const WIKI_CONTENT_PATH = path.join(process.cwd(), '..', 'docs', 'wiki-content');
+const ROOT_PRIVATE_DOCS = new Set(['README.md', 'WIKI-DEV-PLAN.md']);
+
+function isPrivateWikiItem(name: string, baseSlug: string[]): boolean {
+  return baseSlug.length === 0 && ROOT_PRIVATE_DOCS.has(name);
+}
+
+export function slugifyHeading(title: string, fallback = 'section'): string {
+  const slug = title
+    .toLowerCase()
+    .trim()
+    .replace(/[`*_~[\]()]/g, '')
+    .replace(/[^\p{L}\p{N}\s_-]/gu, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  return slug || fallback;
+}
+
+export function createHeadingId(title: string, seen: Map<string, number>): string {
+  const baseId = slugifyHeading(title);
+  const count = seen.get(baseId) ?? 0;
+  seen.set(baseId, count + 1);
+
+  return count === 0 ? baseId : `${baseId}-${count + 1}`;
+}
 
 /**
  * 读取指定文档内容 + frontmatter
@@ -48,7 +80,7 @@ export async function getDocContent(slug: string): Promise<{
 
   // 解析 frontmatter
   const frontmatterMatch = fileContent.match(/^---\n([\s\S]*?)\n---\n/);
-  let frontmatter: Partial<DocMeta> = {};
+  const frontmatter: Partial<DocMeta> = {};
   let content = fileContent;
 
   if (frontmatterMatch) {
@@ -96,6 +128,7 @@ export function getAllDocSlugs(): { slug: string[] }[] {
 
     for (const item of items) {
       if (item.name.startsWith('_')) continue; // 跳过 _meta.json 等
+      if (isPrivateWikiItem(item.name, baseSlug)) continue;
 
       const fullPath = path.join(dirPath, item.name);
       const itemSlug = [...baseSlug, item.name.replace(/\.md$/, '')];
@@ -140,6 +173,7 @@ export function getNavigation(): NavItem[] {
     // 按 meta order 排序，无 meta 的按字母序
     const sortedItems = dirItems
       .filter((item) => !item.name.startsWith('_') && !item.name.startsWith('.'))
+      .filter((item) => !isPrivateWikiItem(item.name, baseSlug))
       .sort((a, b) => {
         const aKey = a.name.replace(/\.md$/, '');
         const bKey = b.name.replace(/\.md$/, '');
@@ -181,22 +215,38 @@ export function getNavigation(): NavItem[] {
   return navItems;
 }
 
+export function flattenNavigation(items: NavItem[]): FlatNavItem[] {
+  function walk(navItems: NavItem[], parents: string[] = []): FlatNavItem[] {
+    return navItems.flatMap((item) => {
+      if (item.slug) {
+        return [{
+          title: item.title,
+          slug: item.slug,
+          breadcrumbs: parents,
+        }];
+      }
+
+      return walk(item.children ?? [], [...parents, item.title]);
+    });
+  }
+
+  return walk(items);
+}
+
 /**
  * 从 markdown 内容中提取标题，生成 TOC
  */
 export function parseTableOfContents(markdown: string): TOCItem[] {
   const toc: TOCItem[] = [];
   const lines = markdown.split('\n');
+  const seen = new Map<string, number>();
 
   for (const line of lines) {
     const match = line.match(/^(#{2,3})\s+(.+)$/);
     if (match) {
       const level = match[1].length as 2 | 3;
       const title = match[2].trim();
-      const id = title
-        .toLowerCase()
-        .replace(/[^\w\s-]/g, '')
-        .replace(/\s+/g, '-');
+      const id = createHeadingId(title, seen);
 
       toc.push({ id, title, level });
     }
