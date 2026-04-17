@@ -6,25 +6,44 @@ import { usePathname } from 'next/navigation';
 import { Menu, X, FileText, Plus, Loader2 } from 'lucide-react';
 import type { WorkflowMeta } from '@/types/workflow';
 import { useCreateWorkflowAction } from '@/features/workflow/hooks/use-create-workflow-action';
+import { MobileTopMenuPanel } from './MobileTopMenuPanel';
 
 interface MobileSidebarProps {
   workflows: WorkflowMeta[];
 }
 
-export function MobileSidebarTrigger() {
-  const [open, setOpen] = useState(false);
+interface MobileSidebarTriggerProps {
+  variant?: 'default' | 'canvas';
+}
+
+export function MobileSidebarTrigger({ variant = 'default' }: MobileSidebarTriggerProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Canvas variant: positioned below HistoryControls (undo/redo buttons)
+  // Default variant: positioned at top-left
+  const positionClasses = variant === 'canvas'
+    ? 'top-[80px] left-4'  // Below HistoryControls (~64px + padding)
+    : 'top-3 left-3';       // Default top-left
+
+  const handleToggle = () => {
+    setMenuOpen(!menuOpen);
+  };
 
   return (
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
-        className="md:hidden fixed top-3 left-3 z-40 flex h-10 w-10 items-center justify-center rounded-xl bg-background/95 backdrop-blur-md border border-border shadow-sm"
-        aria-label="打开侧边栏"
+        onClick={() => setMenuOpen(true)}
+        className={`md:hidden fixed z-40 flex h-10 w-10 items-center justify-center rounded-xl bg-background/95 backdrop-blur-md border border-border shadow-sm transition-all active:scale-95 ${positionClasses}`}
+        aria-label="打开菜单"
       >
         <Menu className="h-5 w-5 text-foreground" />
       </button>
-      {open && <MobileSidebarSheet onClose={() => setOpen(false)} />}
+      <MobileTopMenuPanel
+        isOpen={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        onToggle={handleToggle}
+      />
     </>
   );
 }

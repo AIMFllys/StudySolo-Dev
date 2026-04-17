@@ -56,6 +56,36 @@ export default function WorkspacePageClient({ initialWorkflows, quota }: Workspa
         </div>
       </div>
 
+      {/* Mobile New Workflow Bar - sticky on mobile */}
+      <div className="md:hidden sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-y border-border py-3 px-4 -mx-4 mb-4">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-medium text-muted-foreground">
+            {initialWorkflows.length > 0 ? `${initialWorkflows.length} 个工作流` : '暂无工作流'}
+          </span>
+          <button
+            onClick={() => void createWorkflow()}
+            disabled={isFull || creating}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all active:scale-95 ${
+              isFull || creating
+                ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                : 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+            }`}
+          >
+            {creating ? (
+              <>
+                <div className="h-4 w-4 rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground animate-spin" />
+                创建中...
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4" />
+                新建工作流
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
       <div className="relative z-10 w-full">
         <WorkflowList initialWorkflows={initialWorkflows} remaining={quota.workflows_remaining} />
       </div>

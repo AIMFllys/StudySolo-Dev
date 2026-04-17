@@ -3,6 +3,7 @@
 import { ArrowLeft, Save, Loader2, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import RightPanel from '@/components/layout/RightPanel';
+import { MobileSidebarTrigger } from '@/components/layout/MobileSidebar';
 import CollaborationPopover from '@/features/workflow/components/collaboration/CollaborationPopover';
 import CollaboratorAvatars from '@/features/workflow/components/collaboration/CollaboratorAvatars';
 import RunHistoryPopover from '@/features/workflow/components/history/RunHistoryPopover';
@@ -96,6 +97,8 @@ export default function WorkflowPageShell({
       {/* ─── Canvas + Right Panel ─── */}
       <div className={`flex flex-1 overflow-hidden min-h-0 ${isRight ? 'flex-row-reverse' : 'flex-row'}`}>
         <div className="relative flex-1 overflow-hidden">
+          {/* Mobile sidebar trigger - positioned below undo/redo buttons on canvas */}
+          <MobileSidebarTrigger variant="canvas" />
           {children}
         </div>
         <RightPanel />
