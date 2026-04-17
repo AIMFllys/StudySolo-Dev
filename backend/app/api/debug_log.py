@@ -7,6 +7,7 @@ provisioned debug log file during local development.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -15,7 +16,13 @@ from fastapi import APIRouter, Header, HTTPException, Request
 router = APIRouter()
 
 _SESSION_ID = "f04052"
-_LOG_PATH = Path("backend/debug-f04052b.log")
+_BACKEND_ROOT = Path(__file__).resolve().parents[2]
+_DEFAULT_LOG_PATH = _BACKEND_ROOT / "debug-f04052b.log"
+
+
+def _resolve_log_path() -> Path:
+    override = os.getenv("STUDYSOLO_DEBUG_LOG_PATH")
+    return Path(override).expanduser() if override else _DEFAULT_LOG_PATH
 
 
 def _require_session(x_debug_session_id: str | None) -> None:
@@ -38,8 +45,9 @@ async def ingest_debug_log(
     raw = json.dumps(payload, ensure_ascii=False)
     if len(raw) > 50_000:
         raise HTTPException(status_code=413, detail="Payload too large")
-    _LOG_PATH.write_text("", encoding="utf-8", errors="ignore") if False else None
-    with _LOG_PATH.open("a", encoding="utf-8") as f:
+    log_path = _resolve_log_path()
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    with log_path.open("a", encoding="utf-8") as f:
         f.write(raw + "\n")
     return {"ok": True}
 
@@ -54,8 +62,9 @@ async def read_debug_log(
         limit = 1
     if limit > 2000:
         limit = 2000
-    if not _LOG_PATH.exists():
+    log_path = _resolve_log_path()
+    if not log_path.exists():
         return {"ok": True, "lines": []}
     # Read last N lines efficiently enough for dev size.
-    lines = _LOG_PATH.read_text(encoding="utf-8", errors="ignore").splitlines()
+    lines = log_path.read_text(encoding="utf-8", errors="ignore").splitlines()
     return {"ok": True, "lines": lines[-limit:]}

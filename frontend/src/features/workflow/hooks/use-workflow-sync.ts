@@ -5,6 +5,11 @@ import localforage from 'localforage';
 import { toast } from 'sonner';
 import { authedFetch } from '@/services/api-client';
 import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
+import {
+  resolveCloudSyncFailureStatus,
+  shouldAttemptCloudSave,
+  swallowKeepaliveFailure,
+} from './workflow-sync-utils';
 import type { Node, Edge } from '@xyflow/react';
 
 export type SyncStatus = 'synced' | 'saving_local' | 'saving_cloud' | 'offline' | 'error';
@@ -80,7 +85,7 @@ export function useWorkflowSync(): UseWorkflowSync {
   }, []);
 
   const saveToCloud = useCallback(async (
-    workflowId: string, nodes: Node[], edges: Edge[]
+    workflowId: string, nodes: Node[], edges: Edge[], syncedHash?: string
   ) => {
     setSyncStatus('saving_cloud');
     try {
@@ -94,6 +99,9 @@ export function useWorkflowSync(): UseWorkflowSync {
       const now = new Date().toISOString();
       cloudUpdatedAtRef.current = now;
       lastCloudTimeRef.current = Date.now();
+      if (syncedHash) {
+        lastCloudHashRef.current = syncedHash;
+      }
 
       // Clear dirty flag in IndexedDB
       const cached = await localforage.getItem<LocalWorkflowCache>(cacheKey(workflowId));
@@ -113,7 +121,7 @@ export function useWorkflowSync(): UseWorkflowSync {
         duration: 2200,
       });
     } catch {
-      setSyncStatus(navigator.onLine ? 'error' : 'offline');
+      setSyncStatus(resolveCloudSyncFailureStatus(navigator.onLine));
     }
   }, []);
 
@@ -125,19 +133,17 @@ export function useWorkflowSync(): UseWorkflowSync {
 
       const hash = snapshotHash(nodes, edges);
 
-      // No change since last save → skip
-      if (hash === lastSavedHashRef.current) return;
-
       // ── Local save (immediate, every 2s if changed) ──
-      lastSavedHashRef.current = hash;
-      void saveToLocal(currentWorkflowId, nodes, edges);
+      if (hash !== lastSavedHashRef.current) {
+        lastSavedHashRef.current = hash;
+        void saveToLocal(currentWorkflowId, nodes, edges);
+      }
 
       // ── Cloud save (throttled to 8s, not during execution) ──
-      if (hash === lastCloudHashRef.current) return;
+      if (!shouldAttemptCloudSave(hash, lastCloudHashRef.current)) return;
       const elapsed = Date.now() - lastCloudTimeRef.current;
       if (elapsed >= CLOUD_THROTTLE_MS) {
-        lastCloudHashRef.current = hash;
-        void saveToCloud(currentWorkflowId, nodes, edges);
+        void saveToCloud(currentWorkflowId, nodes, edges, hash);
       } else if (!cloudTimerRef.current) {
         // Schedule cloud save for remaining time
         const remaining = CLOUD_THROTTLE_MS - elapsed;
@@ -146,9 +152,8 @@ export function useWorkflowSync(): UseWorkflowSync {
           const latest = useWorkflowStore.getState();
           if (!latest.currentWorkflowId) return;
           const latestHash = snapshotHash(latest.nodes, latest.edges);
-          if (latestHash !== lastCloudHashRef.current) {
-            lastCloudHashRef.current = latestHash;
-            void saveToCloud(latest.currentWorkflowId, latest.nodes, latest.edges);
+          if (shouldAttemptCloudSave(latestHash, lastCloudHashRef.current)) {
+            void saveToCloud(latest.currentWorkflowId, latest.nodes, latest.edges, latestHash);
           }
         }, remaining);
       }
@@ -182,18 +187,18 @@ export function useWorkflowSync(): UseWorkflowSync {
       // Best-effort cloud save with keepalive (credentials required for session cookie)
       const payload = JSON.stringify({ nodes_json: nodes, edges_json: edges });
       if (payload.length < KEEPALIVE_MAX_BYTES) {
-      // NOTE: keepalive fetch is intentionally NOT replaced with authedFetch.
-      // This runs in a useEffect cleanup (page unload), where async token refresh
-      // is unreliable. The session cookie (credentials: 'include') is sufficient
-      // for this best-effort save. If the session has expired, the request will
-      // fail silently — IndexedDB has the data and will sync on next visit.
-      void fetch(`/api/workflow/${currentWorkflowId}`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: payload,
-        keepalive: true,
-      });
+        // NOTE: keepalive fetch is intentionally NOT replaced with authedFetch.
+        // This runs in a useEffect cleanup (page unload), where async token refresh
+        // is unreliable. The session cookie (credentials: 'include') is sufficient
+        // for this best-effort save. If the session has expired, the request will
+        // fail silently — IndexedDB has the data and will sync on next visit.
+        swallowKeepaliveFailure(fetch(`/api/workflow/${currentWorkflowId}`, {
+          method: 'PUT',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+          keepalive: true,
+        }));
       }
       // If payload too large, IndexedDB has it — will sync on next visit
     };
@@ -237,7 +242,7 @@ export function useWorkflowSync(): UseWorkflowSync {
 
     await saveToLocal(currentWorkflowId, nodes, edges);
     lastCloudHashRef.current = '';  // Force cloud refresh
-    await saveToCloud(currentWorkflowId, nodes, edges);
+    await saveToCloud(currentWorkflowId, nodes, edges, snapshotHash(nodes, edges));
   }, [saveToLocal, saveToCloud]);
 
   return { syncStatus, lastSyncedAt, forceSave };

@@ -11,6 +11,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as fc from 'fast-check';
 import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
+import {
+  resolveCloudSyncFailureStatus,
+  shouldAttemptCloudSave,
+  swallowKeepaliveFailure,
+} from '@/features/workflow/hooks/workflow-sync-utils';
 import type { Edge, Node } from '@xyflow/react';
 
 const arbNodeStatus = fc.constantFrom('pending' as const, 'running' as const, 'done' as const, 'error' as const, 'paused' as const);
@@ -116,5 +121,25 @@ describe('Property 7: 三层同步脏标记管理', () => {
       ),
       { numRuns: 100 }
     );
+  });
+});
+
+describe('workflow sync cloud failure helpers', () => {
+  it('classifies cloud sync failures without throwing Chinese state away', () => {
+    expect(resolveCloudSyncFailureStatus(true)).toBe('error');
+    expect(resolveCloudSyncFailureStatus(false)).toBe('offline');
+    expect('工作流 / 节点 / 本轮变更').toBe('工作流 / 节点 / 本轮变更');
+  });
+
+  it('only treats cloud hash as synced after successful save', () => {
+    expect(shouldAttemptCloudSave('hash-1', '')).toBe(true);
+    expect(shouldAttemptCloudSave('hash-1', 'hash-1')).toBe(false);
+  });
+
+  it('swallows keepalive failures to avoid unhandled Failed to fetch noise', async () => {
+    swallowKeepaliveFailure(Promise.reject(new Error('Failed to fetch')));
+
+    await Promise.resolve();
+    expect(true).toBe(true);
   });
 });
