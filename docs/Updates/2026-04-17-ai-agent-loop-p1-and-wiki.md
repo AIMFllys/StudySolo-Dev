@@ -120,6 +120,9 @@ P1-E 已落地，规则如下：
 - `ai-catalog.service`：默认模型优先选择非 thinking 聊天模型。
 - selected SKU thinking：no SKU deep 仍走 R1；thinking SKU 保留 deep；非 thinking SKU 不触发 R1。
 - Agent 工具注册表：确认 12 个工具仍完整注册。
+- workflow sync：云端保存失败不再误标记已同步，卸载 keepalive 失败会静默吞掉并保留本地 dirty。
+- debug log：`/api/debug/log` 使用 cwd 无关路径，支持 `STUDYSOLO_DEBUG_LOG_PATH` 覆盖，并保留中文日志。
+- Agent SSE：`[DONE]` 到达前会 flush 最后一批 segment / summary 快照，tool_call 状态和 canvas_mutation 事件有纯测试覆盖。
 - 前端测试类型收紧：`fetch` mock、`ApiError` 匹配、workflow event status、renderer props。
 
 回归命令：
@@ -132,6 +135,7 @@ python -m pytest -k "agent or xml or chat"
 ```bash
 cd frontend
 npx vitest run src/__tests__/chat-message-adapter.property.test.ts src/__tests__/ai-chat-store.property.test.ts src/__tests__/ai-catalog.service.property.test.ts
+npx vitest run src/__tests__/stream-chat-sse.property.test.ts src/__tests__/workflow-sync.property.test.ts
 npx tsc --noEmit
 ```
 
@@ -143,10 +147,12 @@ npx tsc --noEmit
 - `80fdfeb feat: add API wiki documentation`
 - `2bc9bdc test: tighten frontend type coverage`
 - `54691c7 fix: align AI thinking capability routing`
+- `20fcc3e fix: stabilize workflow sync and debug logging`
+- `d0290ae fix: flush final agent stream snapshots`
 
 ## 9. 下一步
 
 - Agent Loop 工具调用手工回归：列工作流、打开工作流、重命名、画布增删改、后台运行状态查询。
 - MCP / CLI 下一阶段：HTTP / SSE transport、细粒度 scopes、run pause / resume / cancel。
 - Wiki 文档继续补齐真实截图、错误码说明和常见问题。
-- 独立问题另开批次：`workflow sync Failed to fetch` 与 `/api/debug/log 500`。
+- 若仍出现保存失败，需要结合具体 HTTP 状态继续查后端工作流更新链路；当前批次已清理前端未处理 rejection 和 debug log 路径 500。

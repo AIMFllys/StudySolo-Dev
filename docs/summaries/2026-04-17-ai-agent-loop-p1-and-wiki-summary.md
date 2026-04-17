@@ -85,6 +85,15 @@ Agent Loop 启用边界收紧：
 - Wiki 新增 API 参考分组：CLI、MCP Host、Agent Skills。
 - Wiki 导航从 emoji 改为 Lucide 图标，页面结构更稳定。
 
+### 8. 稳定性收尾
+
+- workflow sync 失败时不再提前写入 cloud hash，后续仍会重试云端保存。
+- 卸载阶段 keepalive fetch 失败会被吞掉，避免 `Failed to fetch` 未处理噪音。
+- `/api/debug/log` 使用 cwd 无关日志路径，并支持 `STUDYSOLO_DEBUG_LOG_PATH` 本地覆盖。
+- Agent SSE parser 在 `[DONE]` 前会 flush 最后一批 segment / summary 快照。
+
+结果：已知控制台噪音被收口，Agent 工具事件和 summary 渲染有更稳定的回归护栏。
+
 ---
 
 ## 验证重点
@@ -97,6 +106,7 @@ Agent Loop 启用边界收紧：
 - Agent history append 前会剥离 reasoning，保留 answer/tool/summary XML。
 - no SKU / thinking SKU / non-thinking SKU 的 effective thinking 语义都有测试。
 - Agent 工具注册表确认 12 个工具完整存在。
+- debug log 拒绝错误 session、能写入并读回中文日志、能拒绝超大 payload。
 
 前端：
 
@@ -104,6 +114,8 @@ Agent Loop 启用边界收紧：
 - 默认模型选择优先非 thinking 模型。
 - 非 thinking 模型发送前会把 thinking depth 归一到 `fast`。
 - legacy content 与 segments 都能提取 `[SUGGEST_MODE]`。
+- Agent SSE parser 覆盖 answer 增量、tool_call ok/error、summary changes、canvas_mutation 透传。
+- workflow sync helper 覆盖 offline/error 分类、cloud hash 判断、keepalive failure 吞吐。
 - 中文样例“工作流 / 节点 / 本轮变更”在 adapter 测试中保持原样。
 
 ---
@@ -116,6 +128,8 @@ Agent Loop 启用边界收紧：
 - `80fdfeb feat: add API wiki documentation`
 - `2bc9bdc test: tighten frontend type coverage`
 - `54691c7 fix: align AI thinking capability routing`
+- `20fcc3e fix: stabilize workflow sync and debug logging`
+- `d0290ae fix: flush final agent stream snapshots`
 
 ---
 
@@ -124,4 +138,4 @@ Agent Loop 启用边界收紧：
 1. 补一轮 Agent 工具手工回归：工作流列表、打开、重命名、画布 CRUD、后台运行、状态查询。
 2. 为 API Wiki 增加错误码、截图和最小可运行示例。
 3. MCP / CLI 下一阶段推进 HTTP / SSE transport、细粒度 scopes、run pause / resume / cancel。
-4. 独立批次处理 `workflow sync Failed to fetch` 与 `/api/debug/log 500`。
+4. 若保存失败仍复现，再按具体 HTTP 状态继续查工作流更新接口或会话恢复链路。
