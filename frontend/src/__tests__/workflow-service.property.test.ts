@@ -94,11 +94,11 @@ describe('workflow service mutation helpers', () => {
       parseApiErrorMock.mockResolvedValueOnce('unauthorized');
       credentialsFetchMock.mockResolvedValueOnce(new Response('unauthorized', { status: 401 }));
 
-      await expect(testCase.run('wf-1')).rejects.toMatchObject<ApiError>({
+      await expect(testCase.run('wf-1')).rejects.toMatchObject({
         name: 'ApiError',
         message: 'unauthorized',
         status: 401,
-      });
+      } satisfies Partial<ApiError>);
 
       expect(credentialsFetchMock).toHaveBeenCalledWith(`/api/workflow/wf-1${testCase.path}`, {
         method: 'POST',
@@ -124,11 +124,11 @@ describe('workflow service mutation helpers', () => {
   it('preserves 401 responses from fetchWorkflowContent as ApiError for server-side retry handling', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 401 })));
 
-    await expect(fetchWorkflowContent('wf-401', 'token-1')).rejects.toMatchObject<ApiError>({
+    await expect(fetchWorkflowContent('wf-401', 'token-1')).rejects.toMatchObject({
       name: 'ApiError',
       message: 'Unauthorized',
       status: 401,
-    });
+    } satisfies Partial<ApiError>);
   });
 
   it('suppresses 404 logging for public workflow fetches and returns null', async () => {

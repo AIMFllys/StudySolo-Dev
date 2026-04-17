@@ -197,7 +197,7 @@ describe('workflow execution event application', () => {
         workflowId: 'wf-1',
         workflowName: '测试工作流',
         startedAt: 0,
-        overallStatus: 'running',
+        overallStatus: 'running' as const,
         traces: [makeTrace({ nodeId: 'node-1', status: 'running' })],
         completedCount: 0,
         totalCount: 1,

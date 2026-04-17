@@ -37,7 +37,7 @@ describe('community nodes service', () => {
       prompt: 'do work',
       input_hint: 'hint',
       output_format: 'markdown',
-      model_preference: 'gpt-4.1',
+      model_preference: 'powerful',
       output_schema: { type: 'object' },
     });
 

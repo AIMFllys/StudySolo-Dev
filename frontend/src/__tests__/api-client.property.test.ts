@@ -8,7 +8,7 @@ describe('api client request header defaults', () => {
   });
 
   it('adds a default JSON content type for plain JSON requests', async () => {
-    const fetchMock = vi.fn(async () => new Response(null, { status: 200 }));
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response(null, { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
 
     await credentialsFetch('/api/example', {
@@ -28,7 +28,7 @@ describe('api client request header defaults', () => {
   });
 
   it('does not inject JSON content type when the body is FormData', async () => {
-    const fetchMock = vi.fn(async () => new Response(null, { status: 200 }));
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response(null, { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
     const formData = new FormData();
     formData.append('name', '节点');
@@ -43,7 +43,7 @@ describe('api client request header defaults', () => {
   });
 
   it('preserves explicitly provided content type headers', async () => {
-    const fetchMock = vi.fn(async () => new Response(null, { status: 200 }));
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response(null, { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
 
     await credentialsFetch('/api/custom', {

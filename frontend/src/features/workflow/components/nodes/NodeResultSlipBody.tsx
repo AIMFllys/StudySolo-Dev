@@ -1,5 +1,6 @@
 import React from 'react';
 import type { NodeStatus } from '@/types';
+import type { NodeRendererProps } from './index';
 
 type ParsedInputSnapshot = {
   userContent?: string;
@@ -16,12 +17,7 @@ interface NodeResultSlipBodyProps {
   status: NodeStatus;
   outputFormat: string;
   nodeType: string;
-  Renderer: React.ComponentType<{
-    output: string;
-    format?: string;
-    nodeType?: string;
-    isStreaming?: boolean;
-  }>;
+  Renderer: React.ComponentType<NodeRendererProps>;
 }
 
 export function NodeResultSlipBody({
