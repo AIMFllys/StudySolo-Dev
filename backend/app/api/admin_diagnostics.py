@@ -21,10 +21,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from app.core.database import get_db
-from app.core.deps import get_current_admin
+from app.core.deps import get_admin_or_local_dev
 from app.services.agent_gateway import AgentGateway, AgentRegistry
-from app.services.ai_catalog_service import _load_catalog_rows, is_provider_configured
-from app.services.llm.provider import get_client
+from app.services.ai_catalog_service import _load_catalog_rows
+from app.services.llm.provider import get_client, is_provider_configured
 from app.core.config import get_settings
 from app.core.config_loader import get_config
 
@@ -536,7 +536,7 @@ def _generate_reports(results: list[CheckResult]) -> DiagnosticsReport:
 
 @router.get("/diagnostics/full", response_model=DiagnosticsResponse)
 async def run_full_diagnostics(
-    _admin: dict = Depends(get_current_admin),
+    _caller: dict = Depends(get_admin_or_local_dev),
 ) -> DiagnosticsResponse:
     """Run comprehensive system diagnostics and return full report.
 

@@ -45,7 +45,8 @@ param(
     [string]$Category = "all",
     [ValidateSet("all", "markdown", "json", "text")]
     [string]$Format = "all",
-    [string]$OutputDir = "scripts/logs"
+    [string]$OutputDir = "scripts/logs",
+    [int]$TimeoutSec = 180
 )
 
 $ErrorActionPreference = "Stop"
@@ -101,13 +102,18 @@ Write-Log "类别筛选: $Category"
 Write-Log "报告格式: $Format"
 Write-Log "日志目录: $logDir"
 
-# ---------- Step 1: Token check ----------
+# ---------- Step 1: Token check (loopback + dev 自动免鉴权) ----------
+$isLoopback = $BaseUrl -match "^https?://(127\.0\.0\.1|localhost|\[::1\])(:|/|$)"
 if (-not $AdminToken) {
-    Write-Log "缺少 AdminToken" "ERROR"
-    Write-Log "请设置环境变量 `$env:STUDYSOLO_ADMIN_TOKEN = '<your-admin-jwt>'" "ERROR"
-    Write-Log "或使用 -AdminToken 参数" "ERROR"
-    Write-Log "获取方式：登录 /admin-analysis/login 后从 Cookie 复制 admin_token" "ERROR"
-    exit 2
+    if ($isLoopback) {
+        Write-Log "检测到 loopback 地址，开发模式下后端会自动放行（无需 Token）" "INFO"
+    }
+    else {
+        Write-Log "非 loopback 地址必须提供 AdminToken" "ERROR"
+        Write-Log "请设置环境变量 `$env:STUDYSOLO_ADMIN_TOKEN = '<admin-jwt>'" "ERROR"
+        Write-Log "或使用 -AdminToken 参数" "ERROR"
+        exit 2
+    }
 }
 
 # ---------- Step 2: Health probe ----------
@@ -125,21 +131,28 @@ catch {
 Write-Log "调用 /api/admin/diagnostics/full ..."
 $startTime = Get-Date
 try {
-    $headers = @{
-        "Authorization" = "Bearer $AdminToken"
-        "Cookie"        = "admin_token=$AdminToken"
+    $headers = @{}
+    if ($AdminToken) {
+        $headers["Authorization"] = "Bearer $AdminToken"
+        $headers["Cookie"] = "admin_token=$AdminToken"
     }
+    Write-Log "（大量 AI 模型并发检测中，预计 10-120 秒，请勿中断）"
     $response = Invoke-RestMethod `
         -Uri "$BaseUrl/api/admin/diagnostics/full" `
         -Method GET `
         -Headers $headers `
-        -TimeoutSec 60
+        -TimeoutSec $TimeoutSec
 }
 catch {
     $statusCode = $_.Exception.Response.StatusCode.value__
     if ($statusCode -eq 401) {
-        Write-Log "Admin Token 失效或无权限 (HTTP 401)" "ERROR"
-        Write-Log "请重新登录 /admin-analysis/login 获取新 Token" "ERROR"
+        Write-Log "未通过鉴权 (HTTP 401)" "ERROR"
+        if ($isLoopback) {
+            Write-Log "loopback 免鉴权仅在 environment=development 时生效，请检查后端 .env" "ERROR"
+        }
+        else {
+            Write-Log "非 loopback 地址必须提供有效 Admin Token" "ERROR"
+        }
     }
     else {
         Write-Log "调用诊断端点失败: $($_.Exception.Message)" "ERROR"
@@ -159,7 +172,6 @@ $total     = $components.Count
 $healthy   = @($components | Where-Object { $_.status -eq "healthy" }).Count
 $unhealthy = $total - $healthy
 
-Write-Log ""
 $summaryLine = "结果摘要: $healthy healthy / $unhealthy unhealthy / $total total"
 if ($unhealthy -eq 0) {
     Write-Log $summaryLine "SUCCESS"
@@ -172,7 +184,8 @@ if ($unhealthy -gt 0) {
     Write-Log "发现 unhealthy 组件:" "WARN"
     foreach ($c in $components) {
         if ($c.status -ne "healthy") {
-            Write-Log "  - $($c.id) [$($c.category)]: $($c.error)" "WARN"
+            $errMsg = if ($c.error) { $c.error } else { "(无错误详情)" }
+            Write-Log "  - $($c.id) [$($c.category)]: $errMsg" "WARN"
         }
     }
 }
@@ -182,23 +195,27 @@ $reports = $response.reports
 $written = @()
 
 if ($Format -eq "all" -or $Format -eq "markdown") {
-    Save-Utf8 -Path $mdPath -Content $reports.markdown
+    $mdContent = if ($reports.markdown) { $reports.markdown } else { "# Diagnostics Report`n`nNo markdown content available." }
+    Save-Utf8 -Path $mdPath -Content $mdContent
     $written += $mdPath
 }
 if ($Format -eq "all" -or $Format -eq "json") {
-    Save-Utf8 -Path $jsonPath -Content ($response | ConvertTo-Json -Depth 10)
+    $jsonContent = if ($response) { ($response | ConvertTo-Json -Depth 10) } else { "{}" }
+    Save-Utf8 -Path $jsonPath -Content $jsonContent
     $written += $jsonPath
 }
 if ($Format -eq "all" -or $Format -eq "text") {
-    Save-Utf8 -Path $txtPath -Content $reports.text
+    $txtContent = if ($reports.text) { $reports.text } else { "Diagnostics Report`n`nNo text content available." }
+    Save-Utf8 -Path $txtPath -Content $txtContent
     $written += $txtPath
 }
 
-Write-Log ""
 Write-Log "报告已保存:"
 Write-Log "  主日志: $logPath"
 foreach ($p in $written) {
-    Write-Log "  报告: $p"
+    if ($p -ne "") {
+        Write-Log "  报告: $p"
+    }
 }
 
 # ---------- Step 6: Exit code ----------

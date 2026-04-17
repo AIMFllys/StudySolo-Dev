@@ -18,6 +18,12 @@ logger = logging.getLogger(__name__)
 # Paths under /api/admin/ that are publicly accessible (no token required)
 _PUBLIC_ADMIN_PATHS = {"/api/admin/login"}
 
+# Loopback 主机白名单：开发模式下这些主机可免鉴权访问诊断等只读端点
+_LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
+
+# 开发模式下允许 loopback 免鉴权的路径（严格限制为只读诊断）
+_DEV_LOOPBACK_ALLOWED_PATHS = {"/api/admin/diagnostics/full"}
+
 
 class AdminJWTMiddleware:
     """Validate admin_token cookie for all /api/admin/* routes.
@@ -60,6 +66,18 @@ class AdminJWTMiddleware:
         # Extract admin_token cookie
         token = request.cookies.get("admin_token")
         if not token:
+            # Dev + loopback bypass: 仅限白名单路径且环境为 development
+            settings = get_settings()
+            client_host = request.client.host if request.client else ""
+            is_dev = settings.environment.lower() in ("development", "dev", "local")
+            is_loopback = client_host in _LOOPBACK_HOSTS
+            if is_dev and is_loopback and path in _DEV_LOOPBACK_ALLOWED_PATHS:
+                logger.info(
+                    "AdminJWTMiddleware: dev+loopback bypass for %s (client=%s)",
+                    path, client_host,
+                )
+                await self.app(scope, receive, send)
+                return
             response = JSONResponse(
                 status_code=401,
                 content={"detail": "管理员未认证"},

@@ -62,10 +62,15 @@ def main() -> int:
     parser.add_argument("--timeout", type=int, default=60, help="端点总超时（秒）")
     args = parser.parse_args()
 
+    # loopback + dev 自动免鉴权
+    import re
+    is_loopback = bool(re.match(r"^https?://(127\.0\.0\.1|localhost|\[::1\])", args.base_url))
     if not args.admin_token:
-        log("缺少 --admin-token 或环境变量 STUDYSOLO_ADMIN_TOKEN", "ERROR")
-        log("获取方式见 docs/项目规范与框架流程/功能流程/系统自检与诊断/01-一键全量自检SOP.md", "ERROR")
-        return 2
+        if is_loopback:
+            log("检测到 loopback 地址，开发模式下后端会自动放行（无需 Token）")
+        else:
+            log("非 loopback 地址必须提供 --admin-token 或 STUDYSOLO_ADMIN_TOKEN", "ERROR")
+            return 2
 
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     output_dir = Path(args.output_dir)
@@ -97,10 +102,15 @@ def main() -> int:
     log_buffer.append(log("调用 /api/admin/diagnostics/full ..."))
     try:
         with httpx.Client(timeout=args.timeout) as client:
+            headers = {}
+            cookies = {}
+            if args.admin_token:
+                headers["Authorization"] = f"Bearer {args.admin_token}"
+                cookies["admin_token"] = args.admin_token
             r = client.get(
                 f"{args.base_url}/api/admin/diagnostics/full",
-                headers={"Authorization": f"Bearer {args.admin_token}"},
-                cookies={"admin_token": args.admin_token},
+                headers=headers,
+                cookies=cookies,
             )
             if r.status_code == 401:
                 log_buffer.append(log("Admin Token 失效或无权限 (401)", "ERROR"))

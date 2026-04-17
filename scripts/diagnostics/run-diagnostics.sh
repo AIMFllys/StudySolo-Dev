@@ -55,9 +55,19 @@ log "目标后端: $BASE_URL"
 log "类别筛选: $CATEGORY"
 log "日志目录: $LOG_DIR"
 
+# loopback + dev 自动免鉴权
+IS_LOOPBACK=0
+if [[ "$BASE_URL" =~ ^https?://(127\.0\.0\.1|localhost|\[::1\]) ]]; then
+    IS_LOOPBACK=1
+fi
+
 if [[ -z "$ADMIN_TOKEN" ]]; then
-    log "缺少 Admin Token，请设置 STUDYSOLO_ADMIN_TOKEN 或使用 --admin-token" "ERROR"
-    exit 2
+    if [[ "$IS_LOOPBACK" -eq 1 ]]; then
+        log "检测到 loopback 地址，开发模式下后端会自动放行（无需 Token）"
+    else
+        log "非 loopback 地址必须提供 Admin Token (STUDYSOLO_ADMIN_TOKEN 或 --admin-token)" "ERROR"
+        exit 2
+    fi
 fi
 
 # Health probe
@@ -72,9 +82,13 @@ log "健康探测 /api/health ... OK"
 log "调用 /api/admin/diagnostics/full ..."
 START=$(date +%s%3N 2>/dev/null || python3 -c 'import time; print(int(time.time()*1000))')
 
+AUTH_ARGS=()
+if [[ -n "$ADMIN_TOKEN" ]]; then
+    AUTH_ARGS=(-H "Authorization: Bearer $ADMIN_TOKEN" -H "Cookie: admin_token=$ADMIN_TOKEN")
+fi
+
 HTTP_RESPONSE=$(curl -sS -w "\n%{http_code}" --max-time 60 \
-    -H "Authorization: Bearer $ADMIN_TOKEN" \
-    -H "Cookie: admin_token=$ADMIN_TOKEN" \
+    "${AUTH_ARGS[@]}" \
     "$BASE_URL/api/admin/diagnostics/full" || true)
 
 HTTP_CODE=$(echo "$HTTP_RESPONSE" | tail -n 1)

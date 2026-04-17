@@ -227,3 +227,49 @@ async def get_current_admin(
         "username": account["username"],
         "is_active": account.get("is_active", True),
     }
+
+
+# ---------------------------------------------------------------------------
+# Admin-or-local-dev dependency (诊断等运维只读端点专用)
+# ---------------------------------------------------------------------------
+
+_LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1", "testclient"}
+
+
+async def get_admin_or_local_dev(
+    request: Request,
+    db: AsyncClient = Depends(get_db),
+) -> dict:
+    """Allow admin OR loopback-in-development, return caller info.
+
+    放行条件（任一满足即可）:
+      1) `AdminJWTMiddleware` 已认证出合法 admin
+      2) `settings.environment == "development"` AND 请求来自 loopback
+
+    生产环境始终要求 admin 鉴权。本地 dev 从 127.0.0.1/localhost 调用时免 token，
+    方便 `scripts/diagnostics/run-diagnostics.ps1` 等 CLI 零摩擦调用。
+    """
+    # Path 1: Admin authenticated via middleware
+    admin_id: str | None = getattr(request.state, "admin_id", None)
+    if admin_id:
+        return await get_current_admin(request, db)
+
+    # Path 2: Local dev loopback bypass
+    from app.core.config import get_settings
+    settings = get_settings()
+    client_host = request.client.host if request.client else ""
+    is_dev = settings.environment.lower() in ("development", "dev", "local")
+    is_loopback = client_host in _LOOPBACK_HOSTS
+
+    if is_dev and is_loopback:
+        return {
+            "id": "local-dev",
+            "username": "local-dev",
+            "is_active": True,
+            "_bypass_reason": f"dev+loopback({client_host})",
+        }
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="管理员未认证（生产环境或非 loopback 请求必须登录）",
+    )
