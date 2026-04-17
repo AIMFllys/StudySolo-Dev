@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Zap, Search, Plus, Loader2, Settings, LogOut } from 'lucide-react';
+import { Zap, Search, Plus, Loader2, Settings, LogOut, User } from 'lucide-react';
 import { getUser, logout, type UserInfo } from '@/services/auth.service';
 import ThemeToggle from './ThemeToggle';
 
@@ -52,6 +52,7 @@ export default function Navbar({ onNewWorkflow, creating = false }: NavbarProps)
         </span>
       </div>
 
+      {/* Search - desktop shows input, mobile shows icon */}
       <div className="hidden sm:flex flex-1 max-w-md mx-4">
         <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -62,6 +63,13 @@ export default function Navbar({ onNewWorkflow, creating = false }: NavbarProps)
           />
         </div>
       </div>
+      <button
+        type="button"
+        className="sm:hidden flex h-9 w-9 items-center justify-center rounded-full bg-secondary/50 text-muted-foreground hover:text-foreground transition-colors"
+        aria-label="搜索"
+      >
+        <Search className="h-4 w-4" />
+      </button>
 
       <div className="flex items-center gap-3">
         <button
@@ -79,14 +87,14 @@ export default function Navbar({ onNewWorkflow, creating = false }: NavbarProps)
         <div className="relative">
           <button
             onClick={() => setMenuOpen((open) => !open)}
-            className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-semibold ring-2 ring-transparent hover:ring-primary transition-all overflow-hidden"
+            className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-xs font-semibold ring-2 ring-transparent hover:ring-primary transition-all overflow-hidden touch-target"
             aria-label="用户菜单"
           >
             {user?.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={user.avatar_url} alt="avatar" className="w-full h-full object-cover" />
             ) : (
-              initials
+              <User className="h-4 w-4 text-muted-foreground" />
             )}
           </button>
 

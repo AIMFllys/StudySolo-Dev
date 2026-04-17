@@ -243,3 +243,94 @@
   background: var(--muted);
   transform: scale(1.15);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Mobile Toolbar Optimizations
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .canvas-floating-toolbar {
+    bottom: 80px; /* Above mobile bottom nav */
+    padding: 6px;
+    border-radius: 16px;
+    gap: 4px;
+  }
+
+  .canvas-floating-toolbar .toolbar-btn {
+    width: 44px; /* Larger touch target */
+    height: 44px;
+    border-radius: 12px;
+  }
+
+  .canvas-floating-toolbar .toolbar-btn svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .canvas-floating-toolbar .toolbar-divider {
+    height: 28px;
+    margin: 0 4px;
+  }
+
+  /* Mobile search bar */
+  .canvas-search-bar {
+    bottom: 140px;
+    width: calc(100vw - 32px);
+    max-width: 400px;
+    padding: 8px 12px;
+  }
+
+  .canvas-search-input {
+    flex: 1;
+    width: auto;
+    height: 40px;
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+
+  .canvas-search-nav,
+  .canvas-search-close {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Mobile emoji picker */
+  .canvas-emoji-picker {
+    bottom: 140px;
+    width: calc(100vw - 48px);
+    max-width: 320px;
+  }
+
+  .canvas-emoji-grid {
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+
+  .canvas-emoji-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+}
+
+/* Small phone screens */
+@media (max-width: 380px) {
+  .canvas-floating-toolbar {
+    padding: 4px;
+    gap: 2px;
+  }
+
+  .canvas-floating-toolbar .toolbar-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .canvas-floating-toolbar .toolbar-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Hide some buttons on very small screens */
+  .canvas-floating-toolbar .toolbar-divider:nth-of-type(2) ~ .toolbar-btn:not(:last-child) {
+    display: none;
+  }
+}

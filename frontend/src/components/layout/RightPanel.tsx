@@ -12,6 +12,7 @@ import { usePanelStore, RIGHT_PANEL_MIN, RIGHT_PANEL_MAX } from '@/stores/ui/use
 import { useSettingsStore } from '@/stores/ui/use-settings-store';
 import ResizableHandle from './ResizableHandle';
 import RightPanelContent from './sidebar/RightPanelContent';
+import MobileRightPanel from './MobileRightPanel';
 
 export default function RightPanel() {
   const {
@@ -91,6 +92,9 @@ export default function RightPanel() {
         {/* Panel content (shared component) */}
         <RightPanelContent />
       </aside>
+
+      {/* Mobile Right Panel */}
+      <MobileRightPanel />
     </>
   );
 }

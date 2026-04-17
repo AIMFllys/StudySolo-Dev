@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from supabase import AsyncClient
 
 from app.engine.run_worker import run_to_db
+from app.engine.run_worker import summarise_progress
 from app.services.quota_service import check_daily_execution_quota
 
 logger = logging.getLogger(__name__)
@@ -128,7 +129,11 @@ async def get_run_status(
     user: dict,
     service_db: AsyncClient,
 ) -> dict:
-    """Return the latest status snapshot for a workflow run."""
+    """Return the latest status snapshot for a workflow run.
+
+    Includes the compact progress fields used by ``/api/workflow-runs/{run_id}/progress``
+    so agent answers can report real completion counts instead of only a bare status.
+    """
     user_id = user["id"]
     result = (
         await service_db.from_("ss_workflow_runs")
@@ -141,11 +146,25 @@ async def get_run_status(
     if not result or not result.data:
         raise StartRunError("工作流运行记录不存在", code="run_not_found")
     data = result.data
-    return {
-        "run_id": data.get("id"),
-        "workflow_id": data.get("workflow_id"),
-        "status": data.get("status"),
-        "started_at": data.get("started_at"),
-        "completed_at": data.get("completed_at"),
-        "tokens_used": data.get("tokens_used"),
-    }
+    progress = await summarise_progress(service_db, run_id)
+    progress["started_at"] = data.get("started_at")
+    progress["completed_at"] = data.get("completed_at")
+    progress["tokens_used"] = data.get("tokens_used")
+
+    if data.get("status") == "failed":
+        done_event = (
+            await service_db.from_("ss_workflow_run_events")
+            .select("payload")
+            .eq("run_id", run_id)
+            .eq("event_type", "workflow_done")
+            .order("seq", desc=True)
+            .limit(1)
+            .maybe_single()
+            .execute()
+        )
+        payload = (done_event.data or {}).get("payload") if done_event else None
+        error = payload.get("error") if isinstance(payload, dict) else None
+        if error:
+            progress["error"] = error
+
+    return progress

@@ -128,6 +128,26 @@ def test_apply_canvas_patch_preserves_existing_annotation_nodes():
     assert nodes[0]["data"]["label"] == "note"
     assert warnings == []
 
+
+def test_apply_canvas_patch_accepts_legacy_input_alias_nodes():
+    nodes, edges, _id_map, warnings = apply_canvas_patch(
+        [
+            {"id": "legacy-input", "type": "input", "position": {"x": 0, "y": 0}, "data": {"label": ZH_INPUT}},
+            {"id": "summary-1", "type": "summary", "position": {"x": 320, "y": 0}, "data": {"label": ZH_SUMMARY_LABEL}},
+        ],
+        [{"id": "edge-1", "source": "legacy-input", "target": "summary-1"}],
+        [
+            {"op": "create_node", "client_id": "summary_2", "node_type": "summary", "label": ZH_SUMMARY},
+            {"op": "create_edge", "source": "summary-1", "target": "$summary_2"},
+        ],
+    )
+
+    assert nodes[0]["type"] == "trigger_input"
+    assert nodes[0]["data"]["type"] == "trigger_input"
+    assert len(nodes) == 3
+    assert len(edges) == 2
+    assert warnings == []
+
 def test_delete_node_requires_confirmation():
     node = create_workflow_node_instance("summary", node_id="n1", label=ZH_SUMMARY_LABEL)
 
@@ -155,3 +175,17 @@ def test_validate_canvas_reports_unknown_missing_self_and_cycle():
     assert "self_edge" in codes
     assert "edge_endpoint_missing" in codes
     assert "cycle_detected" in codes
+
+
+def test_validate_canvas_treats_legacy_input_as_trigger_input():
+    issues = validate_canvas(
+        [
+            {"id": "legacy-input", "type": "input", "position": {"x": 0, "y": 0}, "data": {"label": ZH_INPUT}},
+            {"id": "summary-1", "type": "summary", "position": {"x": 1, "y": 1}, "data": {"type": "summary", "label": ZH_SUMMARY}},
+        ],
+        [{"id": "edge-1", "source": "legacy-input", "target": "summary-1"}],
+    )
+
+    codes = {issue["code"] for issue in issues}
+    assert "unknown_node_type" not in codes
+    assert "missing_trigger_input" not in codes

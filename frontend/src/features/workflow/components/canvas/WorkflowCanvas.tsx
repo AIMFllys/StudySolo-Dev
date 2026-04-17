@@ -33,6 +33,8 @@ import { useCanvasClipboard } from '@/features/workflow/hooks/use-canvas-clipboa
 import { useCanvasKeyboard } from '@/features/workflow/hooks/use-canvas-keyboard';
 import { useCanvasEventListeners } from '@/features/workflow/hooks/use-canvas-event-listeners';
 import { useCanvasDnd } from '@/features/workflow/hooks/use-canvas-dnd';
+import { useCanvasTouch } from '@/features/workflow/hooks/use-canvas-touch';
+import { useIsTouchDevice } from '@/hooks/mobile';
 import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 import { eventBus } from '@/lib/events/event-bus';
 
@@ -84,6 +86,29 @@ function WorkflowCanvasInner() {
   useCanvasEventListeners({
     reactFlowInstance, nodes, setCanvasTool, setModal, setPlacementMode,
     setConfigNodeId, setConfigAnchorRect, setNodes, setSelectedNodeId,
+  });
+
+  // ── Mobile touch support ─────────────────────────────────────────────────
+  const isTouchDevice = useIsTouchDevice();
+
+  // Handle long press for context menus on mobile
+  const handleNodeLongPress = useCallback((nodeId: string, position: { x: number; y: number }) => {
+    setCanvasMenu(null);
+    setSelectedNodeId(nodeId);
+    setNodeMenu({ x: position.x, y: position.y, nodeId });
+  }, [setSelectedNodeId]);
+
+  const handleCanvasLongPress = useCallback((position: { x: number; y: number }) => {
+    setNodeMenu(null);
+    setCanvasMenu({ x: position.x, y: position.y });
+  }, []);
+
+  const { touchHandlers } = useCanvasTouch({
+    reactFlowInstance,
+    enablePinchZoom: true,
+    enablePan: true,
+    onNodeLongPress: handleNodeLongPress,
+    onCanvasLongPress: handleCanvasLongPress,
   });
 
   // ── Fullscreen ──────────────────────────────────────────────────────────
@@ -214,15 +239,26 @@ function WorkflowCanvasInner() {
         nodeTypes={nodeTypes} edgeTypes={edgeTypes}
         connectionLineType={'smoothstep' as ConnectionLineType}
         defaultEdgeOptions={defaultEdgeOptions}
-        edgesReconnectable reconnectRadius={25}
+        edgesReconnectable reconnectRadius={isTouchDevice ? 35 : 25}
         onReconnectStart={handleReconnectStart} onReconnect={handleEdgeReconnect} onReconnectEnd={handleReconnectEnd}
         onEdgeClick={handleEdgeClick} onEdgeContextMenu={handleEdgeContextMenu}
         onNodeDragStart={() => useWorkflowStore.getState().takeSnapshot()}
         onNodeDragStop={handleNodeDragStop}
-        panOnScroll={false} zoomOnPinch panOnDrag={!isSelectMode} nodesDraggable
+        // Mobile optimized settings
+        panOnScroll={false}
+        zoomOnPinch={true}
+        zoomOnScroll={false}
+        zoomOnDoubleClick={!isTouchDevice}
+        panOnDrag={!isSelectMode}
+        nodesDraggable
         selectionOnDrag={isSelectMode}
         selectionMode={isSelectMode ? SelectionMode.Partial : SelectionMode.Full}
-        nodeDragThreshold={4} minZoom={0.2} maxZoom={2} proOptions={proOptions}
+        nodeDragThreshold={isTouchDevice ? 8 : 4}
+        minZoom={0.2}
+        maxZoom={2}
+        proOptions={proOptions}
+        // Touch event handlers
+        {...touchHandlers}
       >
         <CanvasMiniMap />
         <HistoryControls />

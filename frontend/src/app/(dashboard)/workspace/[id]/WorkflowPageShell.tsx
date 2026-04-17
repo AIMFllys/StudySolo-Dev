@@ -100,6 +100,9 @@ export default function WorkflowPageShell({
         </div>
         <RightPanel />
       </div>
+
+      {/* Mobile safe area spacer */}
+      <div className="md:hidden h-4 safe-area-bottom" />
     </div>
   );
 }

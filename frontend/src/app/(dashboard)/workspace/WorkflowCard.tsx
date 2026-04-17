@@ -1,6 +1,9 @@
+'use client';
+
+import { useCallback, useRef, useState } from 'react';
 import Link from 'next/link';
 import type { WorkflowMeta } from '@/types/workflow';
-import { Star, Heart, FileText } from 'lucide-react';
+import { Star, Heart, FileText, MoreHorizontal } from 'lucide-react';
 
 interface WorkflowCardProps {
   workflow: WorkflowMeta;
@@ -30,10 +33,44 @@ export function WorkflowCard({
   const isEditingDesc = editingCardId === workflow.id && editingField === 'desc';
   const isEditingTags = editingCardId === workflow.id && editingField === 'tags';
 
+  // Long press detection for mobile context menu
+  const touchTimer = useRef<NodeJS.Timeout | null>(null);
+  const touchStartPos = useRef<{ x: number; y: number } | null>(null);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    touchTimer.current = setTimeout(() => {
+      setShowMobileMenu(true);
+    }, 500); // 500ms long press
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (touchStartPos.current && touchTimer.current) {
+      const dx = Math.abs(e.touches[0].clientX - touchStartPos.current.x);
+      const dy = Math.abs(e.touches[0].clientY - touchStartPos.current.y);
+      if (dx > 10 || dy > 10) {
+        // Moved too much, cancel long press
+        clearTimeout(touchTimer.current);
+        touchTimer.current = null;
+      }
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (touchTimer.current) {
+      clearTimeout(touchTimer.current);
+      touchTimer.current = null;
+    }
+  }, []);
+
   return (
     <div
       onContextMenu={(e) => onContextMenu(e, workflow.id)}
-      className="group relative flex flex-col p-4 rounded-[1.25rem] border border-border/80 bg-white/60 dark:bg-card shadow-sm transition-all hover:shadow-md hover:border-black/10 dark:hover:border-white/10"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      className="group relative flex flex-col p-4 rounded-[1.25rem] border border-border/80 bg-white/60 dark:bg-card shadow-sm transition-all hover:shadow-md hover:border-black/10 dark:hover:border-white/10 touch-feedback"
     >
       <Link href={`/c/${workflow.id}`} className="absolute inset-0 z-0" />
 
@@ -82,22 +119,35 @@ export function WorkflowCard({
           <span className="max-w-[100px] truncate" title={workflow.owner_name || ''}>{workflow.owner_name || '未知用户'}</span>
         </div>
 
-        <div className="flex items-center justify-end gap-3 text-[11px] pointer-events-auto">
-          <div className="flex items-center gap-3 text-[12px] text-muted-foreground/80">
+        <div className="flex items-center justify-end gap-2 sm:gap-3 text-[11px] pointer-events-auto">
+          {/* Mobile menu button */}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowMobileMenu(true);
+            }}
+            className="sm:hidden flex h-7 w-7 items-center justify-center rounded-full hover:bg-muted transition-colors"
+            aria-label="更多操作"
+          >
+            <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+          </button>
+
+          <div className="flex items-center gap-2 sm:gap-3 text-[12px] text-muted-foreground/80">
             <button
               onClick={(e) => onToggleLike(e, workflow.id)}
-              className={`flex items-center gap-1 transition-colors hover:scale-110 active:scale-95 duration-200 ${workflow.is_liked ? 'text-rose-500' : 'hover:text-rose-400'}`}
+              className={`flex items-center gap-1 transition-colors hover:scale-110 active:scale-95 duration-200 touch-target ${workflow.is_liked ? 'text-rose-500' : 'hover:text-rose-400'}`}
               title={workflow.is_liked ? '取消点赞' : '点赞'}
             >
-              <Heart className={`w-3.5 h-3.5 ${workflow.is_liked ? 'fill-rose-500' : ''}`} />
-              <span>{workflow.likes_count}</span>
+              <Heart className={`w-4 h-4 sm:w-3.5 sm:h-3.5 ${workflow.is_liked ? 'fill-rose-500' : ''}`} />
+              <span className="hidden sm:inline">{workflow.likes_count}</span>
             </button>
             <button
               onClick={(e) => onToggleFavorite(e, workflow.id)}
-              className={`flex items-center transition-colors hover:scale-110 active:scale-95 duration-200 ${workflow.is_favorited ? 'text-amber-500' : 'hover:text-amber-500'}`}
+              className={`flex items-center transition-colors hover:scale-110 active:scale-95 duration-200 touch-target ${workflow.is_favorited ? 'text-amber-500' : 'hover:text-amber-500'}`}
               title={workflow.is_favorited ? '取消收藏' : '收藏工作流'}
             >
-              <Star className={`w-3.5 h-3.5 ${workflow.is_favorited ? 'fill-amber-500' : ''}`} />
+              <Star className={`w-4 h-4 sm:w-3.5 sm:h-3.5 ${workflow.is_favorited ? 'fill-amber-500' : ''}`} />
             </button>
           </div>
 

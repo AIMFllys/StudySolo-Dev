@@ -156,3 +156,60 @@ npx tsc --noEmit
 - MCP / CLI 下一阶段：HTTP / SSE transport、细粒度 scopes、run pause / resume / cancel。
 - Wiki 文档继续补齐真实截图、错误码说明和常见问题。
 - 若仍出现保存失败，需要结合具体 HTTP 状态继续查后端工作流更新链路；当前批次已清理前端未处理 rejection 和 debug log 路径 500。
+
+---
+
+## 10. 收尾验收补充（Agent × Workflow）
+
+- 已修复：空画布 current workflow 上下文丢失、legacy chat `<think>` 泄漏、空画布当前工作流改名漏调工具、旧 `input` 节点阻断 canvas mutation、`read_canvas` 缺少 status、run status 缺少 progress/error。
+- 真实验收通过：普通聊天、`list_workflows`、`open_workflow`、当前 workflow rename、`read_canvas`、`add_node`、`update_node`、`add_edge` 持久化、`delete_edge` 持久化、`delete_node`、打开不存在工作流。
+- 原始 SSE 已确认 `open_workflow` 带 `ui_effect: router_push`，目标为 `/c/{workflow_id}`。
+- 真实验收中，`add_node` 会把旧画布里的 `input` 规范成 `trigger_input`，后续 canvas mutation 可继续落库。
+- 仍待收口：`add_edge/delete_edge` 在工具成功后偶发缺少最终 `<answer>/<summary>`；`后台运行当前工作流` 与 `get_workflow_run_status` 的自然语言命中仍不稳定；“不存在节点 / 不存在连线”两类自然语言错误场景还未稳定落到工具 error。
+
+## 11. Agent × Workflow 收尾验收补记（2026-04-17）
+
+本轮针对 Agent × Workflow 收尾又补了一轮最小修复，重点不是扩功能，而是把真实验收里的波动路径压平：
+
+- `agent_loop.py` 新增了窄范围 direct shortcut，覆盖这些明确动作句：
+  - 列出工作流
+  - 打开指定工作流 / 打开最近编辑的工作流 / 打开不存在的工作流
+  - 重命名当前工作流
+  - 读取当前画布
+  - 新增节点 / 修改节点 / 新增边 / 删除边
+  - 后台运行当前工作流
+  - 查询指定 `run_id` 或最近一次 `run_id` 的运行状态
+  - 删除不存在的连线 / 修改不存在的节点
+- 补了 tool-only 轮次 fallback：当模型成功调用工具但没有补齐最终 `<answer>/<summary>` 时，后端会补发稳定的 answer / summary，避免前端只看到 ToolCall 卡没有结果文案。
+- `open_workflow` 的名字解析现在优先提取引号中的工作流名，避免“打开不存在的工作流『xxx』”这类句子把前缀词带进错误信息。
+
+本轮重新完成并确认通过的真实验收场景：
+
+- 普通聊天：不会误入 Agent；无 ToolCall；无 XML / `<think>` 字面量泄漏。
+- `list_workflows`：ToolCall `running -> ok`，answer 列出工作流名，summary 为“本轮未产生副作用”。
+- `open_workflow`：可按工作流名直接打开；answer / summary 正常；原始 SSE 仍带 `ui_effect: router_push`。
+- `rename_workflow`：当前 workflow 可直接重命名为中文名，数据库结果和 summary 正确。
+- `read_canvas`：会返回 label / type / status；空画布也会明确回答节点数和连线数。
+- `add_node`：可在最后一步后新增中文节点，立即落库并刷新后保留。
+- `update_node`：只更新白名单字段，中文标题改名稳定。
+- `add_edge` / `delete_edge`：都能稳定触发、返回 answer / summary，并完成持久化。
+- `start_workflow_background`：会返回真实 `run_id`，answer / summary 正常。
+- `get_workflow_run_status`：会返回状态、完成节点数、当前节点、耗时等进度信息。
+- 失败场景：
+  - 打开不存在的工作流：返回明确错误，summary 标记“本轮未产生副作用”。
+  - 修改不存在的节点：返回明确错误，画布不被清空。
+  - 删除不存在的连线：返回明确错误，前端消息不会卡死。
+
+本轮新增/扩展的后端测试：
+
+- `backend/tests/test_ai_agent_loop_acceptance_shortcuts.py`
+  - direct shortcut：list / open / rename / read canvas / add node / update node / add edge / delete edge / start run / get run status / missing edge / missing node
+  - tool-only 轮次 fallback answer / summary
+- 当前后端定向回归结果：
+  - `python -m pytest -k "agent or xml or chat or debug or workflow_canvas_service"`
+  - 结果：`70 passed, 1 skipped`
+
+补充说明：
+
+- 前端之前已通过定向 vitest 回归；当前 `frontend` 的 `npx tsc --noEmit` 仍受工作树里已有的触屏/移动端改动影响，不属于本轮 Agent × Workflow 收尾修复范围。
+- 本轮没有新增数据库迁移，没有改 MCP/CLI 范围，也没有做整仓格式化。

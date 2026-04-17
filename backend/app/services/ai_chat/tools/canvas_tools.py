@@ -109,6 +109,7 @@ async def read_canvas_tool(ctx: ToolContext, params: dict[str, Any]) -> ToolResu
             "id": n.get("id"),
             "type": n.get("type") or (n.get("data") or {}).get("type"),
             "label": (n.get("data") or {}).get("label"),
+            "status": (n.get("data") or {}).get("status") or "pending",
         }
         for n in nodes
     ]

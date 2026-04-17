@@ -26,7 +26,12 @@ from app.prompts import (
 )
 from app.services.ai_catalog_service import get_sku_by_id, is_tier_allowed, resolve_selected_sku
 from app.services.ai_chat.agent_loop import run_agent_loop
-from app.services.ai_chat.helpers import build_canvas_summary, extract_json_obj
+from app.services.ai_chat.helpers import (
+    ReasoningStreamSanitizer,
+    build_canvas_summary,
+    extract_json_obj,
+    strip_reasoning_blocks,
+)
 from app.services.ai_chat.model_caller import call_with_model
 from app.services.ai_chat.thinking import (
     resolve_effective_thinking_level,
@@ -50,6 +55,11 @@ async def call_llm(*args, **kwargs):
     if args and isinstance(args[0], str):
         return await call_task_llm(*args, **kwargs)
     return await call_lightweight_chat_response(*args, **kwargs)
+
+
+def _sanitize_legacy_chat_text(text: str) -> str:
+    """Drop inline reasoning tags from legacy chat responses."""
+    return strip_reasoning_blocks(text)
 
 _DEPTH_INSTRUCTIONS: dict[str, str] = {
     "fast": "Please answer briefly and directly.",
@@ -279,7 +289,7 @@ async def _ai_chat_impl(
     )
     return AIChatResponse(
         intent="CHAT",
-        response=raw,
+        response=_sanitize_legacy_chat_text(raw),
         model_used=model_used,
         platform_used=platform_used,
     )
@@ -522,10 +532,19 @@ async def _chat_stream_generator(
             else:
                 token_iter = await call_llm(stream_msgs, stream=True)
 
+            sanitizer = ReasoningStreamSanitizer()
             full = ""
             async for token in token_iter:
-                full += token
-                yield {"data": json.dumps({"token": token}, ensure_ascii=False)}
+                safe_token = sanitizer.feed(token)
+                if not safe_token:
+                    continue
+                full += safe_token
+                yield {"data": json.dumps({"token": safe_token}, ensure_ascii=False)}
+
+            tail = sanitizer.flush()
+            if tail:
+                full += tail
+                yield {"data": json.dumps({"token": tail}, ensure_ascii=False)}
 
             yield {"data": json.dumps({"done": True, "full": full}, ensure_ascii=False)}
             yield {"data": "[DONE]"}

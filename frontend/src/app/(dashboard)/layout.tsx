@@ -1,4 +1,5 @@
 import Sidebar from '@/components/layout/Sidebar';
+import { MobileSidebarTrigger } from '@/components/layout/MobileSidebar';
 import DashboardShell from '@/components/layout/DashboardShell';
 import DashboardContentLayout from '@/components/layout/DashboardContentLayout';
 import { fetchWorkflowListForServer } from '@/services/workflow.server.service';
@@ -13,6 +14,9 @@ export default async function DashboardLayout({
   return (
     <div className="flex h-screen flex-col overflow-hidden">
       <DashboardShell>
+        {/* Mobile Sidebar Trigger - shown only on small screens */}
+        <MobileSidebarTrigger />
+
         {/* DashboardContentLayout reads sidebarPosition client-side and applies flex direction */}
         <DashboardContentLayout>
           <div className="hidden h-full md:flex">

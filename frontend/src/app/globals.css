@@ -22,3 +22,72 @@
 @import "../styles/workflow/loop-nodes.css";
 @import "../styles/workflow/node-result-slip.css";
 @import "../styles/admin-scholarly.css";
+@import "../styles/touch-feedback.css";
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Mobile Form Input Optimizations
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Prevent iOS zoom when focusing inputs (font-size < 16px triggers zoom) */
+@media (hover: none) and (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Optimize button touch targets */
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Prevent text selection on UI elements */
+  .no-select-mobile {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+
+  /* Improve scrolling performance */
+  .scroll-container {
+    -webkit-overflow-scrolling: touch;
+    overflow-scrolling: touch;
+  }
+
+  /* Disable callout menu on iOS */
+  .no-callout {
+    -webkit-touch-callout: none;
+  }
+}
+
+/* Keyboard open layout adjustments */
+.keyboard-open .fixed-bottom {
+  position: relative;
+}
+
+.keyboard-open .mobile-bottom-nav {
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+}
+
+/* Safe area support for notched devices */
+@supports (padding: max(0px)) {
+  .safe-area-top {
+    padding-top: max(env(safe-area-inset-top), 0px);
+  }
+
+  .safe-area-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom), 0px);
+  }
+
+  .safe-area-left {
+    padding-left: max(env(safe-area-inset-left), 0px);
+  }
+
+  .safe-area-right {
+    padding-right: max(env(safe-area-inset-right), 0px);
+  }
+}

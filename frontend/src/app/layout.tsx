@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import ThemeProvider from "@/components/layout/ThemeProvider";
 import { AuthSessionBridge } from "@/features/auth/components";
 import { SafeErrorBoundary } from "@/components/ui/SafeErrorBoundary";
@@ -28,6 +28,14 @@ export const metadata: Metadata = {
     shortcut: [{ url: "/StudySolo.png", type: "image/png" }],
     apple: [{ url: "/StudySolo.png", type: "image/png" }],
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

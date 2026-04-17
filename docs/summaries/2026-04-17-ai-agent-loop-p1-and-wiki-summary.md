@@ -139,3 +139,46 @@ Agent Loop 启用边界收紧：
 2. 为 API Wiki 增加错误码、截图和最小可运行示例。
 3. MCP / CLI 下一阶段推进 HTTP / SSE transport、细粒度 scopes、run pause / resume / cancel。
 4. 若保存失败仍复现，再按具体 HTTP 状态继续查工作流更新接口或会话恢复链路。
+
+---
+
+## 收尾验收补充
+
+- 本轮额外修补了 6 个收尾点：空画布 workflow 上下文保留、legacy chat `<think>` 清洗、当前 workflow 改名直达 shortcut、`read_canvas` 节点 status、run status 进度合并、旧 `input` 节点兼容成 `trigger_input`。
+- 真实验收已明确通过：普通聊天、列工作流、打开工作流、当前 workflow 改名、读画布、增删改节点、增删边持久化、打开不存在工作流。
+- 当前剩余缺口主要有三类：
+  1. `add_edge/delete_edge` 成功后偶发缺少最终 answer/summary。
+  2. `后台运行当前工作流` / `get_workflow_run_status` 的自然语言命中不稳定。
+  3. “不存在节点 / 不存在连线”自然语言错误场景未稳定落到工具 error。
+
+## 收尾验收补记（2026-04-17）
+
+本轮收尾把 Agent × Workflow 真实验收里最不稳定的路径全部压平，核心做法有两类：
+
+- 给明确动作句加 direct shortcut：list / open / rename / read canvas / add node / update node / add edge / delete edge / start run / get run status / missing edge / missing node。
+- 给 tool-only 轮次补 answer / summary fallback，避免工具执行成功后前端没有最终文案。
+
+重新确认通过的真实场景：
+
+- 普通聊天不误入 Agent，无 ToolCall，无 XML / `<think>` 泄漏。
+- `list_workflows`、`open_workflow`、`rename_workflow`、`read_canvas` 全部可稳定给出 answer / summary。
+- `add_node`、`update_node`、`add_edge`、`delete_edge` 均能稳定持久化，中文 label 不乱码。
+- `start_workflow_background` 可返回真实 `run_id`；`get_workflow_run_status` 可返回状态和进度字段。
+- 打开不存在的工作流、修改不存在的节点、删除不存在的连线都会返回明确错误，并标记“本轮未产生副作用”。
+
+新增测试文件：
+
+- `backend/tests/test_ai_agent_loop_acceptance_shortcuts.py`
+
+后端定向回归结果：
+
+- `python -m pytest -k "agent or xml or chat or debug or workflow_canvas_service"`
+- `70 passed, 1 skipped`
+
+仍不在本轮范围内：
+
+- MCP/CLI 新能力
+- HTTP/SSE transport、scopes、run pause/resume/cancel
+- 数据库迁移
+- 整仓格式化
+- 当前工作树里与移动端触控相关的前端类型错误

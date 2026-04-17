@@ -22,6 +22,9 @@ _HANDLE_SOURCE_RIGHT = "source-right"
 _HANDLE_TARGET_LEFT = "target-left"
 _COMPAT_NON_MANIFEST_TYPES = {"annotation", "generating", "community_node"}
 _VISUAL_ONLY_TYPES = {"annotation", "generating"}
+_LEGACY_NODE_TYPE_ALIASES = {
+    "input": "trigger_input",
+}
 
 
 class CanvasPatchError(ValueError):
@@ -39,6 +42,10 @@ def _manifest_by_type() -> dict[str, dict[str, Any]]:
 
 def _known_node_types() -> set[str]:
     return set(_manifest_by_type().keys())
+
+
+def _canonical_node_type(node_type: str) -> str:
+    return _LEGACY_NODE_TYPE_ALIASES.get(node_type, node_type)
 
 
 def _make_id(prefix: str) -> str:
@@ -103,6 +110,7 @@ def create_workflow_node_instance(
     node_id: str | None = None,
 ) -> dict[str, Any]:
     """Create a complete, executable workflow node instance."""
+    node_type = _canonical_node_type(node_type)
     manifest = _manifest_by_type()
     if node_type not in manifest:
         raise CanvasPatchError(f"Unknown node type: {node_type}", code="unknown_node_type", detail={"node_type": node_type})
@@ -155,7 +163,7 @@ def normalize_workflow_node(node: dict[str, Any]) -> dict[str, Any]:
     """Normalize a stored node so it has fields needed by canvas and engine."""
     if not isinstance(node, dict):
         raise CanvasPatchError("Node must be an object", code="invalid_node")
-    node_type = str(node.get("type") or (node.get("data") or {}).get("type") or "")
+    node_type = _canonical_node_type(str(node.get("type") or (node.get("data") or {}).get("type") or ""))
     if not node_type:
         raise CanvasPatchError("Node is missing type", code="missing_node_type")
     if node_type not in _manifest_by_type() and node_type in _COMPAT_NON_MANIFEST_TYPES:
@@ -413,7 +421,7 @@ def validate_canvas(nodes: list[dict[str, Any]], edges: list[dict[str, Any]]) ->
     for node in nodes or []:
         node_id = str(node.get("id") or "")
         node_data = node.get("data") if isinstance(node.get("data"), dict) else {}
-        node_type = str(node.get("type") or node_data.get("type") or "")
+        node_type = _canonical_node_type(str(node.get("type") or node_data.get("type") or ""))
         if not node_id:
             issues.append({"severity": "error", "code": "missing_node_id", "message": "Node is missing id"})
             continue
@@ -455,14 +463,18 @@ def validate_canvas(nodes: list[dict[str, Any]], edges: list[dict[str, Any]]) ->
     if cycle_nodes:
         issues.append({"severity": "error", "code": "cycle_detected", "node_ids": sorted(cycle_nodes), "message": "Workflow contains a cycle"})
 
-    has_trigger = any(str((node.get("type") or (node.get("data") or {}).get("type"))) == "trigger_input" for node in nodes or [])
+    has_trigger = any(
+        _canonical_node_type(str((node.get("type") or (node.get("data") or {}).get("type"))))
+        == "trigger_input"
+        for node in nodes or []
+    )
     if runnable_ids and not has_trigger:
         issues.append({"severity": "warning", "code": "missing_trigger_input", "message": "Workflow has no trigger_input node"})
 
     for node_id in sorted(runnable_ids):
         if incoming_count.get(node_id, 0) == 0:
             node = next((item for item in nodes if item.get("id") == node_id), {})
-            node_type = str(node.get("type") or "")
+            node_type = _canonical_node_type(str(node.get("type") or ""))
             if node_type != "trigger_input":
                 issues.append({"severity": "warning", "code": "orphan_executable_node", "node_id": node_id, "message": "Executable node has no upstream input"})
 

@@ -36,6 +36,65 @@ export interface StreamChatOptions {
   thinkingDepth?: ThinkingDepth;
 }
 
+export function buildChatStreamRequestBody(opts: StreamChatOptions) {
+  const {
+    userInput,
+    canvasContext,
+    history,
+    intentHint,
+    mode,
+    selectedModel,
+    thinkingDepth = 'fast',
+  } = opts;
+
+  const effectiveThinkingDepth = resolveEffectiveThinkingDepth(
+    thinkingDepth,
+    selectedModel.skuId && selectedModel.supportsThinking !== null
+      ? { skuId: selectedModel.skuId, supportsThinking: selectedModel.supportsThinking }
+      : null,
+  );
+
+  const hasCanvasContext = Boolean(
+    canvasContext &&
+      (
+        canvasContext.workflowId ||
+        canvasContext.workflowName ||
+        canvasContext.nodesSummary.length > 0 ||
+        canvasContext.selectedNodeId ||
+        canvasContext.dagDescription ||
+        canvasContext.executionStatus
+      ),
+  );
+
+  return {
+    user_input: userInput,
+    canvas_context: hasCanvasContext
+      ? {
+          workflow_id: canvasContext?.workflowId ?? null,
+          workflow_name: canvasContext?.workflowName ?? '',
+          nodes: (canvasContext?.nodesSummary ?? []).map((n) => ({
+            id: n.id, index: n.index, label: n.label, type: n.type,
+            status: n.status, has_output: n.hasOutput,
+            output_preview: n.outputPreview,
+            upstream_labels: n.upstreamLabels,
+            downstream_labels: n.downstreamLabels,
+            position: n.position,
+          })),
+          dag_description: canvasContext?.dagDescription ?? '',
+          selected_node_id: canvasContext?.selectedNodeId ?? null,
+          execution_status: canvasContext?.executionStatus ?? null,
+        }
+      : null,
+    conversation_history: history.slice(-10).map((h) => ({
+      role: h.role, content: h.content, timestamp: h.timestamp,
+    })),
+    intent_hint: intentHint,
+    mode: mode ?? 'chat',
+    selected_model_key: selectedModel.skuId,
+    thinking_level: effectiveThinkingDepth,
+  };
+}
+
 export function useStreamChat() {
   const router = useRouter();
   const {
@@ -50,13 +109,7 @@ export function useStreamChat() {
   } = useAIChatStore();
 
   const send = useCallback(async (opts: StreamChatOptions) => {
-    const { userInput, canvasContext, history, intentHint, mode, selectedModel, thinkingDepth = 'fast' } = opts;
-    const effectiveThinkingDepth = resolveEffectiveThinkingDepth(
-      thinkingDepth,
-      selectedModel.skuId && selectedModel.supportsThinking !== null
-        ? { skuId: selectedModel.skuId, supportsThinking: selectedModel.supportsThinking }
-        : null,
-    );
+    const { history, userInput } = opts;
 
     abortAIChatStream();
 
@@ -81,33 +134,8 @@ export function useStreamChat() {
       },
     ]);
 
-    const body = {
-      user_input: userInput,
-      canvas_context: canvasContext?.nodesSummary.length
-        ? {
-            workflow_id: canvasContext.workflowId,
-            workflow_name: canvasContext.workflowName,
-            nodes: canvasContext.nodesSummary.map((n) => ({
-              id: n.id, index: n.index, label: n.label, type: n.type,
-              status: n.status, has_output: n.hasOutput,
-              output_preview: n.outputPreview,
-              upstream_labels: n.upstreamLabels,
-              downstream_labels: n.downstreamLabels,
-              position: n.position,
-            })),
-            dag_description: canvasContext.dagDescription,
-            selected_node_id: canvasContext.selectedNodeId,
-            execution_status: canvasContext.executionStatus,
-          }
-        : null,
-      conversation_history: history.slice(-10).map((h) => ({
-        role: h.role, content: h.content, timestamp: h.timestamp,
-      })),
-      intent_hint: intentHint,
-      mode: mode ?? 'chat',
-      selected_model_key: selectedModel.skuId,
-      thinking_level: effectiveThinkingDepth,
-    };
+    const body = buildChatStreamRequestBody(opts);
+    const effectiveThinkingDepth = body.thinking_level;
 
     let finalText = '';
     let intent = 'CHAT';
