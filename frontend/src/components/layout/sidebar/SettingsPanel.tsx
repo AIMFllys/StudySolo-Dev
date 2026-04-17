@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { PanelLeft, PanelRight, Cookie } from 'lucide-react';
+import { PanelLeft, PanelRight, Cookie, KeyRound, ChevronRight } from 'lucide-react';
 import { FeedbackChannel } from '@/features/settings/components';
 import {
   useSettingsStore,
@@ -11,6 +11,7 @@ import {
   type ThemeMode,
   type SidebarPosition,
 } from '@/stores/ui/use-settings-store';
+import { usePanelStore } from '@/stores/ui/use-panel-store';
 import {
   ACCENT_OPTIONS,
   FONT_OPTIONS,
@@ -39,6 +40,8 @@ export default function SettingsPanel() {
     showMinimap, setShowMinimap,
     sidebarPosition, setSidebarPosition,
   } = useSettingsStore();
+
+  const setActiveSidebarPanel = usePanelStore((s) => s.setActiveSidebarPanel);
 
   const [cookieLevel, setCookieLevel] = useState<CookieConsentLevel | null>(null);
   const [cookieSaving, setCookieSaving] = useState(false);
@@ -191,6 +194,25 @@ export default function SettingsPanel() {
                 </a>
               </div>
             </div>
+          </Section>
+
+          <Section title="开发者">
+            <button
+              type="button"
+              onClick={() => setActiveSidebarPanel('wallet')}
+              className="node-paper-bg w-full flex items-center justify-between gap-2 rounded-lg border-[1.5px] border-border/50 px-3 py-2 text-left shadow-sm hover:border-primary/30 hover:shadow-md transition-all"
+            >
+              <span className="flex items-center gap-2 min-w-0">
+                <KeyRound className="h-3.5 w-3.5 text-primary/80 shrink-0" aria-hidden />
+                <span className="flex flex-col min-w-0">
+                  <span className="text-[11px] font-medium text-foreground">API Token</span>
+                  <span className="text-[9px] text-muted-foreground leading-tight truncate">
+                    用于 CLI 与 MCP Server
+                  </span>
+                </span>
+              </span>
+              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" aria-hidden />
+            </button>
           </Section>
 
           <div className="mt-6"><FeedbackChannel /></div>

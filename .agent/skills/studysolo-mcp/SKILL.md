@@ -17,7 +17,7 @@ priority: HIGH
 
 ## 1. 技能目标
 
-告诉 AI：在任意 MCP Host 内，如何通过 `studysolo-mcp` 安全、正确地使用 11 个工具，覆盖四类用户意图：
+告诉 AI：在任意 MCP Host 内，如何通过 `studysolo-mcp` 安全、正确地使用当前注册的全部工具（画布与运行类工具已扩展，具体以 `packages/mcp-server/src/studysolo_mcp/server.py` 为准），覆盖下列用户意图：
 
 1. **账户 / 会员 / 额度** — 「我是谁」「我是什么会员」「我还能跑几次」
 2. **AI 使用数据** — 「最近用量」「每天调用量」「实时有没有在跑」

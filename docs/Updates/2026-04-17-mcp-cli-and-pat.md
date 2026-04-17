@@ -4,7 +4,7 @@
 
 为让 StudySolo 既能被 Claude Desktop / Cursor / Claude Code 等 MCP Host 调用，也能在终端直接使用，本次同步推出 **两套客户端 + 一套认证机制 + 一套规范化工作流 REST**：
 
-- `packages/mcp-server/`（`studysolo-mcp`）：stdio transport 的 MCP Server，11 个工具。
+- `packages/mcp-server/`（`studysolo-mcp`）：stdio transport 的 MCP Server；工具数量随版本扩展（当前代码注册 **18** 个工具，含画布编辑与运行观测等，以 `packages/mcp-server/src/studysolo_mcp/server.py` 为准）。
 - `packages/cli/`（`studysolo`）：Typer + Rich 命令行。
 - `ss_api_tokens`：新表，承载 Personal Access Token（PAT）。
 - `ss_workflow_run_events` + 3 个新 REST：让非浏览器客户端能启动 / 监控工作流。
@@ -61,7 +61,7 @@ packages/
 
 **CLI 命令面**：`login / logout / me / quota / usage {overview,timeseries,live} / wf {list,show,manifest,run --stream|--poll}`。
 
-**MCP 工具面（11）**：`get_me / get_quota / get_usage_overview / get_usage_timeseries / get_usage_live / list_workflows / get_workflow / get_nodes_manifest / start_workflow_run / get_run_progress / get_run_events / run_workflow_and_wait`。
+**MCP 工具面（随 `studysolo-mcp` 版本；初版发布后已扩展画布类工具）**：除账户、用量、工作流列表与 `get_workflow`、`get_nodes_manifest`、运行类工具外，另含 `create_workflow`、`get_workflow_canvas`、`get_workflow_node`、`apply_workflow_canvas_patch`、`validate_workflow_canvas`、`get_node_config_options` 等；完整清单以 `server.py` 的 `_HANDLERS` 为准。
 
 ## 6. Skill 与文档
 

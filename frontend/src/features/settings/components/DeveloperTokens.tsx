@@ -36,7 +36,15 @@ function formatDate(value: string | null): string {
   }
 }
 
-export function DeveloperTokens() {
+export interface DeveloperTokensProps {
+  /**
+   * Render in narrow containers (e.g. sidebar wallet panel ~280px).
+   * Collapses rows to a single column and shrinks buttons.
+   */
+  compact?: boolean;
+}
+
+export function DeveloperTokens({ compact = false }: DeveloperTokensProps) {
   const [tokens, setTokens] = useState<ApiTokenListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -117,59 +125,82 @@ export function DeveloperTokens() {
     return tokens.map((token) => (
       <div
         key={token.id}
-        className="flex flex-col gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 text-sm dark:border-white/[0.06] dark:bg-white/[0.02] light:border-slate-200 light:bg-slate-50 md:flex-row md:items-center md:justify-between"
+        className={
+          compact
+            ? 'flex flex-col gap-1.5 rounded-lg border border-border/50 bg-white/[0.02] px-3 py-2.5 text-xs'
+            : 'flex flex-col gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 text-sm dark:border-white/[0.06] dark:bg-white/[0.02] light:border-slate-200 light:bg-slate-50 md:flex-row md:items-center md:justify-between'
+        }
       >
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <KeyRound className="h-4 w-4 text-primary/80" aria-hidden />
+          <div className="flex items-center gap-1.5 min-w-0">
+            <KeyRound className="h-3.5 w-3.5 text-primary/80 shrink-0" aria-hidden />
             <span className="truncate font-medium text-foreground">{token.name}</span>
-            <code className="truncate rounded bg-muted/60 px-1.5 py-0.5 text-[11px] text-muted-foreground">
+            <code className="truncate rounded bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground">
               {token.token_prefix}…
             </code>
           </div>
-          <div className="mt-1 text-xs text-muted-foreground">
-            创建于 {formatDate(token.created_at)} · 最近使用 {formatDate(token.last_used_at)} ·
-            {token.expires_at ? ` 过期 ${formatDate(token.expires_at)}` : ' 永不过期'}
+          <div className={compact ? 'mt-1 text-[10px] leading-snug text-muted-foreground break-words' : 'mt-1 text-xs text-muted-foreground'}>
+            创建 {formatDate(token.created_at)}
+            {compact ? <br /> : ' · '}
+            最近使用 {formatDate(token.last_used_at)}
+            {compact ? <br /> : ' · '}
+            {token.expires_at ? `过期 ${formatDate(token.expires_at)}` : '永不过期'}
           </div>
         </div>
         <button
           type="button"
           onClick={() => setPendingDelete(token)}
-          className="inline-flex items-center gap-1.5 self-start rounded-lg border border-red-500/30 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-500/10 md:self-center"
+          aria-label={`撤销 Token ${token.name}`}
+          className={
+            compact
+              ? 'inline-flex items-center gap-1 self-end rounded-md border border-red-500/30 px-2 py-1 text-[10px] font-medium text-red-500 hover:bg-red-500/10'
+              : 'inline-flex items-center gap-1.5 self-start rounded-lg border border-red-500/30 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-500/10 md:self-center'
+          }
         >
-          <Trash2 className="h-3.5 w-3.5" aria-hidden />
+          <Trash2 className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} aria-hidden />
           撤销
         </button>
       </div>
     ));
-  }, [tokens]);
+  }, [tokens, compact]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-muted-foreground">
-          用于 StudySolo CLI 与 MCP Server 的 Bearer Token。明文仅在创建时显示一次，请妥善保管。
-        </p>
+    <div className={compact ? 'space-y-3' : 'space-y-4'}>
+      <div className={compact ? 'flex items-center justify-between gap-2' : 'flex items-center justify-between gap-3'}>
+        {compact ? null : (
+          <p className="text-xs text-muted-foreground">
+            用于 StudySolo CLI 与 MCP Server 的 Bearer Token。明文仅在创建时显示一次，请妥善保管。
+          </p>
+        )}
         <button
           type="button"
           onClick={() => setCreateOpen(true)}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-glow-sm hover:bg-primary/90"
+          aria-label="新建 API Token"
+          className={
+            compact
+              ? 'ml-auto inline-flex shrink-0 items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-[11px] font-medium text-primary-foreground hover:bg-primary/90'
+              : 'inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-glow-sm hover:bg-primary/90'
+          }
         >
-          <Plus className="h-3.5 w-3.5" aria-hidden />
+          <Plus className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} aria-hidden />
           新建 Token
         </button>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-xs text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+        <div className={compact ? 'flex items-center justify-center gap-2 py-4 text-[11px] text-muted-foreground' : 'flex items-center justify-center gap-2 py-8 text-xs text-muted-foreground'}>
+          <Loader2 className={compact ? 'h-3.5 w-3.5 animate-spin' : 'h-4 w-4 animate-spin'} aria-hidden />
           加载中…
         </div>
       ) : hasTokens ? (
         <div className="space-y-2">{rows}</div>
       ) : (
-        <div className="rounded-xl border border-dashed border-white/[0.08] bg-white/[0.02] px-4 py-8 text-center text-xs text-muted-foreground dark:border-white/[0.08] dark:bg-white/[0.02] light:border-slate-200 light:bg-slate-50">
-          你还没有任何 API Token。点击右上角「新建 Token」开始。
+        <div className={
+          compact
+            ? 'rounded-lg border border-dashed border-border/60 bg-white/[0.02] px-3 py-4 text-center text-[11px] leading-snug text-muted-foreground'
+            : 'rounded-xl border border-dashed border-white/[0.08] bg-white/[0.02] px-4 py-8 text-center text-xs text-muted-foreground dark:border-white/[0.08] dark:bg-white/[0.02] light:border-slate-200 light:bg-slate-50'
+        }>
+          还没有任何 API Token。点击{compact ? '上方' : '右上角'}「新建 Token」开始。
         </div>
       )}
 
