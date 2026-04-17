@@ -116,14 +116,92 @@ if (-not $AdminToken) {
     }
 }
 
-# ---------- Step 2: Health probe ----------
+# ---------- Step 2: Health probe with smart diagnosis ----------
 try {
     $health = Invoke-WebRequest -Uri "$BaseUrl/api/health" -UseBasicParsing -TimeoutSec 5
     Write-Log "健康探测 /api/health ... OK ($($health.StatusCode))"
 }
 catch {
-    Write-Log "后端不可达: $($_.Exception.Message)" "ERROR"
-    Write-Log "请先运行 ./scripts/start-studysolo.ps1 启动后端" "ERROR"
+    $errMsg = $_.Exception.Message
+    $errType = $_.Exception.GetType().Name
+
+    # Visual error banner
+    Write-Host ""
+    Write-Host "╔══════════════════════════════════════════════════════════╗" -ForegroundColor Red
+    Write-Host "║             ❌  后端服务连接失败                           ║" -ForegroundColor Red
+    Write-Host "╚══════════════════════════════════════════════════════════╝" -ForegroundColor Red
+    Write-Host ""
+
+    # Categorize error and provide actionable guidance
+    if ($errMsg -match "Unable to connect|No connection could be made|actively refused") {
+        Write-Host "📍 错误类型: 连接被拒绝 (Connection Refused)" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "🔍 可能原因:" -ForegroundColor Cyan
+        Write-Host "   • 后端服务未启动" -ForegroundColor Gray
+        Write-Host "   • 端口 2038 被其他程序占用" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "✅ 建议操作:" -ForegroundColor Green
+        Write-Host "   1. 启动后端服务:" -ForegroundColor White
+        if ($isLoopback) {
+            Write-Host "      .\scripts\start-studysolo.ps1" -ForegroundColor Yellow
+        } else {
+            Write-Host "      bash ./scripts/startup/start-studysolo.sh" -ForegroundColor Yellow
+        }
+        Write-Host "   2. 检查端口占用:" -ForegroundColor White
+        Write-Host "      netstat -ano | findstr :2038" -ForegroundColor Yellow
+    }
+    elseif ($errMsg -match "timeout|timed out|Operation timed out") {
+        Write-Host "📍 错误类型: 连接超时 (Connection Timeout)" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "🔍 可能原因:" -ForegroundColor Cyan
+        Write-Host "   • 后端服务正在启动中 (冷启动较慢)" -ForegroundColor Gray
+        Write-Host "   • 网络延迟或防火墙拦截" -ForegroundColor Gray
+        Write-Host "   • 目标地址不是有效的后端服务" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "✅ 建议操作:" -ForegroundColor Green
+        Write-Host "   1. 等待 10-20 秒后重试 (后端可能正在启动)" -ForegroundColor White
+        Write-Host "   2. 检查后端状态:" -ForegroundColor White
+        Write-Host "      Invoke-WebRequest -Uri 'http://127.0.0.1:2038/api/health'" -ForegroundColor Yellow
+        Write-Host "   3. 确认 BaseUrl 参数正确:" -ForegroundColor White
+        Write-Host "      当前值: $BaseUrl" -ForegroundColor Yellow
+    }
+    elseif ($errMsg -match "404|Not Found") {
+        Write-Host "📍 错误类型: 端点不存在 (HTTP 404)" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "🔍 可能原因:" -ForegroundColor Cyan
+        Write-Host "   • 后端版本过旧，缺少诊断端点" -ForegroundColor Gray
+        Write-Host "   • URL 路径错误" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "✅ 建议操作:" -ForegroundColor Green
+        Write-Host "   1. 确认后端已更新到最新版本" -ForegroundColor White
+        Write-Host "   2. 检查 API 路径是否正确" -ForegroundColor White
+    }
+    elseif ($errMsg -match "503|Service Unavailable|503") {
+        Write-Host "📍 错误类型: 服务不可用 (HTTP 503)" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "🔍 可能原因:" -ForegroundColor Cyan
+        Write-Host "   • 后端正在启动或重启中" -ForegroundColor Gray
+        Write-Host "   • 数据库连接失败" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "✅ 建议操作:" -ForegroundColor Green
+        Write-Host "   1. 等待 30 秒后重试" -ForegroundColor White
+        Write-Host "   2. 检查后端日志:" -ForegroundColor White
+        Write-Host "      Get-Content backend\logs\backend.log -Tail 20" -ForegroundColor Yellow
+    }
+    else {
+        Write-Host "📍 错误类型: 未知网络错误 ($errType)" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "🔍 详细信息:" -ForegroundColor Cyan
+        Write-Host "   $errMsg" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "✅ 建议操作:" -ForegroundColor Green
+        Write-Host "   1. 检查网络连接" -ForegroundColor White
+        Write-Host "   2. 确认 BaseUrl 可访问" -ForegroundColor White
+        Write-Host "   3. 查看后端日志排查问题" -ForegroundColor White
+    }
+
+    Write-Host ""
+    Write-Host "═══════════════════════════════════════════════════════════" -ForegroundColor DarkGray
     exit 2
 }
 
@@ -145,18 +223,122 @@ try {
 }
 catch {
     $statusCode = $_.Exception.Response.StatusCode.value__
+    $errMsg = $_.Exception.Message
+
+    Write-Host ""
+    Write-Host "╔══════════════════════════════════════════════════════════╗" -ForegroundColor Red
+
     if ($statusCode -eq 401) {
-        Write-Log "未通过鉴权 (HTTP 401)" "ERROR"
+        Write-Host "║           ❌  鉴权失败 (HTTP 401)                        ║" -ForegroundColor Red
+        Write-Host "╚══════════════════════════════════════════════════════════╝" -ForegroundColor Red
+        Write-Host ""
+
         if ($isLoopback) {
-            Write-Log "loopback 免鉴权仅在 environment=development 时生效，请检查后端 .env" "ERROR"
+            Write-Host "📍 场景: Loopback 地址免鉴权未生效" -ForegroundColor Yellow
+            Write-Host ""
+            Write-Host "🔍 可能原因:" -ForegroundColor Cyan
+            Write-Host "   • 后端 environment 未设置为 development" -ForegroundColor Gray
+            Write-Host "   • AdminJWTMiddleware 未正确配置 loopback 白名单" -ForegroundColor Gray
+            Write-Host "   • 后端服务刚重启，中间件未加载" -ForegroundColor Gray
+            Write-Host ""
+            Write-Host "✅ 建议操作:" -ForegroundColor Green
+            Write-Host "   1. 检查后端环境配置:" -ForegroundColor White
+            Write-Host "      查看 backend/.env 中 ENVIRONMENT=development" -ForegroundColor Yellow
+            Write-Host "   2. 重启后端服务使配置生效:" -ForegroundColor White
+            if ($isLoopback) {
+                Write-Host "      Ctrl+C 停止后重新运行 .\scripts\start-studysolo.ps1" -ForegroundColor Yellow
+            }
+            Write-Host "   3. 临时使用 Token (不推荐长期使用):" -ForegroundColor White
+            Write-Host "      $env:STUDYSOLO_ADMIN_TOKEN='<your-admin-token>'" -ForegroundColor Yellow
         }
         else {
-            Write-Log "非 loopback 地址必须提供有效 Admin Token" "ERROR"
+            Write-Host "📍 场景: 非 Loopback 地址需要提供有效凭证" -ForegroundColor Yellow
+            Write-Host ""
+            Write-Host "🔍 可能原因:" -ForegroundColor Cyan
+            Write-Host "   • 未提供 Admin Token" -ForegroundColor Gray
+            Write-Host "   • Token 已过期或无效" -ForegroundColor Gray
+            Write-Host ""
+            Write-Host "✅ 建议操作:" -ForegroundColor Green
+            Write-Host "   1. 获取 Admin Token:" -ForegroundColor White
+            Write-Host "      • 登录 /admin-analysis/login" -ForegroundColor Yellow
+            Write-Host "      • 浏览器 DevTools → Application → Cookies → admin_token" -ForegroundColor Yellow
+            Write-Host "   2. 设置环境变量:" -ForegroundColor White
+            Write-Host "      $env:STUDYSOLO_ADMIN_TOKEN='<copied-token>'" -ForegroundColor Yellow
+            Write-Host "   3. 或使用参数直接传递:" -ForegroundColor White
+            Write-Host "      -AdminToken '<copied-token>'" -ForegroundColor Yellow
         }
     }
-    else {
-        Write-Log "调用诊断端点失败: $($_.Exception.Message)" "ERROR"
+    elseif ($statusCode -eq 403) {
+        Write-Host "║           ❌  权限不足 (HTTP 403)                          ║" -ForegroundColor Red
+        Write-Host "╚══════════════════════════════════════════════════════════╝" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "📍 场景: 已鉴权但无权访问诊断端点" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "🔍 可能原因:" -ForegroundColor Cyan
+        Write-Host "   • 账号已被禁用" -ForegroundColor Gray
+        Write-Host "   • 账号权限不足" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "✅ 建议操作:" -ForegroundColor Green
+        Write-Host "   1. 联系管理员确认账号状态" -ForegroundColor White
+        Write-Host "   2. 使用具有诊断权限的账号" -ForegroundColor White
     }
+    elseif ($statusCode -eq 404) {
+        Write-Host "║           ❌  端点不存在 (HTTP 404)                        ║" -ForegroundColor Red
+        Write-Host "╚══════════════════════════════════════════════════════════╝" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "📍 场景: 诊断端点未找到" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "🔍 可能原因:" -ForegroundColor Cyan
+        Write-Host "   • 后端版本过旧，缺少诊断功能" -ForegroundColor Gray
+        Write-Host "   • 后端路由未正确注册" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "✅ 建议操作:" -ForegroundColor Green
+        Write-Host "   1. 更新后端代码到最新版本" -ForegroundColor White
+        Write-Host "   2. 检查 backend/app/api/router.py 诊断路由注册" -ForegroundColor White
+    }
+    elseif ($statusCode -eq 500) {
+        Write-Host "║           ❌  服务器内部错误 (HTTP 500)                    ║" -ForegroundColor Red
+        Write-Host "╚══════════════════════════════════════════════════════════╝" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "📍 场景: 后端执行诊断时发生异常" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "🔍 可能原因:" -ForegroundColor Cyan
+        Write-Host "   • 数据库连接失败" -ForegroundColor Gray
+        Write-Host "   • AI 模型配置错误导致初始化失败" -ForegroundColor Gray
+        Write-Host "   • 其他运行时异常" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "✅ 建议操作:" -ForegroundColor Green
+        Write-Host "   1. 查看后端日志:" -ForegroundColor White
+        Write-Host "      Get-Content backend\logs\backend.log -Tail 50" -ForegroundColor Yellow
+        Write-Host "   2. 检查数据库连接配置" -ForegroundColor White
+        Write-Host "   3. 检查 AI 模型配置 (api keys)" -ForegroundColor White
+    }
+    elseif ($statusCode -eq 503) {
+        Write-Host "║           ❌  服务不可用 (HTTP 503)                        ║" -ForegroundColor Red
+        Write-Host "╚══════════════════════════════════════════════════════════╝" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "📍 场景: 后端服务正在启动或重启" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "✅ 建议操作:" -ForegroundColor Green
+        Write-Host "   1. 等待 10-30 秒后重试" -ForegroundColor White
+        Write-Host "   2. 检查后端日志确认启动状态" -ForegroundColor White
+    }
+    else {
+        Write-Host "║           ❌  调用诊断端点失败                             ║" -ForegroundColor Red
+        Write-Host "╚══════════════════════════════════════════════════════════╝" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "📍 错误详情:" -ForegroundColor Yellow
+        Write-Host "   HTTP Status: $statusCode" -ForegroundColor Gray
+        Write-Host "   Message: $errMsg" -ForegroundColor Gray
+        Write-Host ""
+        Write-Host "✅ 建议操作:" -ForegroundColor Green
+        Write-Host "   1. 检查后端服务状态" -ForegroundColor White
+        Write-Host "   2. 查看后端日志排查问题" -ForegroundColor White
+        Write-Host "   3. 确认 BaseUrl 正确: $BaseUrl" -ForegroundColor Yellow
+    }
+
+    Write-Host ""
+    Write-Host "═══════════════════════════════════════════════════════════" -ForegroundColor DarkGray
     exit 2
 }
 $duration = [math]::Round(((Get-Date) - $startTime).TotalMilliseconds)
