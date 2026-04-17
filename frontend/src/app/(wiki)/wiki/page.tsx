@@ -1,37 +1,24 @@
 import Link from 'next/link';
-import { ArrowRight, BookOpen } from 'lucide-react';
+import { ArrowRight, BookOpen, FileText } from 'lucide-react';
 import type { NavItem } from '@/lib/wiki';
 import { getDocContent, getNavigation } from '@/lib/wiki';
+import { WIKI_SECTION_ICONS, WikiDocNavIcon } from '@/lib/wiki-nav-icons';
 
 export const metadata = { title: '文档中心 — StudySolo' };
 
 interface DocCard {
   title: string;
   href: string;
+  slug: string;
   description: string;
-  emoji: string;
 }
 
 type DocNavItem = NavItem & { slug: string };
 
-const SECTION_EMOJIS: Record<string, string> = {
-  快速开始: '🚀',
-  使用指南: '🧭',
-  节点文档: '🧩',
-  'API 参考': '🔌',
-};
-
-const DOC_EMOJIS: Record<string, string> = {
-  'getting-started/quick-start': '⚡',
-  'getting-started/concepts': '🧠',
-  'guides/creating-workflows': '🛠️',
-  'guides/using-nodes': '🧩',
-  'guides/ai-chat': '💬',
-};
-
 const SECTION_DESCRIPTIONS: Record<string, string> = {
   快速开始: '从账号准备到创建第一个学习工作流，快速理解 StudySolo 的基本使用路径。',
   使用指南: '深入了解工作流、节点和 AI 生成能力，掌握更稳定的学习流程搭建方式。',
+  'API 参考': 'Personal Access Token、命令行、MCP Host 集成与 Agent Skills 说明。',
 };
 
 const DOC_DESCRIPTIONS: Record<string, string> = {
@@ -62,9 +49,9 @@ async function getDocCards(items: NavItem[]): Promise<DocCard[]> {
 
       return {
         title: item.title,
+        slug: item.slug,
         href: `/wiki/${item.slug}`,
         description: description ?? DOC_DESCRIPTIONS[item.slug] ?? '查看这篇 StudySolo Wiki 文档的详细说明。',
-        emoji: DOC_EMOJIS[item.slug] ?? '📄',
       };
     }),
   );
@@ -84,7 +71,7 @@ export default async function WikiIndexPage() {
     <div className="wiki-index">
       <div className="wiki-index-hero">
         <div className="wiki-index-badge">
-          <BookOpen className="h-3.5 w-3.5" />
+          <BookOpen className="h-3.5 w-3.5 shrink-0" aria-hidden />
           StudySolo Wiki
         </div>
         <h1>文档中心</h1>
@@ -92,35 +79,41 @@ export default async function WikiIndexPage() {
       </div>
 
       <div className="wiki-section-list">
-        {sections.map((section) => (
-          <section key={section.title} className="wiki-index-section">
-            <div className="wiki-section-heading">
-              <h2>{SECTION_EMOJIS[section.title] ?? '📚'} {section.title}</h2>
-              <p>{section.description}</p>
-            </div>
-            <ul>
-              {section.items.map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className="wiki-doc-card"
-                  >
-                    <span className="wiki-doc-card-emoji" aria-hidden="true">
-                      {item.emoji}
-                    </span>
-                    <span className="wiki-doc-card-title">
-                      {item.title}
-                    </span>
-                    <span className="wiki-doc-card-desc">
-                      {item.description}
-                    </span>
-                    <ArrowRight className="wiki-doc-card-icon h-4 w-4" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
+        {sections.map((section) => {
+          const SectionIcon = WIKI_SECTION_ICONS[section.title] ?? FileText;
+          return (
+            <section key={section.title} className="wiki-index-section">
+              <div className="wiki-section-heading">
+                <h2>
+                  <SectionIcon className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                  {section.title}
+                </h2>
+                <p>{section.description}</p>
+              </div>
+              <ul>
+                {section.items.map((item) => (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      className="wiki-doc-card"
+                    >
+                      <span className="wiki-doc-card-icon-wrap" aria-hidden="true">
+                        <WikiDocNavIcon slug={item.slug} className="h-[1.05rem] w-[1.05rem]" />
+                      </span>
+                      <span className="wiki-doc-card-title">
+                        {item.title}
+                      </span>
+                      <span className="wiki-doc-card-desc">
+                        {item.description}
+                      </span>
+                      <ArrowRight className="wiki-doc-card-icon h-4 w-4" aria-hidden />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })}
       </div>
     </div>
   );

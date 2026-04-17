@@ -12,10 +12,8 @@
 }
 
 .wiki-article {
-  border-radius: 20px;
   padding: 0;
-  color: var(--card-foreground);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .wiki-doc-header {
@@ -122,33 +120,43 @@
 }
 
 .wiki-rich-list {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0.65rem;
   list-style: none;
   margin: 1.5rem 0;
   padding: 0;
 }
 
+/* 与正文左缘对齐：首列圆点 + 次列正文（Grid 避免多段落在 flex 行内横排） */
 .wiki-rich-list > li {
-  position: relative;
+  display: grid;
+  align-items: start;
+  grid-template-columns: auto 1fr;
+  gap: 0.65rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--card);
   box-shadow: 0 1px 2px color-mix(in oklch, var(--foreground) 5%, transparent);
   margin: 0;
-  padding: 0.85rem 1rem 0.85rem 2.7rem;
+  padding: 0.85rem 1rem 0.85rem 0.85rem;
 }
 
 .wiki-rich-list > li::before {
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  width: 0.65rem;
-  height: 0.65rem;
+  grid-column: 1;
+  grid-row: 1;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-top: 0.55rem;
   border-radius: 999px;
   background: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 22%, transparent);
   content: "";
-  box-shadow: 0 0 0 4px color-mix(in oklch, var(--primary) 22%, transparent);
+}
+
+.wiki-rich-list > li > * {
+  grid-column: 2;
+  min-width: 0;
 }
 
 .wiki-rich-list-ordered {
@@ -160,17 +168,21 @@
 }
 
 .wiki-rich-list-ordered > li::before {
-  top: 0.78rem;
-  width: 1.45rem;
-  height: 1.45rem;
   display: grid;
+  width: 1.35rem;
+  height: 1.35rem;
   place-items: center;
+  margin-top: 0.38rem;
+  border-radius: 999px;
   background: var(--primary);
   box-shadow: none;
   color: var(--primary-foreground);
   content: counter(wiki-step);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 900;
+  line-height: 1;
+  grid-column: 1;
+  grid-row: 1;
 }
 
 .wiki-rich-list > li p {

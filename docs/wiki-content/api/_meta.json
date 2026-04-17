@@ -1,0 +1,5 @@
+{
+  "mcp-host": { "title": "MCP（studysolo-mcp）", "order": 1 },
+  "cli": { "title": "命令行（studysolo CLI）", "order": 2 },
+  "agent-skills": { "title": "Agent Skills", "order": 3 }
+}

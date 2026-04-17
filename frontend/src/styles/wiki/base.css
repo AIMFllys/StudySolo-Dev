@@ -1,9 +1,11 @@
+:root {
+  --wiki-sidebar-width: 260px;
+}
+
 .wiki-shell {
   position: relative;
-  display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
   min-height: 100vh;
-  overflow: hidden;
+  min-height: 100dvh;
   background:
     linear-gradient(
       to right,
@@ -20,22 +22,31 @@
   color: var(--foreground);
 }
 
+/* 桌面：侧栏固定，主栏独立滚动（与常见文档站一致） */
 .wiki-sidebar {
-  position: relative;
-  z-index: 1;
-  display: block;
+  position: fixed;
+  z-index: 30;
+  top: 0;
+  left: 0;
+  display: flex;
+  width: var(--wiki-sidebar-width);
+  height: 100vh;
+  height: 100dvh;
+  flex-direction: column;
   border-right: 1px solid var(--border);
   background: color-mix(in oklch, var(--card) 88%, transparent);
   backdrop-filter: blur(14px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .wiki-sidebar-inner {
-  position: sticky;
-  top: 0;
   display: flex;
-  height: 100vh;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
   flex-direction: column;
-  overflow-y: auto;
   padding: 24px 18px 28px;
 }
 
@@ -154,8 +165,14 @@
   position: relative;
   z-index: 1;
   min-width: 0;
-  overflow: auto;
-  padding: clamp(28px, 3vw, 48px) clamp(24px, 3.5vw, 56px);
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin-left: var(--wiki-sidebar-width);
+  overflow-x: hidden;
+  overflow-y: visible;
+  padding: clamp(16px, 2vw, 32px);
+  background: var(--card);
+  color: var(--card-foreground);
 }
 
 .wiki-content {
@@ -172,8 +189,6 @@
 
 .wiki-index-hero,
 .wiki-doc-card,
-.wiki-article,
-.wiki-toc-panel,
 .wiki-page-link {
   border: 1px solid var(--border);
   background: var(--card);
@@ -181,6 +196,15 @@
   box-shadow:
     0 1px 3px color-mix(in oklch, var(--foreground) 6%, transparent),
     0 0 0 1px color-mix(in oklch, var(--border) 40%, transparent) inset;
+}
+
+/* 文档正文：与主栏同背景，避免「中间再套一张卡片」 */
+.wiki-article {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
 }
 
 .wiki-index-hero {
@@ -276,6 +300,9 @@
 }
 
 .wiki-section-heading h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   color: var(--muted-foreground);
   font-size: 12px;
   font-weight: 900;
@@ -347,7 +374,7 @@
   opacity: 0.75;
 }
 
-.wiki-doc-card-emoji {
+.wiki-doc-card-icon-wrap {
   display: inline-flex;
   width: 2.35rem;
   height: 2.35rem;
@@ -356,6 +383,6 @@
   border: 1px solid color-mix(in oklch, var(--primary) 22%, var(--border));
   border-radius: 12px;
   background: color-mix(in oklch, var(--primary) 8%, transparent);
-  font-size: 1.2rem;
   margin-bottom: 14px;
+  color: var(--primary);
 }

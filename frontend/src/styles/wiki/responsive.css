@@ -18,6 +18,8 @@
   }
 
   .wiki-main {
+    margin-left: 0;
+    min-height: unset;
     padding: 78px 18px 32px;
   }
 
@@ -73,9 +75,12 @@
     grid-column: 1;
   }
 
-  .wiki-index-hero,
-  .wiki-article {
+  .wiki-index-hero {
     border-radius: 16px;
+  }
+
+  .wiki-article {
+    border-radius: 0;
   }
 
   .wiki-doc-header,

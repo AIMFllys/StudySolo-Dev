@@ -12,6 +12,7 @@ import WikiBreadcrumb from '@/components/wiki/WikiBreadcrumb';
 import WikiCodeBlock from '@/components/wiki/WikiCodeBlock';
 import WikiPagination from '@/components/wiki/WikiPagination';
 import WikiTOC from '@/components/wiki/WikiTOC';
+import { Sparkles } from 'lucide-react';
 
 interface Props { params: Promise<{ slug: string[] }>; }
 
@@ -54,10 +55,11 @@ export default async function WikiDocPage({ params }: Props) {
   return (
     <div className={toc.length > 0 ? 'wiki-doc-grid' : 'wiki-doc-grid-no-toc'}>
       <article className="wiki-article">
-        <WikiBreadcrumb slug={slugPath} />
         <header className="wiki-doc-header">
+          <WikiBreadcrumb slug={slugPath} />
           <p className="wiki-index-badge">
-            ✨ StudySolo Wiki
+            <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            StudySolo Wiki
           </p>
           <h1>
             {doc.frontmatter.title}

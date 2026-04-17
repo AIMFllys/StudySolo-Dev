@@ -1,29 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { ExternalLink } from 'lucide-react';
+import { ClipboardList, ExternalLink, FileText, type LucideIcon } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { STUDYSOLO_WIKI_PLATFORM_LINKS } from '@/lib/studysolo-external-docs';
+import { WIKI_DOC_ICONS, WIKI_SECTION_ICONS } from '@/lib/wiki-nav-icons';
 import type { NavItem } from '@/lib/wiki';
 
 interface WikiSidebarClientProps {
   navItems: NavItem[];
 }
-
-const SECTION_EMOJIS: Record<string, string> = {
-  快速开始: '🚀',
-  使用指南: '🧭',
-  节点文档: '🧩',
-  'API 参考': '🔌',
-};
-
-const DOC_EMOJIS: Record<string, string> = {
-  'getting-started/quick-start': '⚡',
-  'getting-started/concepts': '🧠',
-  'guides/creating-workflows': '🛠️',
-  'guides/using-nodes': '🧩',
-  'guides/ai-chat': '💬',
-};
 
 function currentSlug(pathname: string): string | undefined {
   const prefix = '/wiki/';
@@ -40,7 +26,10 @@ function NavTree({ items, activeSlug }: { items: NavItem[]; activeSlug?: string 
               href={`/wiki/${item.slug}`}
               className={`wiki-nav-link ${activeSlug === item.slug ? 'wiki-nav-link-active' : ''}`}
             >
-              <span aria-hidden="true">{DOC_EMOJIS[item.slug] ?? '📄'}</span>
+              {(() => {
+                const Icon: LucideIcon = WIKI_DOC_ICONS[item.slug] ?? FileText;
+                return <Icon className="h-4 w-4 shrink-0 opacity-80" aria-hidden />;
+              })()}
               <span>{item.title}</span>
             </Link>
           ) : (
@@ -60,17 +49,28 @@ export default function WikiSidebarClient({ navItems }: WikiSidebarClientProps) 
 
   return (
     <nav className="wiki-nav" aria-label="文档导航">
-      {navItems.map((section, index) => (
-        <div key={section.slug ?? `${section.title}-${index}`} className="wiki-nav-section">
-          <p className="wiki-nav-section-title">
-            {SECTION_EMOJIS[section.title] ?? '📚'} {section.title}
-          </p>
-          {section.children && <NavTree items={section.children} activeSlug={activeSlug} />}
-        </div>
-      ))}
+      {navItems.map((section, index) => {
+        const SectionIcon = WIKI_SECTION_ICONS[section.title] ?? FileText;
+        return (
+          <div key={section.slug ?? `${section.title}-${index}`} className="wiki-nav-section">
+            <p className="wiki-nav-section-title">
+              <span className="inline-flex items-center gap-2">
+                <SectionIcon className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+                <span>{section.title}</span>
+              </span>
+            </p>
+            {section.children && <NavTree items={section.children} activeSlug={activeSlug} />}
+          </div>
+        );
+      })}
 
       <div className="wiki-nav-section wiki-nav-section-external">
-        <p className="wiki-nav-section-title">📋 平台说明</p>
+        <p className="wiki-nav-section-title">
+          <span className="inline-flex items-center gap-2">
+            <ClipboardList className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+            <span>平台说明</span>
+          </span>
+        </p>
         <ul className="wiki-external-list">
           {STUDYSOLO_WIKI_PLATFORM_LINKS.map((item) => (
             <li key={item.href}>
