@@ -14,7 +14,7 @@
  */
 
 import { create } from 'zustand';
-import type { ChatEntry } from './use-conversation-store';
+import type { ChatEntry, ChatSegment, ChatSummaryChange } from './use-conversation-store';
 import type { AIMode, ThinkingDepth } from '@/components/layout/sidebar/SidebarAIPanel';
 import type { AIModelOption } from '@/features/workflow/constants/ai-models';
 import { DEFAULT_MODEL } from '@/features/workflow/constants/ai-models';
@@ -47,6 +47,11 @@ export interface AIChatState {
   syncHistory: (messages: ChatEntry[]) => void;
   pushMessage: (role: 'user' | 'assistant', content: string) => string;
   updateMessage: (id: string, newContent: string) => void;
+  /** Partial patch of any assistant message (segments/summary/streaming flag). */
+  patchMessage: (id: string, patch: Partial<Omit<ChatEntry, 'id'>>) => void;
+  /** Replace the segments array of an assistant message. */
+  setMessageSegments: (id: string, segments: ChatSegment[]) => void;
+  setMessageSummary: (id: string, summary: ChatSummaryChange[]) => void;
   clearHistory: () => void;
 }
 
@@ -60,7 +65,7 @@ export const useAIChatStore = create<AIChatState>((set) => ({
   error: null,
   history: [],
   mode: 'chat',
-  thinkingDepth: 'balanced',
+  thinkingDepth: 'fast',
   selectedModel: DEFAULT_MODEL,
   abortController: null,
 
@@ -93,6 +98,25 @@ export const useAIChatStore = create<AIChatState>((set) => ({
     set((state) => ({
       history: state.history.map((m) =>
         m.id === id ? { ...m, content: newContent } : m,
+      ),
+    })),
+
+  patchMessage: (id, patch) =>
+    set((state) => ({
+      history: state.history.map((m) => (m.id === id ? { ...m, ...patch } : m)),
+    })),
+
+  setMessageSegments: (id, segments) =>
+    set((state) => ({
+      history: state.history.map((m) =>
+        m.id === id ? { ...m, segments: [...segments] } : m,
+      ),
+    })),
+
+  setMessageSummary: (id, summary) =>
+    set((state) => ({
+      history: state.history.map((m) =>
+        m.id === id ? { ...m, summary: [...summary] } : m,
       ),
     })),
 

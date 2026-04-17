@@ -35,6 +35,21 @@ export async function getChatModelList(): Promise<ChatModelOption[]> {
   return data.models ?? [];
 }
 
+export function chooseDefaultChatModel(
+  models: ChatModelOption[],
+  previous: ChatModelOption | null = null,
+): ChatModelOption | null {
+  if (previous) return previous;
+  const sorted = [...models].sort((a, b) => a.sortOrder - b.sortOrder);
+  const accessible = sorted.filter((m) => m.isAccessible);
+  return (
+    accessible.find((m) => !m.supportsThinking) ??
+    accessible[0] ??
+    sorted[0] ??
+    null
+  );
+}
+
 export async function getUserAiModelCatalog(): Promise<AIModelOption[]> {
   const response = await authedFetch('/api/ai/models/catalog');
   if (!response.ok) {

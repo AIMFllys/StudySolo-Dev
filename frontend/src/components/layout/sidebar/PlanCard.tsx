@@ -3,15 +3,51 @@ import { parsePlanResponse } from '@/features/workflow/utils/parse-plan-xml';
 import { useState, useMemo } from 'react';
 import { useActionExecutor } from '@/features/workflow/hooks/use-action-executor';
 import { planStepsToActions } from '@/features/workflow/utils/plan-executor';
+import type { ChatSegment } from '@/stores/chat/use-conversation-store';
+import { stripSuggestModeMarker } from './chat-message-adapter';
 
 interface PlanCardProps {
   rawContent: string;
   onApply?: () => void;
+  /** Streamed plan segments from the agent loop (optional). */
+  segments?: ChatSegment[];
+  /** Whether the agent stream is still running — controls streaming indicators. */
+  isStreaming?: boolean;
 }
 
-export function PlanCard({ rawContent, onApply }: PlanCardProps) {
+/** Rebuild a raw `<plan>...</plan>` XML blob from streamed plan.* segments. */
+function segmentsToRawPlan(segments: ChatSegment[] | undefined): string {
+  if (!segments || segments.length === 0) return '';
+  const analysisSeg = segments.find((s) => s.kind === 'plan.analysis');
+  const recsSeg = segments.find((s) => s.kind === 'plan.recommendations');
+  const respSeg = segments.find((s) => s.kind === 'plan.response');
+  const planRoot = segments.find((s) => s.kind === 'plan');
+
+  const parts: string[] = ['<plan>'];
+  if (analysisSeg && 'text' in analysisSeg && analysisSeg.text.trim()) {
+    parts.push(`<analysis>${analysisSeg.text}</analysis>`);
+  }
+  if (recsSeg && 'text' in recsSeg && recsSeg.text.trim()) {
+    parts.push(`<recommendations>${recsSeg.text}</recommendations>`);
+  }
+  if (respSeg && 'text' in respSeg && respSeg.text.trim()) {
+    parts.push(`<response>${respSeg.text}</response>`);
+  }
+  if (parts.length === 1 && planRoot && 'text' in planRoot && planRoot.text.trim()) {
+    // Nothing decomposed yet → use the aggregated root block directly.
+    parts.push(planRoot.text);
+  }
+  parts.push('</plan>');
+  return parts.join('');
+}
+
+export function PlanCard({ rawContent, onApply, segments, isStreaming }: PlanCardProps) {
   const { execute } = useActionExecutor();
-  const parsed = useMemo(() => parsePlanResponse(rawContent), [rawContent]);
+  const effectiveRaw = useMemo(() => {
+    if (segments && segments.length > 0) return segmentsToRawPlan(segments);
+    return rawContent;
+  }, [segments, rawContent]);
+  const parsed = useMemo(() => parsePlanResponse(effectiveRaw), [effectiveRaw]);
   const [selectedSteps, setSelectedSteps] = useState<Set<string>>(() => {
     const s = new Set<string>();
     parsed.recommendations.forEach(r => { if (r.selected) s.add(r.id); });
@@ -21,7 +57,15 @@ export function PlanCard({ rawContent, onApply }: PlanCardProps) {
 
   // 如果解析到了纯文本降级，则直接返回纯文本 (外部可能是使用 Markdown 渲染的)
   if (parsed.parseLevel === 'raw') {
-    return <div className="whitespace-pre-wrap font-serif text-[12px]">{rawContent}</div>;
+    if (isStreaming) {
+      return (
+        <div className="flex items-center gap-2 py-1 text-[11px] text-muted-foreground/60 font-sans">
+          <Loader className="h-3 w-3 animate-spin" />
+          <span>规划生成中…</span>
+        </div>
+      );
+    }
+    return <div className="whitespace-pre-wrap font-serif text-[12px]">{effectiveRaw || rawContent}</div>;
   }
 
   const toggleStep = (id: string) => {
@@ -45,10 +89,17 @@ export function PlanCard({ rawContent, onApply }: PlanCardProps) {
 
   return (
     <div className="flex flex-col gap-3 font-serif">
+      {isStreaming && (
+        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/60 font-sans">
+          <Loader className="h-2.5 w-2.5 animate-spin" />
+          <span className="tracking-wider uppercase">规划流式生成中…</span>
+        </div>
+      )}
+
       {/* Response Text */}
       {parsed.response && (
         <div className="text-[13px] leading-relaxed text-foreground/90 whitespace-pre-wrap">
-          {parsed.response.replace(/\[SUGGEST_MODE:\w+\]/g, '')}
+          {stripSuggestModeMarker(parsed.response)}
         </div>
       )}
 

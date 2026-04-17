@@ -9,7 +9,11 @@ import { useCanvasContext } from '@/features/workflow/hooks/use-canvas-context';
 import { useConversationStore } from '@/stores/chat/use-conversation-store';
 import { useStreamChat } from '@/features/workflow/hooks/use-stream-chat';
 import { useWorkflowExecution } from '@/features/workflow/hooks/use-workflow-execution';
-import { getChatModelList, type ChatModelOption } from '@/services/ai-catalog.service';
+import {
+  chooseDefaultChatModel,
+  getChatModelList,
+  type ChatModelOption,
+} from '@/services/ai-catalog.service';
 import { getUser, type TierType } from '@/services/auth.service';
 import { useAIChatStore } from '@/stores/chat/use-ai-chat-store';
 import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
@@ -95,8 +99,7 @@ export function SidebarAIPanel() {
     getChatModelList()
       .then((models) => {
         setChatModels(models);
-        const firstAccessible = models.find((m) => m.isAccessible) ?? models[0];
-        setSelectedChatModel((prev) => prev ?? firstAccessible ?? null);
+        setSelectedChatModel((prev) => chooseDefaultChatModel(models, prev));
       })
       .catch(() => {
         setModelsError(true);

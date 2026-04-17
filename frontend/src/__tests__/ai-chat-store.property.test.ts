@@ -12,9 +12,13 @@ describe('ai chat store side-effect boundary', () => {
       error: null,
       history: [],
       mode: 'chat',
-      thinkingDepth: 'balanced',
+      thinkingDepth: 'fast',
       abortController: null,
     });
+  });
+
+  it('defaults to fast thinking depth for lightweight chat', () => {
+    expect(useAIChatStore.getState().thinkingDepth).toBe('fast');
   });
 
   it('pushMessage only updates ai chat history and does not touch conversation persistence', () => {

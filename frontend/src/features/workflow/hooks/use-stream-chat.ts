@@ -3,25 +3,27 @@
 /**
  * useStreamChat — 流式 AI 对话 Hook（副作用收口层）.
  *
- * 职责：
- *  - 发起 /api/ai/chat-stream 的 SSE 流式请求
- *  - 解析 SSE 协议，回调 onToken / onDone / onError
- *  - 支持 AbortController 中止
- *  - 处理 MODIFY intent → executeCanvasActions
- *  - 处理 BUILD intent → /api/ai/generate-workflow
- *
- * 遵循规范 §9.1：只发送正式字段 selected_model_key，不再发送兼容字段。
+ * 支持两种后端协议：
+ *  1. 新 agent-loop XML 协议（默认）：流式推送 segment / tool_call / tool_result /
+ *     canvas_mutation / ui_effect 事件，前端分段渲染并在收到 canvas_mutation 时
+ *     直接同步到 WorkflowStore。
+ *  2. 旧 token/intent 协议（BUILD/MODIFY 回退）：保留原有 handleBuildIntent /
+ *     handleModifyIntent 分支处理。
  */
 
 import { useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import type { CanvasContext } from './use-canvas-context';
-import type { ChatEntry } from '@/stores/chat/use-conversation-store';
+import type { ChatEntry, ChatSegment, ChatSummaryChange } from '@/stores/chat/use-conversation-store';
 import type { ThinkingDepth } from '@/components/layout/sidebar/SidebarAIPanel';
+import type { Edge, Node } from '@xyflow/react';
 import { useAIChatStore, abortAIChatStream } from '@/stores/chat/use-ai-chat-store';
+import { useWorkflowStore } from '@/stores/workflow/use-workflow-store';
 import { persistConversationMessage } from './chat-conversation-sync';
 import { authedStreamFetch } from '@/services/api-client';
-import { parseSSEStream } from './stream-chat-sse';
+import { parseSSEStream, type AgentStreamEvent } from './stream-chat-sse';
 import { handleBuildIntent, handleModifyIntent } from './stream-chat-intents';
+import { nodeTypes as KNOWN_NODE_TYPES } from '@/features/workflow/components/canvas/canvas-constants';
 
 export interface StreamChatOptions {
   userInput: string;
@@ -29,22 +31,25 @@ export interface StreamChatOptions {
   history: ChatEntry[];
   intentHint?: string | null;
   mode?: 'plan' | 'chat' | 'create';
-  /** Accepts AIModelOption (Track B) or ChatModelOption (Track A) — only skuId is consumed */
   selectedModel: { skuId: string | null };
   thinkingDepth?: ThinkingDepth;
 }
 
 export function useStreamChat() {
+  const router = useRouter();
   const {
     setLoading,
     setStreaming,
     setAbortController,
     setError,
     updateMessage,
+    patchMessage,
+    setMessageSegments,
+    setMessageSummary,
   } = useAIChatStore();
 
   const send = useCallback(async (opts: StreamChatOptions) => {
-    const { userInput, canvasContext, history, intentHint, mode, selectedModel, thinkingDepth = 'balanced' } = opts;
+    const { userInput, canvasContext, history, intentHint, mode, selectedModel, thinkingDepth = 'fast' } = opts;
 
     abortAIChatStream();
 
@@ -58,7 +63,15 @@ export function useStreamChat() {
 
     useAIChatStore.getState().syncHistory([
       ...history,
-      { id: assistantMsgId, role: 'assistant', content: '', timestamp: Date.now() },
+      {
+        id: assistantMsgId,
+        role: 'assistant',
+        content: '',
+        timestamp: Date.now(),
+        segments: [],
+        summary: [],
+        isStreaming: true,
+      },
     ]);
 
     const body = {
@@ -91,6 +104,8 @@ export function useStreamChat() {
 
     let finalText = '';
     let intent = 'CHAT';
+    let finalSegments: ChatSegment[] = [];
+    let finalSummary: ChatSummaryChange[] = [];
 
     try {
       const res = await authedStreamFetch('/api/ai/chat-stream', {
@@ -109,12 +124,28 @@ export function useStreamChat() {
         const reader = res.body.getReader();
         setLoading(false);
 
-        const parsed = await parseSSEStream(reader, (token) => {
-          finalText += token;
-          updateMessage(assistantMsgId, finalText);
+        const parsed = await parseSSEStream(reader, {
+          onToken: (token) => {
+            finalText += token;
+            updateMessage(assistantMsgId, finalText);
+          },
+          onEvent: (event) => {
+            handleAgentEvent(event, router);
+          },
+          onSegments: (segs) => {
+            setMessageSegments(assistantMsgId, segs as ChatSegment[]);
+          },
+          onSummary: (items) => {
+            setMessageSummary(assistantMsgId, items as ChatSummaryChange[]);
+          },
         });
+
         finalText = parsed.fullText;
         intent = parsed.intent;
+        finalSegments = parsed.segments as ChatSegment[];
+        finalSummary = parsed.summary as ChatSummaryChange[];
+        setMessageSegments(assistantMsgId, finalSegments);
+        setMessageSummary(assistantMsgId, finalSummary);
       }
 
       let displayText = finalText || '（已完成）';
@@ -130,28 +161,79 @@ export function useStreamChat() {
       }
 
       updateMessage(assistantMsgId, displayText);
+      patchMessage(assistantMsgId, { isStreaming: false });
 
       persistConversationMessage({
         id: assistantMsgId,
         role: 'assistant',
         content: displayText,
         timestamp: Date.now(),
+        segments: finalSegments.length ? finalSegments : undefined,
+        summary: finalSummary.length ? finalSummary : undefined,
       });
     } catch (err) {
       if ((err as Error).name === 'AbortError') return;
       const msg = err instanceof Error ? err.message : '请求失败';
       setError(msg);
       updateMessage(assistantMsgId, `❌ ${msg}`);
+      patchMessage(assistantMsgId, { isStreaming: false });
     } finally {
       setStreaming(false, null);
       setLoading(false);
       setAbortController(null);
     }
-  }, [setLoading, setStreaming, setAbortController, setError, updateMessage]);
+  }, [
+    router,
+    setLoading,
+    setStreaming,
+    setAbortController,
+    setError,
+    updateMessage,
+    patchMessage,
+    setMessageSegments,
+    setMessageSummary,
+  ]);
 
   const abort = useCallback(() => {
     abortAIChatStream();
   }, []);
 
   return { send, abort };
+}
+
+
+// ── Event handlers ─────────────────────────────────────────────────────
+
+function handleAgentEvent(
+  event: AgentStreamEvent,
+  router: ReturnType<typeof useRouter>,
+) {
+  if (event.type === 'canvas_mutation') {
+    const payload = event.payload as { nodes?: Node[]; edges?: Edge[] };
+    const rawNodes = Array.isArray(payload.nodes) ? payload.nodes : [];
+    const edges = Array.isArray(payload.edges) ? payload.edges : [];
+    // Normalise types: any backend-generated type that the frontend can't render
+    // is coerced into `ai_step` so it still surfaces as a proper node card rather
+    // than React Flow's blank fallback ("text block").
+    const nodes = rawNodes.map((n) => {
+      if (!n || typeof n !== 'object') return n;
+      const t = (n as Node).type;
+      if (t && !(t in KNOWN_NODE_TYPES)) {
+        return { ...(n as Node), type: 'ai_step' } as Node;
+      }
+      return n as Node;
+    });
+    useWorkflowStore.getState().replaceWorkflowGraph(nodes, edges);
+    return;
+  }
+  if (event.type === 'ui_effect') {
+    const payload = event.payload as { type?: string; url?: string };
+    if (payload.type === 'router_push' && typeof payload.url === 'string' && payload.url) {
+      try {
+        router.push(payload.url);
+      } catch {
+        // ignore router errors
+      }
+    }
+  }
 }

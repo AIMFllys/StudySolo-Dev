@@ -12,11 +12,57 @@ import { create } from 'zustand';
 
 // ── Types ────────────────────────────────────────────────────────────
 
+/**
+ * Lightweight mirror of the AgentSegment model from
+ * features/workflow/hooks/stream-chat-sse.ts. Keeping the type inline here
+ * avoids a dependency cycle between the chat store and the workflow hooks.
+ */
+export type ChatSegmentKind =
+  | 'thinking'
+  | 'answer'
+  | 'summary'
+  | 'plan'
+  | 'plan.analysis'
+  | 'plan.recommendations'
+  | 'plan.response'
+  | 'plan.step'
+  | 'tool_call'
+  | 'warning';
+
+export interface ChatTextSegment {
+  id: string;
+  kind: Exclude<ChatSegmentKind, 'tool_call'>;
+  text: string;
+  attrs?: Record<string, string>;
+}
+
+export interface ChatToolCallSegment {
+  id: string;
+  kind: 'tool_call';
+  tool: string;
+  params: unknown;
+  status: 'running' | 'ok' | 'error';
+  result?: unknown;
+  error?: string;
+}
+
+export type ChatSegment = ChatTextSegment | ChatToolCallSegment;
+
+export interface ChatSummaryChange {
+  text: string;
+}
+
 export interface ChatEntry {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
+  /** Structured XML-protocol segments for assistant messages (optional). */
+  segments?: ChatSegment[];
+  /** Change list emitted by the agent loop's <summary> block. */
+  summary?: ChatSummaryChange[];
+  /** True while SSE stream is still being consumed. */
+  isStreaming?: boolean;
 }
 
 export interface ConversationRecord {

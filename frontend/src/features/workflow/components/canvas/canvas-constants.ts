@@ -26,7 +26,6 @@ export const nodeTypes: NodeTypes = {
   flashcard: AIStepNode,
   chat_response: AIStepNode,
   write_db: AIStepNode,
-  ai_step: AIStepNode,
   compare: AIStepNode,
   mind_map: AIStepNode,
   quiz_gen: AIStepNode,
@@ -45,6 +44,13 @@ export const nodeTypes: NodeTypes = {
   annotation: AnnotationNode,
   loop_group: LoopGroupNode,
   community_node: AIStepNode,
+  // Fallbacks — any unknown type an AI may emit falls through to an AI-step card
+  // instead of React Flow's default "text block" default node.
+  default: AIStepNode,
+  ai_step: AIStepNode,
+  text: AnnotationNode,
+  note: AnnotationNode,
+  markdown: AnnotationNode,
 };
 
 export const edgeTypes: EdgeTypes = {

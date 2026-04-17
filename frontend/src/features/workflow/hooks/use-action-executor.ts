@@ -25,10 +25,26 @@ export interface CanvasAction {
     new_label?: string;
     source_id?: string;
     target_id?: string;
-    updates?: Record<string, string>;
+    /** Merge-patch of writable fields on `node.data` (whitelisted at runtime). */
+    updates?: Record<string, unknown>;
     data?: Record<string, unknown>;
   };
 }
+
+/**
+ * Fields on `node.data` that the AI is allowed to mutate via UPDATE_NODE.
+ * Mirrors `_WRITABLE_DATA_FIELDS` in `backend/app/services/ai_chat/tools/canvas_tools.py`.
+ */
+const UPDATE_NODE_WRITABLE_FIELDS = new Set<string>([
+  'label',
+  'system_prompt',
+  'model_route',
+  'output_format',
+  'config',
+  'user_content',
+  'status',
+  'output',
+]);
 
 export interface ExecutionResult {
   success: boolean;
@@ -61,13 +77,13 @@ export async function executeCanvasActions(actions: CanvasAction[]): Promise<Exe
           switch (action.operation) {
             // ── ADD_NODE ──────────────────────────────────────
             case 'ADD_NODE': {
-              const { type, label, position, anchor_node_id } = action.payload;
-              if (!type || !label) {
+              const { type: rawType, label, position, anchor_node_id } = action.payload;
+              if (!rawType || !label) {
                 throw new Error('ADD_NODE 缺少 type 或 label');
               }
-              if (!(type in NODE_TYPE_META)) {
-                throw new Error(`ADD_NODE type "${type}" 不是已注册的节点类型`);
-              }
+              // Unknown types fall back to `ai_step` so the canvas still renders
+              // a real node (not React Flow's default "text block").
+              const type = rawType in NODE_TYPE_META ? rawType : 'ai_step';
 
               const anchor = anchor_node_id
                 ? nodes.find((n) => n.id === anchor_node_id)
@@ -136,12 +152,22 @@ export async function executeCanvasActions(actions: CanvasAction[]): Promise<Exe
               const updates = action.payload.updates ?? {};
               if (!targetId) throw new Error('UPDATE_NODE 缺少 target_node_id');
 
+              const filtered: Record<string, unknown> = {};
+              for (const [k, v] of Object.entries(updates)) {
+                if (UPDATE_NODE_WRITABLE_FIELDS.has(k)) filtered[k] = v;
+              }
+              if (Object.keys(filtered).length === 0) {
+                // Nothing legal to write, treat as noop (instead of throwing).
+                appliedCount++;
+                break;
+              }
+
               nodes = nodes.map((n) => {
                 if (n.id !== targetId) return n;
                 const prevData = n.data as Record<string, unknown>;
                 return {
                   ...n,
-                  data: { ...prevData, ...(updates.label ? { label: updates.label } : {}) },
+                  data: { ...prevData, ...filtered },
                 };
               });
               appliedCount++;

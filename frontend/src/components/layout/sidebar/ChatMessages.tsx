@@ -4,16 +4,10 @@ import { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AIMessage } from './AIMessage';
 import { ChatEmptyState, SkeletonLoader } from './ChatEmptyState';
-
-interface HistoryEntry {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: number;
-}
+import type { ChatEntry } from '@/stores/chat/use-conversation-store';
 
 interface ChatMessagesProps {
-  history: HistoryEntry[];
+  history: ChatEntry[];
   loading: boolean;
   streaming: boolean;
   streamingMessageId: string | null;
@@ -22,7 +16,7 @@ interface ChatMessagesProps {
   onModeSwitch?: (mode: string) => void;
 }
 
-function UserMessage({ entry }: { entry: HistoryEntry }) {
+function UserMessage({ entry }: { entry: ChatEntry }) {
   return (
     <div className="ml-auto max-w-[88%]">
       <div className="rounded-xl border border-primary/20 bg-primary/[0.04] px-3 py-2 text-[12px] leading-[1.65] text-foreground/90 font-serif">
