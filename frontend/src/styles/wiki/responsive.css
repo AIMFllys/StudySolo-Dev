@@ -1,0 +1,75 @@
+@media (max-width: 1279px) {
+  .wiki-doc-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .wiki-toc-panel {
+    display: none;
+  }
+}
+
+@media (max-width: 1023px) {
+  .wiki-shell {
+    display: block;
+  }
+
+  .wiki-shell::before,
+  .wiki-sidebar {
+    display: none;
+  }
+
+  .wiki-main {
+    padding: 78px 18px 32px;
+  }
+
+  .wiki-mobile-header {
+    position: fixed;
+    z-index: 40;
+    top: 0;
+    right: 0;
+    left: 0;
+    display: flex;
+    height: 58px;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #e2e8f0;
+    background: rgba(255, 255, 255, 0.92);
+    padding: 0 16px;
+    backdrop-filter: blur(14px);
+  }
+
+  .wiki-mobile-panel {
+    position: fixed;
+    z-index: 39;
+    top: 58px;
+    right: 0;
+    left: 0;
+    display: block;
+    max-height: calc(100vh - 58px);
+    overflow-y: auto;
+    border-bottom: 1px solid #e2e8f0;
+    background: #ffffff;
+    padding: 16px;
+  }
+}
+
+@media (max-width: 720px) {
+  .wiki-index-section ul,
+  .wiki-pagination {
+    grid-template-columns: 1fr;
+  }
+
+  .wiki-pagination > .wiki-page-link-next:first-child {
+    grid-column: 1;
+  }
+
+  .wiki-index-hero,
+  .wiki-article {
+    border-radius: 16px;
+  }
+
+  .wiki-doc-header,
+  .wiki-markdown {
+    padding: 24px;
+  }
+}

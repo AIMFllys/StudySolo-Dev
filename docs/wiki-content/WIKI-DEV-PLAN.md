@@ -2,7 +2,7 @@
 
 > 负责人：小陈
 > 更新时间：2026-04-13
-> 完整原始计划：`docs/team/refactor/final-plan/wiki-init-plan.md`
+> 完整原始计划：`docs/issues/TeamRefactor/final-plan/wiki-init-plan.md`
 > 方案：Next.js Route Group 嵌入主前端（`frontend/src/app/(wiki)/wiki/`）
 
 ---

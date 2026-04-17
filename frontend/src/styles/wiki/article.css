@@ -1,0 +1,254 @@
+.wiki-doc-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 24px;
+  align-items: start;
+  min-height: calc(100vh - 64px);
+}
+
+.wiki-doc-grid-no-toc {
+  display: block;
+  width: 100%;
+}
+
+.wiki-article {
+  border-radius: 20px;
+  padding: 0;
+  color: #0f172a;
+  overflow: hidden;
+}
+
+.wiki-doc-header {
+  border-bottom: 1px solid #e2e8f0;
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.08), transparent 42%),
+    linear-gradient(to right, rgba(226, 232, 240, 0.7) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(226, 232, 240, 0.7) 1px, transparent 1px),
+    #ffffff;
+  background-size: auto, 24px 24px, 24px 24px, auto;
+  padding: 42px 48px 34px;
+}
+
+.wiki-doc-header h1 {
+  font-size: clamp(2rem, 5vw, 3.4rem);
+}
+
+.wiki-doc-header span {
+  display: block;
+  margin-top: 16px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.wiki-markdown {
+  padding: 42px 48px;
+}
+
+.wiki-markdown h1 {
+  display: none;
+}
+
+.wiki-markdown h2 {
+  position: relative;
+  margin-top: 3.25rem;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 2.25rem;
+  color: #0f172a;
+  font-family: var(--font-serif);
+  font-size: 1.875rem;
+  letter-spacing: 0;
+  line-height: 1.25;
+  scroll-margin-top: 96px;
+}
+
+.wiki-markdown h2::before {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  width: 72px;
+  height: 2px;
+  background: #2563eb;
+  content: "";
+}
+
+.wiki-markdown h3 {
+  margin-top: 2rem;
+  color: #0f172a;
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  letter-spacing: 0;
+  line-height: 1.45;
+  scroll-margin-top: 96px;
+}
+
+.wiki-markdown p,
+.wiki-markdown li {
+  color: #334155;
+  font-size: 16px;
+  line-height: 2;
+}
+
+.wiki-markdown p,
+.wiki-markdown ul,
+.wiki-markdown ol {
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.wiki-markdown ul,
+.wiki-markdown ol {
+  padding-left: 1.25rem;
+}
+
+.wiki-markdown li::marker {
+  color: #2563eb;
+  font-weight: 800;
+}
+
+.wiki-markdown li + li {
+  margin-top: 0.35rem;
+}
+
+.wiki-rich-list {
+  display: grid;
+  gap: 0.65rem;
+  list-style: none;
+  margin: 1.5rem 0;
+  padding: 0;
+}
+
+.wiki-rich-list > li {
+  position: relative;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  margin: 0;
+  padding: 0.85rem 1rem 0.85rem 2.7rem;
+}
+
+.wiki-rich-list > li::before {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 999px;
+  background: #2563eb;
+  content: "";
+  box-shadow: 0 0 0 4px #dbeafe;
+}
+
+.wiki-rich-list-ordered {
+  counter-reset: wiki-step;
+}
+
+.wiki-rich-list-ordered > li {
+  counter-increment: wiki-step;
+}
+
+.wiki-rich-list-ordered > li::before {
+  top: 0.78rem;
+  width: 1.45rem;
+  height: 1.45rem;
+  display: grid;
+  place-items: center;
+  background: #2563eb;
+  box-shadow: none;
+  color: #ffffff;
+  content: counter(wiki-step);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.wiki-rich-list > li p {
+  margin: 0.25rem 0;
+}
+
+.wiki-markdown strong {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.wiki-markdown a {
+  color: #1d4ed8;
+  font-weight: 700;
+  text-decoration-color: #93c5fd;
+  text-underline-offset: 4px;
+}
+
+.wiki-markdown a:hover {
+  color: #1e40af;
+}
+
+.wiki-markdown blockquote {
+  margin: 1.75rem 0;
+  border-left-color: #2563eb;
+  border-left-width: 4px;
+  border-radius: 0 14px 14px 0;
+  background: #eff6ff;
+  color: #1e3a8a;
+  padding: 1.1rem 1.35rem;
+}
+
+.wiki-markdown blockquote p {
+  color: #1e3a8a;
+  margin: 0;
+}
+
+.wiki-markdown code:not(pre code) {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #0f172a;
+  font-size: 0.9em;
+  padding: 0.15rem 0.35rem;
+}
+
+.wiki-markdown pre {
+  margin: 1.75rem 0;
+  overflow-x: auto;
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  background: #f8fafc;
+  color: #0f172a;
+  padding: 1.25rem;
+}
+
+.wiki-markdown table {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  margin: 1.75rem 0;
+}
+
+.wiki-markdown table table {
+  display: table;
+}
+
+.wiki-markdown th {
+  background: #eff6ff;
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.wiki-markdown th,
+.wiki-markdown td {
+  border-color: #e2e8f0;
+  padding: 0.8rem 1rem;
+}
+
+.wiki-markdown tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.wiki-markdown hr {
+  margin: 2.5rem 0;
+  border-color: #e2e8f0;
+}
+
+.wiki-markdown > *:first-child {
+  margin-top: 0;
+}

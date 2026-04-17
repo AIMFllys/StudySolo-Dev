@@ -1,3 +1,4 @@
 {
-  "quick-start": { "title": "快速开始", "order": 1 }
+  "quick-start": { "title": "快速开始", "order": 1 },
+  "concepts": { "title": "核心概念", "order": 2 }
 }

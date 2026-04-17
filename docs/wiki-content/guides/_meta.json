@@ -1,3 +1,5 @@
 {
-  "creating-workflows": { "title": "创建工作流", "order": 1 }
+  "creating-workflows": { "title": "创建工作流", "order": 1 },
+  "using-nodes": { "title": "使用节点", "order": 2 },
+  "ai-chat": { "title": "AI 对话", "order": 3 }
 }

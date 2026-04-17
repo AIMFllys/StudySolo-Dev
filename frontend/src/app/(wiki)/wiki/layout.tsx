@@ -4,28 +4,35 @@
  */
 
 import Link from 'next/link';
+import { BookOpen } from 'lucide-react';
 import WikiSidebar from '@/components/wiki/WikiSidebar';
+import WikiMobileNav from '@/components/wiki/WikiMobileNav';
+import { getNavigation } from '@/lib/wiki';
 
 export default function WikiLayout({ children }: { children: React.ReactNode }) {
+  const navItems = getNavigation();
+
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
+    <div className="wiki-shell">
+      <WikiMobileNav navItems={navItems} />
       {/* Sidebar nav */}
-      <aside className="hidden w-56 shrink-0 border-r border-border md:block">
-        <div className="sticky top-0 flex h-screen flex-col overflow-y-auto px-4 py-6">
+      <aside className="wiki-sidebar">
+        <div className="wiki-sidebar-inner">
           <Link
             href="/wiki"
-            className="mb-6 text-base font-semibold text-foreground hover:text-primary"
+            className="wiki-brand"
           >
-            📖 文档中心
+            <BookOpen className="h-4 w-4 text-blue-700" />
+            <span>文档中心</span>
           </Link>
 
-          <WikiSidebar />
+          <WikiSidebar navItems={navItems} />
         </div>
       </aside>
 
       {/* Content */}
-      <main className="flex-1 overflow-auto px-6 py-8 md:px-12">
-        <div className="mx-auto max-w-3xl">{children}</div>
+      <main className="wiki-main">
+        <div className="wiki-content">{children}</div>
       </main>
     </div>
   );

@@ -44,22 +44,20 @@ export default function WikiTOC({ items }: WikiTOCProps) {
   if (items.length === 0) return null;
 
   return (
-    <nav className="wiki-toc sticky top-20 max-h-[calc(100vh-120px)] overflow-y-auto">
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+    <nav className="wiki-toc">
+      <p className="wiki-toc-title">
         目录
       </p>
-      <ul className="flex flex-col gap-1">
+      <ul className="wiki-toc-list">
         {items.map((item) => (
           <li key={item.id}>
             <a
               href={`#${item.id}`}
               onClick={(e) => handleClick(e, item.id)}
-              className={`block text-sm transition-colors ${
-                item.level === 3 ? 'pl-3' : ''
-              } ${
+              className={`wiki-toc-link ${item.level === 3 ? 'wiki-toc-link-nested' : ''} ${
                 activeId === item.id
-                  ? 'font-medium text-primary'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'wiki-toc-link-active'
+                  : ''
               }`}
             >
               {item.title}
