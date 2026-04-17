@@ -270,5 +270,12 @@ function handleAgentEvent(
         // ignore router errors
       }
     }
+    if (payload.type === 'router_refresh') {
+      try {
+        router.refresh();
+      } catch {
+        // ignore router errors
+      }
+    }
   }
 }

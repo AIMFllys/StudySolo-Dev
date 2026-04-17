@@ -114,7 +114,11 @@ async def rename_workflow_tool(ctx: ToolContext, params: dict[str, Any]) -> Tool
         )
         if result.data is not None and len(result.data) == 0:
             return ToolResult(ok=False, error=f"找不到工作流 {wf_id}")
-        return ToolResult(ok=True, data={"id": wf_id, "new_name": new_name})
+        return ToolResult(
+            ok=True,
+            data={"id": wf_id, "new_name": new_name},
+            ui_effect=UIEffect(type="router_refresh"),
+        )
     except Exception as exc:  # noqa: BLE001
         logger.exception("rename_workflow failed: %s", exc)
         return ToolResult(ok=False, error=f"重命名失败: {exc}")

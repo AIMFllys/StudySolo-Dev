@@ -61,25 +61,25 @@ export const ToolCallSegment = memo(function ToolCallSegment({
         : '失败';
 
   return (
-    <div className="my-1.5 rounded-lg border-[1.5px] border-border/30 bg-muted/15 overflow-hidden">
+    <div className="my-0.5 rounded-md border border-border/30 bg-muted/15 overflow-hidden">
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left hover:bg-muted/25 transition-colors"
+        className="flex w-full items-center gap-1.5 px-2 py-1 text-left hover:bg-muted/25 transition-colors min-w-0"
       >
         {expanded ? (
-          <ChevronDown className="h-3 w-3 text-muted-foreground/50" />
+          <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground/50" />
         ) : (
-          <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
+          <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground/50" />
         )}
-        <Wrench className="h-3 w-3 text-muted-foreground/60" />
-        <span className="text-[11px] font-medium font-sans text-foreground/80 truncate">{tool}</span>
+        <Wrench className="h-3 w-3 shrink-0 text-muted-foreground/60" />
+        <span className="text-[11px] font-medium font-sans text-foreground/80 shrink-0 whitespace-nowrap">{tool}</span>
         {summary && (
-          <span className="text-[10px] text-muted-foreground/60 font-mono truncate">
+          <span className="text-[10px] text-muted-foreground/60 font-mono truncate min-w-0">
             ({summary})
           </span>
         )}
-        <span className="ml-auto flex items-center gap-1 text-[10px] text-muted-foreground/70 font-sans">
+        <span className="ml-auto flex shrink-0 items-center gap-1 text-[10px] text-muted-foreground/70 font-sans whitespace-nowrap">
           <StatusIcon />
           <span>{label}</span>
         </span>
