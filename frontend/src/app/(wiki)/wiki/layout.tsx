@@ -3,6 +3,8 @@
  * 左侧：文档导航；右侧：内容区。
  */
 
+import '@/styles/wiki.css';
+
 import Link from 'next/link';
 import { BookOpen } from 'lucide-react';
 import WikiSidebar from '@/components/wiki/WikiSidebar';
