@@ -6,11 +6,12 @@ Routes are mounted at /api/workflow-runs by router.py.
 import logging
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from supabase import AsyncClient
 
 from app.core.database import get_db
 from app.core.deps import get_current_user, get_optional_user
+from app.engine.run_worker import summarise_progress
 
 logger = logging.getLogger(__name__)
 
@@ -219,3 +220,83 @@ async def toggle_run_share(
 
     await db.from_("ss_workflow_runs").update(update).eq("id", run_id).execute()
     return {"is_shared": new_shared, "run_id": run_id}
+
+
+# ── Run API v2: progress + events replay (CLI / MCP) ────────────────────────
+
+
+@router.get("/{run_id}/progress")
+async def get_run_progress(
+    run_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncClient = Depends(get_db),
+):
+    """Return a compact progress summary for a run.
+
+    The shape is:
+        {
+            "run_id", "workflow_id", "status",
+            "phase", "current_node_id", "current_node_label",
+            "total_nodes", "done_nodes", "percent",
+            "elapsed_ms", "last_event_at",
+        }
+    """
+    # Ownership check via ss_workflow_runs (RLS-backed, but we also scope query).
+    run = (
+        await db.from_("ss_workflow_runs")
+        .select("id")
+        .eq("id", run_id)
+        .eq("user_id", current_user["id"])
+        .maybe_single()
+        .execute()
+    )
+    if not run or not run.data:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "运行记录不存在")
+
+    return await summarise_progress(db, run_id)
+
+
+@router.get("/{run_id}/events")
+async def get_run_events(
+    run_id: str,
+    after_seq: int = Query(default=0, ge=0),
+    limit: int = Query(default=200, ge=1, le=1000),
+    current_user: dict = Depends(get_current_user),
+    db: AsyncClient = Depends(get_db),
+):
+    """Return key-frame events for a run since ``after_seq`` (exclusive).
+
+    Clients should persist the max ``seq`` they've seen and use it as the
+    next ``after_seq`` to fetch incremental batches until they see a
+    ``workflow_done`` event or ``run.status`` transitions to a terminal value.
+    """
+    run = (
+        await db.from_("ss_workflow_runs")
+        .select("id,status,started_at,completed_at")
+        .eq("id", run_id)
+        .eq("user_id", current_user["id"])
+        .maybe_single()
+        .execute()
+    )
+    if not run or not run.data:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "运行记录不存在")
+
+    events_result = (
+        await db.from_("ss_workflow_run_events")
+        .select("seq,event_type,payload,created_at")
+        .eq("run_id", run_id)
+        .gt("seq", after_seq)
+        .order("seq", desc=False)
+        .limit(limit)
+        .execute()
+    )
+    events = events_result.data or []
+    next_seq = events[-1]["seq"] if events else after_seq
+    terminal_statuses = {"completed", "failed"}
+    return {
+        "run_id": run_id,
+        "run_status": run.data.get("status"),
+        "is_terminal": run.data.get("status") in terminal_statuses,
+        "next_seq": next_seq,
+        "events": events,
+    }

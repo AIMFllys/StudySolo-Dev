@@ -42,6 +42,10 @@ Desktop.ini
 !.agent/skills/agent-branch-handoff/**
 !.agent/skills/system-diagnostics/
 !.agent/skills/system-diagnostics/**
+!.agent/skills/studysolo-mcp/
+!.agent/skills/studysolo-mcp/**
+!.agent/skills/studysolo-cli/
+!.agent/skills/studysolo-cli/**
 .claude/
 .kiro/
 .cursor/

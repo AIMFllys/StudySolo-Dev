@@ -1,4 +1,11 @@
-"""Workflow SSE execution route: /api/workflow/{id}/execute."""
+"""Workflow SSE execution route: /api/workflow/{id}/execute.
+
+Also hosts ``POST /api/workflow/{id}/runs`` — the REST-native async start
+endpoint used by the CLI / MCP. Unlike ``/execute`` (which streams SSE to
+a connected browser), ``/runs`` returns immediately with a ``run_id`` and
+defers the actual work to ``engine.run_worker.run_to_db`` running in the
+background. Progress and event replay live under ``/api/workflow-runs/*``.
+"""
 
 import asyncio
 import logging
@@ -15,6 +22,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_user, get_supabase_client
 from app.engine.events import event_message, parse_sse_frame
 from app.engine.executor import execute_workflow
+from app.engine.run_worker import run_to_db
 from app.models.workflow import WorkflowExecuteRequest
 from app.services.ai_catalog_service import get_sku_by_id, is_tier_allowed
 from app.services.quota_service import check_daily_execution_quota
@@ -327,6 +335,117 @@ async def execute_workflow_sse_post(
         db=db,
         service_db=service_db,
     )
+
+
+@router.post(
+    "/{workflow_id}/runs",
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def start_workflow_run(
+    workflow_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncClient = Depends(get_supabase_client),
+    service_db: AsyncClient = Depends(get_db),
+):
+    """Kick off a workflow run asynchronously and return a ``run_id``.
+
+    The heavy lifting happens in ``engine.run_worker.run_to_db`` scheduled on
+    the event loop. Poll progress via:
+        - ``GET /api/workflow-runs/{run_id}/progress``
+        - ``GET /api/workflow-runs/{run_id}/events?after_seq=<int>``
+        - ``GET /api/workflow-runs/{run_id}`` (final trace list after completion)
+    """
+    from app.api.auth._helpers import is_rate_limited, record_rate_limit_failure
+
+    user_id = current_user["id"]
+    user_tier = current_user.get("tier", "free")
+
+    bucket = f"wf_exec:{user_id}"
+    event_type = "workflow_execute"
+    if await is_rate_limited(
+        service_db, bucket, event_type, WF_EXEC_RATE_LIMIT, WF_EXEC_WINDOW_SECONDS
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="工作流触发过于频繁，请稍后再试",
+        )
+    await record_rate_limit_failure(service_db, bucket, event_type, WF_EXEC_WINDOW_SECONDS)
+
+    exec_quota = await check_daily_execution_quota(user_id, user_tier, service_db)
+    if not exec_quota["allowed"]:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail={
+                "code": "DAILY_EXECUTION_QUOTA_EXCEEDED",
+                "message": (
+                    f"今日工作流执行次数已达上限（{exec_quota['used']}/"
+                    f"{exec_quota['limit']}），明日重置或升级会员"
+                ),
+                "used": exec_quota["used"],
+                "limit": exec_quota["limit"],
+            },
+        )
+
+    # Sanity-check that the workflow exists and belongs to the caller. The
+    # worker does the same check again defensively, but surfacing 404 here
+    # gives callers immediate feedback instead of a "failed" async run.
+    wf_result = (
+        await db.from_("ss_workflows")
+        .select("id,name")
+        .eq("id", workflow_id)
+        .eq("user_id", user_id)
+        .maybe_single()
+        .execute()
+    )
+    if not wf_result or not wf_result.data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="工作流不存在",
+        )
+
+    run_id = str(uuid.uuid4())
+    workflow_input = None  # Filled in by run_worker from trigger_input; kept null here.
+    started_at = datetime.now(timezone.utc).isoformat()
+    try:
+        await (
+            service_db.from_("ss_workflow_runs")
+            .insert(
+                {
+                    "id": run_id,
+                    "workflow_id": workflow_id,
+                    "user_id": user_id,
+                    "input": workflow_input,
+                    "status": "queued",
+                    "started_at": started_at,
+                }
+            )
+            .execute()
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Failed to create ss_workflow_runs row: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="创建工作流运行记录失败，请稍后重试",
+        ) from exc
+
+    # Fire-and-forget: the worker handles all exceptions internally.
+    asyncio.create_task(
+        run_to_db(
+            run_id=run_id,
+            workflow_id=workflow_id,
+            user_id=user_id,
+            user_tier=user_tier,
+        )
+    )
+
+    return {
+        "run_id": run_id,
+        "workflow_id": workflow_id,
+        "status": "queued",
+        "started_at": started_at,
+        "progress_url": f"/api/workflow-runs/{run_id}/progress",
+        "events_url": f"/api/workflow-runs/{run_id}/events",
+    }
 
 
 # ── Node category mapping (must match frontend workflow-meta.ts) ───────────

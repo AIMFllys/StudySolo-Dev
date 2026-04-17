@@ -8,7 +8,7 @@ import {
   type FontSize,
   type ThemeMode,
 } from '@/stores/ui/use-settings-store';
-import { SettingSection, ToggleItem } from '@/features/settings/components';
+import { DeveloperTokens, SettingSection, ToggleItem } from '@/features/settings/components';
 import {
   ACCENT_OPTIONS,
   FONT_OPTIONS,
@@ -187,6 +187,15 @@ export function SettingsPageView() {
                 description="在画布右下角显示全局缩略图"
               />
             </div>
+          </SettingSection>
+        </div>
+
+        <div className="px-6">
+          <SettingSection
+            title="开发者 / API Token"
+            description="用于 StudySolo CLI 与 MCP Server 的 Bearer Token"
+          >
+            <DeveloperTokens />
           </SettingSection>
         </div>
 

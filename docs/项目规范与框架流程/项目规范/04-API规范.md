@@ -75,6 +75,22 @@
 | `POST` | `/api/admin/logout` | 后台登出 |
 | `POST` | `/api/admin/change-password` | 修改后台密码 |
 
+### 2.3 Personal Access Token（CLI / MCP 专用）
+
+> 2026-04-17 新增。浏览器仍用 Supabase Cookie JWT；CLI 与 MCP 统一走 PAT。
+
+| 方法 | 路径 | 用途 | 来源文件 |
+| --- | --- | --- | --- |
+| `GET` | `/api/tokens` | 列出当前用户的 PAT（元数据） | `api/tokens.py` |
+| `POST` | `/api/tokens` | 创建 PAT，**响应一次性返回明文** | `api/tokens.py` |
+| `DELETE` | `/api/tokens/{token_id}` | 撤销 PAT | `api/tokens.py` |
+
+- 明文格式：`sk_studysolo_` + 32 字节 `secrets.token_urlsafe`。
+- 存储：数据库只存 SHA-256 hash（`token_hash`）+ 前 12 字符前缀（`token_prefix`）。
+- 认证：请求头 `Authorization: Bearer sk_studysolo_...`，由 `backend/app/middleware/auth.py` 在 JWT 路径之前分支处理。
+- RLS：`ss_api_tokens.user_id = auth.uid()`，初版 `scopes` 固定为 `["*"]`。
+- 速率：沿用全站 `auth_rate_limit_events`（不另设桶）。
+
 ## 3. 工作流接口
 
 ### 3.1 CRUD 与执行
@@ -123,6 +139,41 @@
 | `GET` | `/api/workflow-runs/{run_id}` | 运行详情 | `api/workflow/runs.py` |
 | `GET` | `/api/workflow-runs/{run_id}/public` | 公开运行详情 | `api/workflow/runs.py` |
 | `POST` | `/api/workflow-runs/{run_id}/share` | 切换运行记录分享状态 | `api/workflow/runs.py` |
+
+### 3.5 Run API v2（CLI / MCP 规范化）
+
+> 2026-04-17 新增。与 `POST /{id}/execute`（SSE）双通道共存：浏览器用 SSE，非浏览器客户端用 REST。
+
+| 方法 | 路径 | 用途 | 来源文件 |
+| --- | --- | --- | --- |
+| `POST` | `/api/workflow/{workflow_id}/runs` | 异步启动 run，立即返回 `202 {run_id, progress_url, events_url}` | `api/workflow/execute.py` |
+| `GET` | `/api/workflow-runs/{run_id}/progress` | 聚合进度 | `api/workflow/runs.py` |
+| `GET` | `/api/workflow-runs/{run_id}/events?after_seq=N&limit=200` | 节点级事件增量（key-frame only） | `api/workflow/runs.py` |
+
+**进度响应形状**：
+
+```json
+{
+  "run_id": "...", "workflow_id": "...", "status": "running",
+  "phase": "executing",
+  "current_node_id": "summary_1", "current_node_label": "摘要生成",
+  "total_nodes": 6, "done_nodes": 3, "percent": 50,
+  "elapsed_ms": 12345, "last_event_at": "..."
+}
+```
+
+**事件存储**：新表 `ss_workflow_run_events(run_id, seq, event_type, payload, created_at)`，按 run 内单调 `seq` 递增。持久化的 `event_type`：
+
+- `workflow_status`（phase 切换）
+- `node_input` / `node_status` / `node_done`
+- `save_error`
+- `workflow_done`（终态帧，必有）
+
+Token 级 partial 帧 **不** 落库，仅走 SSE。
+
+**执行路径**：`api/workflow/execute.py::start_workflow_run` → `asyncio.create_task(engine.run_worker.run_to_db(...))`，后者通过 `EventSink` 写入 `ss_workflow_run_events` 并在终态回写 `ss_workflow_runs`。
+
+**终态判定**：`GET /events` 返回 `is_terminal: true` 且 `run_status ∈ {completed, failed}` 时停止轮询。`GET /progress` 的 `status` 同语义。
 
 ## 4. AI 接口
 

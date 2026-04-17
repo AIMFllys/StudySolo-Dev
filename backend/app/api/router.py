@@ -26,6 +26,7 @@ from app.api.discounts import router as discounts_router
 from app.api.community_nodes import router as community_nodes_router
 from app.api.agents import router as agents_router
 from app.api.debug_log import router as debug_log_router
+from app.api.tokens import router as tokens_router
 
 
 router = APIRouter()
@@ -42,6 +43,7 @@ router.include_router(discounts_router, prefix="/discounts", tags=["discounts"])
 router.include_router(community_nodes_router, prefix="/community-nodes", tags=["community-nodes"])
 router.include_router(agents_router, prefix="/agents", tags=["agents"])
 router.include_router(debug_log_router, prefix="/debug", tags=["debug"])
+router.include_router(tokens_router, prefix="/tokens", tags=["tokens"])
 router.include_router(workflow_runs_router, prefix="/workflow-runs", tags=["workflow-runs"])
 router.include_router(admin_auth_router, prefix="/admin", tags=["admin-auth"])
 router.include_router(admin_dashboard_router, prefix="/admin", tags=["admin-dashboard"])

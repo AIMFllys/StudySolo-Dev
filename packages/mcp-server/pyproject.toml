@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling>=1.21"]
+build-backend = "hatchling.build"
+
+[project]
+name = "studysolo-mcp"
+version = "0.1.0"
+description = "StudySolo MCP Server. Exposes account, usage and workflow tools to MCP hosts (Claude Desktop, Cursor, …) over stdio."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [{ name = "StudySolo" }]
+keywords = ["studysolo", "mcp", "model-context-protocol", "workflow", "ai"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "mcp>=1.0",
+    "httpx>=0.27",
+    "pydantic>=2.7",
+]
+
+[project.scripts]
+studysolo-mcp = "studysolo_mcp.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/studysolo/StudySolo"
+Issues = "https://github.com/studysolo/StudySolo/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/studysolo_mcp"]
