@@ -6,22 +6,27 @@
 - 模型选择: 不可手动选择，内置双引擎
 
 ## 搜索引擎
-本节点同时调用两个搜索引擎进行并发深度搜索：
+本节点同时调用两个**专用搜索 API**（均非 chat.completions 代理）：
 
-1. **GLM 搜索引擎** (智谱 AI web_search tool)
-   - 基于 GLM-4 模型的联网搜索能力
-   - 自动提取网页结构化信息
+1. **Zhipu Web Search Pro** (`POST /api/paas/v4/web_search`)
+   - `search_engine=search_pro`
+   - 结构化返回 `search_result[]`（title/link/content/refer/media/publish_date）
 
-2. **百度搜索引擎** (七牛云代理)
-   - 通过七牛云 API 调用百度搜索
-   - 中文搜索结果更丰富
+2. **Qiniu 全网搜索（百度 Search API）** (`POST /v1/search/web`)
+   - 结构化返回 `data.results[]`（title/url/content/date/source/authority_score）
 
-## 权威源约束
-搜索时严格执行以下规则：
-- ✅ 优先引用：百度百科、知网(CNKI)、中国政府网(.gov.cn)、学术期刊、官方文档
-- ❌ 禁止引用：个人博客、自媒体(百家号/搜狐号)、未验证论坛、非官方教程
+## 权威评分
+- 白名单加分：baike.baidu.com / cnki.net / gov.cn / wikipedia.org / arxiv.org / 官方文档…
+- 硬过滤：baijiahao / sohu / toutiao / jianshu / blog.csdn.net 等自媒体
+
+## 降级契约 (fallback contract)
+当**两个引擎都失败**或都无结构化结果时：
+- `NodeOutput.metadata.degraded = True`
+- `NodeOutput.metadata.fallback_instruction` 附带给下游 LLM 的降级提示词
+- `NodeOutput.metadata.original_query` 原始用户问题
+- 下游 LLM 节点自动感知并切换到"用自身知识回答 + 明确标注未联网"模式
 
 ## 数据流
-- 输入: 接收用户查询文本（来自 trigger_input 或上游节点）
-- 输出: 合并去重后的搜索结果 Markdown，包含 GLM 摘要 + 百度摘要 + 结构化条目
+- 输入: 上游（trigger_input 等）传入的用户问题，节点 label 仅作辅助
+- 输出: 合并、去重、按权威分排序的 Markdown 搜索结果
 - 下游: content_extract、summary、flashcard 等生成节点

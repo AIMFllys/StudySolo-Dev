@@ -48,6 +48,10 @@ class NodeInput(BaseModel):
     """Standard input passed to every node's execute()."""
     user_content: str = ""
     upstream_outputs: dict[str, str] = Field(default_factory=dict)
+    # Per-upstream node metadata (NodeOutput.metadata). Used by downstream
+    # nodes to detect degraded upstreams (e.g. web_search fallback) and
+    # inject the appropriate LLM instructions. Empty for old callers.
+    upstream_metadata: dict[str, dict[str, Any]] = Field(default_factory=dict)
     implicit_context: dict[str, Any] | None = None
     node_config: dict[str, Any] | None = None  # 节点配置参数（如 quiz_gen: {types, count, difficulty}）
 
@@ -179,8 +183,18 @@ class BaseNode(ABC):
 
         Default: concatenate direct upstream outputs + current label.
         Override to customize context injection strategy.
+
+        If any upstream node's metadata has `degraded=True` (e.g. web_search
+        could not reach any engine), prepend the upstream's
+        `fallback_instruction` so the downstream LLM knows to answer from
+        its own training knowledge and flag the response accordingly.
         """
         parts: list[str] = []
+
+        fallback_blocks = self._collect_fallback_instructions(node_input)
+        if fallback_blocks:
+            parts.append("\n\n".join(fallback_blocks))
+
         if node_input.upstream_outputs:
             upstream_text = "\n\n".join(
                 f"[{nid}]: {out}"
@@ -197,6 +211,27 @@ class BaseNode(ABC):
                 + json.dumps(node_input.node_config, ensure_ascii=False, indent=2)
             )
         return "\n\n".join(parts)
+
+    @staticmethod
+    def _collect_fallback_instructions(node_input: NodeInput) -> list[str]:
+        """Gather fallback_instruction blocks from degraded upstream nodes."""
+        metadata_map = node_input.upstream_metadata or {}
+        blocks: list[str] = []
+        for nid, meta in metadata_map.items():
+            if not isinstance(meta, dict):
+                continue
+            if not meta.get("degraded"):
+                continue
+            instruction = str(meta.get("fallback_instruction") or "").strip()
+            if not instruction:
+                continue
+            reason = str(meta.get("degradation_reason") or "").strip()
+            original_query = str(meta.get("original_query") or "").strip()
+            header = f"⚠️ 上游节点 [{nid}] 已降级（原因：{reason or '未知'}）"
+            if original_query:
+                header += f"；原始问题：{original_query}"
+            blocks.append(f"{header}\n{instruction}")
+        return blocks
 
     # ── Context prompt builder ───────────────────────────────────────────────
 

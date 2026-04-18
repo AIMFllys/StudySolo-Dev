@@ -101,6 +101,7 @@ async def execute_single_node(
     node_config: dict,
     upstream_outputs: dict[str, str],
     implicit_context: dict | None,
+    upstream_metadata: dict[str, dict[str, Any]] | None = None,
 ) -> tuple[str, str | None, str | None]:
     """Execute a single node and return (node_id, output, error)."""
     node_type_str = node_config.get("type", "chat_response")
@@ -118,6 +119,7 @@ async def execute_single_node(
     node_input = NodeInput(
         user_content=resolve_user_content(node_data),
         upstream_outputs=upstream_outputs,
+        upstream_metadata=upstream_metadata or {},
         implicit_context=implicit_context,
         node_config=runtime_config,
     )
@@ -146,6 +148,7 @@ async def stream_single_node_events(
     event_meta: dict[str, Any] | None = None,
     timeout_seconds: int = DEFAULT_NODE_TIMEOUT,
     startup_timeout_seconds: int = DEFAULT_NODE_STARTUP_TIMEOUT,
+    upstream_metadata: dict[str, dict[str, Any]] | None = None,
 ) -> AsyncIterator[str]:
     """Execute a single node and emit SSE frames as work progresses."""
     node_type_str = node_config.get("type", "chat_response")
@@ -167,6 +170,7 @@ async def stream_single_node_events(
     node_input = NodeInput(
         user_content=resolve_user_content(node_data),
         upstream_outputs=upstream_outputs,
+        upstream_metadata=upstream_metadata or {},
         implicit_context=implicit_context,
         node_config=runtime_config,
     )
@@ -254,6 +258,7 @@ async def execute_single_node_with_timeout(
     upstream_outputs: dict[str, str],
     implicit_context: dict | None,
     timeout_seconds: int = DEFAULT_NODE_TIMEOUT,
+    upstream_metadata: dict[str, dict[str, Any]] | None = None,
 ) -> tuple[str, str | None, str | None]:
     """Wrapper that applies per-node timeout."""
     try:
@@ -261,6 +266,7 @@ async def execute_single_node_with_timeout(
             execute_single_node(
                 node_id=node_id, node_config=node_config,
                 upstream_outputs=upstream_outputs, implicit_context=implicit_context,
+                upstream_metadata=upstream_metadata,
             ),
             timeout=timeout_seconds,
         )

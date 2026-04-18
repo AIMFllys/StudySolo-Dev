@@ -31,6 +31,7 @@ def _finalize_node_result(
     error_nodes: set[str],
     failed_nodes: set[str],
     skipped_nodes: set[str],
+    accumulated_metadata: dict[str, dict] | None = None,
 ) -> None:
     if result.error:
         error_nodes.add(node_id)
@@ -39,6 +40,8 @@ def _finalize_node_result(
 
     output = result.output or ""
     accumulated_outputs[node_id] = output
+    if accumulated_metadata is not None and result.metadata:
+        accumulated_metadata[node_id] = dict(result.metadata)
     if node_cfg.get("type") == "logic_switch" and result.metadata.get("branch"):
         chosen_branch = str(result.metadata["branch"])
         skipped_nodes.update(get_branch_filtered_downstream(node_id, chosen_branch, edges, downstream_map))
@@ -57,17 +60,26 @@ async def execute_single_level_node(
     error_nodes: set[str],
     failed_nodes: set[str],
     skipped_nodes: set[str],
+    accumulated_metadata: dict[str, dict] | None = None,
 ) -> AsyncIterator[str]:
     """Execute a single node at a topological level with full SSE streaming."""
     node_cfg = node_map.get(node_id)
     if not node_cfg:
         return
 
+    upstream_ids = upstream_map.get(node_id, [])
     upstream_outputs = {
         uid: accumulated_outputs[uid]
-        for uid in upstream_map.get(node_id, [])
+        for uid in upstream_ids
         if uid in accumulated_outputs
     }
+    upstream_metadata: dict[str, dict] = {}
+    if accumulated_metadata:
+        upstream_metadata = {
+            uid: accumulated_metadata[uid]
+            for uid in upstream_ids
+            if uid in accumulated_metadata
+        }
 
     if node_cfg.get("type") == "loop_group":
         wait_secs = get_max_wait_seconds(node_id, edges)
@@ -124,6 +136,7 @@ async def execute_single_level_node(
         result=result,
         timeout_seconds=DEFAULT_NODE_TIMEOUT,
         startup_timeout_seconds=DEFAULT_NODE_STARTUP_TIMEOUT,
+        upstream_metadata=upstream_metadata,
     ):
         yield event
 
@@ -137,6 +150,7 @@ async def execute_single_level_node(
         error_nodes=error_nodes,
         failed_nodes=failed_nodes,
         skipped_nodes=skipped_nodes,
+        accumulated_metadata=accumulated_metadata,
     )
 
 
@@ -151,6 +165,7 @@ async def execute_parallel_level(
     error_nodes: set[str],
     failed_nodes: set[str],
     skipped_nodes: set[str],
+    accumulated_metadata: dict[str, dict] | None = None,
 ) -> AsyncIterator[str]:
     """Execute multiple independent nodes in parallel and stream events as they arrive."""
     parallel_group_id = build_parallel_group_id(active_nodes)
@@ -163,11 +178,19 @@ async def execute_parallel_level(
             result.error = f"Node config missing: {nid}"
             return result
 
+        upstream_ids = upstream_map.get(nid, [])
         upstream_outputs = {
             uid: accumulated_outputs[uid]
-            for uid in upstream_map.get(nid, [])
+            for uid in upstream_ids
             if uid in accumulated_outputs
         }
+        upstream_metadata: dict[str, dict] = {}
+        if accumulated_metadata:
+            upstream_metadata = {
+                uid: accumulated_metadata[uid]
+                for uid in upstream_ids
+                if uid in accumulated_metadata
+            }
         event_meta = {"parallel_group_id": parallel_group_id}
         wait_secs = get_max_wait_seconds(nid, edges)
 
@@ -190,6 +213,7 @@ async def execute_parallel_level(
                 event_meta=event_meta,
                 timeout_seconds=DEFAULT_NODE_TIMEOUT,
                 startup_timeout_seconds=DEFAULT_NODE_STARTUP_TIMEOUT,
+                upstream_metadata=upstream_metadata,
             ):
                 await queue.put(event)
         except Exception as exc:
@@ -231,4 +255,5 @@ async def execute_parallel_level(
             error_nodes=error_nodes,
             failed_nodes=failed_nodes,
             skipped_nodes=skipped_nodes,
+            accumulated_metadata=accumulated_metadata,
         )

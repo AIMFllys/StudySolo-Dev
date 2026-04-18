@@ -114,6 +114,7 @@ async def execute_workflow(
     failed_nodes: set[str] = set()
     skipped_nodes: set[str] = set()
     accumulated_outputs: dict[str, str] = {}
+    accumulated_metadata: dict[str, dict] = {}
 
     for level in levels:
         for nid in level:
@@ -137,12 +138,14 @@ async def execute_workflow(
             async for ev in execute_single_level_node(
                 active_nodes[0], node_map, nodes, edges, upstream_map, downstream_map,
                 implicit_context, accumulated_outputs, error_nodes, failed_nodes, skipped_nodes,
+                accumulated_metadata=accumulated_metadata,
             ):
                 yield ev
         else:
             async for ev in execute_parallel_level(
                 active_nodes, node_map, edges, upstream_map, downstream_map,
                 implicit_context, accumulated_outputs, error_nodes, failed_nodes, skipped_nodes,
+                accumulated_metadata=accumulated_metadata,
             ):
                 yield ev
 

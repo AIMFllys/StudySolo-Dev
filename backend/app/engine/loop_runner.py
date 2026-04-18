@@ -113,6 +113,7 @@ async def execute_loop_group(
         sub_outputs: dict[str, str],
         iter_outputs: dict[str, str],
         iteration: int,
+        sub_metadata: dict[str, dict],
         *,
         parallel_group_id: str | None = None,
     ) -> tuple[NodeExecutionResult, list[str]]:
@@ -128,6 +129,11 @@ async def execute_loop_group(
         upstream_outputs = {
             uid: sub_outputs.get(uid, iter_outputs.get(uid, ""))
             for uid in direct_ups
+        }
+        upstream_metadata = {
+            uid: sub_metadata[uid]
+            for uid in direct_ups
+            if uid in sub_metadata
         }
         wait_secs = get_max_wait_seconds(nid, child_edges)
         if wait_secs > 0:
@@ -148,6 +154,7 @@ async def execute_loop_group(
             event_meta=meta,
             timeout_seconds=DEFAULT_NODE_TIMEOUT,
             startup_timeout_seconds=DEFAULT_NODE_STARTUP_TIMEOUT,
+            upstream_metadata=upstream_metadata,
         ):
             events.append(event)
 
@@ -170,6 +177,7 @@ async def execute_loop_group(
             iter_outputs.update(iteration_results[-1])
 
         sub_outputs: dict[str, str] = {}
+        sub_metadata: dict[str, dict] = {}
         sub_failed: set[str] = set()
         sub_skipped: set[str] = set()
 
@@ -203,6 +211,7 @@ async def execute_loop_group(
                     sub_outputs,
                     iter_outputs,
                     iteration,
+                    sub_metadata,
                 )
                 for event in events:
                     yield event
@@ -211,6 +220,8 @@ async def execute_loop_group(
                     sub_failed.update(get_all_downstream(result.node_id, downstream_map))
                 elif result.output is not None:
                     sub_outputs[result.node_id] = result.output
+                    if result.metadata:
+                        sub_metadata[result.node_id] = dict(result.metadata)
                     if child_node_map[result.node_id].get("type") == "logic_switch" and result.metadata.get("branch"):
                         sub_skipped.update(
                             get_branch_filtered_downstream(
@@ -230,6 +241,7 @@ async def execute_loop_group(
                         sub_outputs,
                         iter_outputs,
                         iteration,
+                        sub_metadata,
                         parallel_group_id=parallel_group_id,
                     )
                     try:
@@ -255,6 +267,8 @@ async def execute_loop_group(
                         sub_failed.update(get_all_downstream(result.node_id, downstream_map))
                     elif result.output is not None:
                         sub_outputs[result.node_id] = result.output
+                        if result.metadata:
+                            sub_metadata[result.node_id] = dict(result.metadata)
                         if child_node_map[result.node_id].get("type") == "logic_switch" and result.metadata.get("branch"):
                             sub_skipped.update(
                                 get_branch_filtered_downstream(
