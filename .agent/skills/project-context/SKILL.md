@@ -267,7 +267,7 @@ backend/app/
 - **前端元数据**：`frontend/src/features/workflow/constants/workflow-meta.ts`（Phase 3 确认继续承担结构职责）
 - **Manifest API**：`api/nodes.py` → `/api/nodes/manifest`
 
-### 7.2 节点分类（19 种节点）
+### 7.2 节点分类（24 种内置节点 + 1 种社区节点）
 
 | 类别 | 节点类型 | 说明 |
 |------|---------|------|
@@ -277,6 +277,7 @@ backend/app/
 | 交互 | `chat_response` | 1 种 |
 | 输出 | `export_file`, `write_db` | 2 种 |
 | 结构 | `loop_group` | 前端虚拟容器 |
+| Agent | `agent_code_review`, `agent_deep_research`, `agent_news`, `agent_study_tutor`, `agent_visual_site` | 5 种固定子后端 Agent 节点 |
 
 ### 7.3 节点状态
 
@@ -287,6 +288,8 @@ backend/app/
 - 后端 manifest 是节点定义的唯一事实源
 - 前端 `RENDERER_REGISTRY` 从 manifest 动态读取
 - `workflow-meta.ts` 仍承担 `status / icon / theme / inputs / outputs` 结构职责
+- Agent 节点 manifest 额外暴露 `model_source="agent"` 与 `agent_name`
+- 普通 LLM 节点的 `model_route` 是主 AI catalog `sku_id`；Agent 节点的 `model_route` 是子 Agent 自己的 model id
 
 ## 8. AI 域规则
 
@@ -324,17 +327,17 @@ backend/app/
 agents/
 ├── README.md                    # 开发总指南（权威）
 ├── _template/                   # 模板（复制即用）✅
-├── code-review-agent/           # 代码审查（小李）✅ 可运行
-├── deep-research-agent/         # 深度研究（迁移中）
-├── news-agent/                  # 新闻抓取（迁移中）
-├── study-tutor-agent/           # 学习专家（规划中）
-└── visual-site-agent/           # 可视化网站生成（规划中）
+├── code-review-agent/           # 代码审查（已注册）
+├── deep-research-agent/         # 深度研究（已注册）
+├── news-agent/                  # 新闻抓取（已注册）
+├── study-tutor-agent/           # 学习专家（已注册）
+└── visual-site-agent/           # 可视化网站生成（已注册）
 ```
 
 ### 9.2 Agent 协议（权威）
 
-- `docs/team/refactor/final-plan/agent-architecture.md`（四层协议 ✅ 已冻结）
-- `backend/config/agents.yaml`（注册配置 ⚠️ Phase 5 实现）
+- `docs/issues/TeamRefactor/final-plan/agent-architecture.md`（四层协议 ✅ 已冻结）
+- `backend/config/agents.yaml`（注册配置，当前已有 5 个启用 Agent）
 - `agents/README.md`（开发指南 ✅ 已完成）
 
 ### 9.3 端口分配
@@ -355,7 +358,7 @@ agents/
 - `code-review-agent` 已完成当前 owner 侧的 Phase 4B 治理收口，真实测试基线为 `pytest agents/code-review-agent/tests -q -> 177 passed`
 - 当前 `code-review-agent` 仍不读取本地仓库文件，不做 embedding / AST / 跨文件推理，也不透传 provider usage / model
 - 其他 Agent 扩展、骨架补全和迁移不属于当前 owner 的默认主线；除非出现阻塞 Gateway 的真实缺口，否则不要继续深挖 `code-review-agent` 的 4B 细节
-- 当前 owner 的默认下一主线是 Phase 5：`Agent Gateway`、根级治理、文档与代码对齐、CI/CD 增强
+- 当前代码基线已经包含 Agent Gateway、Agent 节点专区、Agent 模型发现与提示词联动
 
 ## 10. 数据库与共享边界
 
@@ -381,15 +384,15 @@ agents/
 
 | 优先级 | 文档位置 | 说明 |
 |--------|---------|------|
-| **L0（最高）** | `docs/team/*.md` | 团队协作铁规 |
+| **L0（最高）** | `docs/项目规范与框架流程/项目规范/*.md` | 项目规范统一权威 |
 | **L0** | `.github/CODEOWNERS` | GitHub 代码所有权 |
-| **L0** | `docs/team/refactor/contracts/` | Phase 1 冻结契约（不可修改） |
+| **L0** | `docs/issues/TeamRefactor/contracts/` | Phase 1 冻结契约（不可修改） |
 | **L1** | `docs/项目规范与框架流程/项目规范/` | 技术规范主体（整合后统一入口） |
-| **L1** | `docs/team/refactor/final-plan/` | 重构执行计划（只记录阶段状态） |
+| **L1** | `docs/issues/TeamRefactor/final-plan/` | 重构执行计划（只记录阶段状态） |
 | **L2** | `agents/README.md` | Agent 开发指南 |
 | **L2** | 本文档 | AI 编程速查（索引 + 摘要） |
-| **L3（参考）** | `docs/team/refactor/claude-analysis/` | 历史分析，只读 |
-| **L3（参考）** | `docs/team/refactor/codex-analysis/` | 历史分析，只读 |
+| **L3（参考）** | `docs/issues/TeamRefactor/claude-analysis/` | 历史分析，只读 |
+| **L3（参考）** | `docs/issues/TeamRefactor/codex-analysis/` | 历史分析，只读 |
 
 ## 12. 重构状态（2026-04-12）
 
@@ -408,9 +411,9 @@ agents/
 
 **规范层**（整合后）：
 - `docs/项目规范与框架流程/项目规范/00-规范索引.md` — 规范统一入口
-- `docs/team/refactor/final-plan/00-索引.md` — 重构总览
-- `docs/team/refactor/final-plan/agent-architecture.md` — 四层协议（冻结）
-- `docs/team/refactor/contracts/` — Phase 1 冻结契约
+- `docs/issues/TeamRefactor/final-plan/00-索引.md` — 重构总览
+- `docs/issues/TeamRefactor/final-plan/agent-architecture.md` — 四层协议（冻结）
+- `docs/issues/TeamRefactor/contracts/` — Phase 1 冻结契约
 - `docs/issues/phase5-master-plan/00-总览与执行顺序.md` — Phase 5 完整规划
 
 **代码层**：

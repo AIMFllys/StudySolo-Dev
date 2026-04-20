@@ -181,18 +181,27 @@ function DraggableCanvas({children,eset,dset}:{children:React.ReactNode;eset:Set
   const [pan,setPan]=useState({x:-160,y:0});
   const dr=useRef(false);
   const ds=useRef({sx:0,sy:0,px:0,py:0});
+  const raf=useRef<number|null>(null);
+  const nextPan=useRef(pan);
   const moved=useRef(false);
   const onDown=(e:React.MouseEvent)=>{dr.current=true;moved.current=false;ds.current={sx:e.clientX,sy:e.clientY,px:pan.x,py:pan.y};};
   const onMove=(e:React.MouseEvent)=>{
     if(!dr.current)return;
     const dx=e.clientX-ds.current.sx,dy=e.clientY-ds.current.sy;
     if(Math.abs(dx)>3||Math.abs(dy)>3)moved.current=true;
-    setPan({x:ds.current.px+dx,y:ds.current.py+dy});
+    nextPan.current={x:ds.current.px+dx,y:ds.current.py+dy};
+    if(raf.current===null){
+      raf.current=window.requestAnimationFrame(()=>{
+        setPan(nextPan.current);
+        raf.current=null;
+      });
+    }
   };
   const onUp=()=>{dr.current=false;};
+  useEffect(()=>()=>{if(raf.current!==null)window.cancelAnimationFrame(raf.current);},[]);
   return(
     <div onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}
-      style={{background:'#f8fafc',backgroundImage:'linear-gradient(rgba(148,163,184,0.18) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,0.18) 1px,transparent 1px)',backgroundSize:'28px 28px',borderRadius:12,border:'1px solid #e2e8f0',minHeight:580,height:'100%',overflow:'hidden',cursor:'grab',position:'relative',userSelect:'none'}}>
+      style={{background:'#f8fafc',backgroundImage:'linear-gradient(rgba(148,163,184,0.18) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,0.18) 1px,transparent 1px)',backgroundSize:'28px 28px',borderRadius:12,border:'1px solid #e2e8f0',minHeight:580,height:'100%',overflow:'hidden',cursor:'grab',position:'relative',userSelect:'none',touchAction:'none'}}>
       <div style={{position:'absolute',bottom:12,right:14,fontFamily:'var(--font-mono)',fontSize:10,color:'#94a3b8',zIndex:20,pointerEvents:'none'}}>
         ✦ 拖拽平移画布 · 点击节点查看详情 · 展开测验节点作答
       </div>

@@ -26,6 +26,11 @@ const NODE_EXTENDED_INFO: Partial<Record<NodeType, string>> = {
   export_file: '将工作流的最终结果导出为 Markdown、PDF 等多种文件格式。',
   logic_switch: '基于条件表达式动态路由工作流，实现分支逻辑和条件判断。',
   loop_map: '对列表数据进行循环处理，每个元素独立经过指定的节点链。',
+  agent_code_review: '固定调用代码审查子后端，只能选择该 Agent 暴露的模型，用于补丁评估、问题定位和审查结论生成。',
+  agent_deep_research: '固定调用深度研究子后端，只能选择该 Agent 暴露的模型，用于长链资料研究与深度综述。',
+  agent_news: '固定调用新闻子后端，只能选择该 Agent 暴露的模型，用于最新新闻追踪、时间线整理和事件分析。',
+  agent_study_tutor: '固定调用学习辅导子后端，只能选择该 Agent 暴露的模型，用于讲解答疑和学习方案建议。',
+  agent_visual_site: '固定调用可视化站点子后端，只能选择该 Agent 暴露的模型，用于页面结构、区块方案和 HTML 草稿生成。',
 };
 
 interface NodeStoreItemProps {
@@ -66,7 +71,7 @@ function NodeTooltip({
 export function NodeStoreItem({ nodeType, title, description }: NodeStoreItemProps) {
   const meta = NODE_TYPE_META[nodeType];
   const [hovered, setHovered] = useState(false);
-  const itemRef = useRef<HTMLButtonElement>(null);
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nodeTheme = getNodeTheme(nodeType);
 
@@ -79,13 +84,18 @@ export function NodeStoreItem({ nodeType, title, description }: NodeStoreItemPro
     eventBus.emit('node-store:add-node', { nodeType });
   }, [nodeType]);
 
-  const anchorRect = itemRef.current?.getBoundingClientRect();
-
   return (
     <>
-      <button ref={itemRef} type="button" draggable onDragStart={handleDragStart} onClick={handleClick}
-        onPointerEnter={() => { hoverTimerRef.current = setTimeout(() => setHovered(true), 400); }}
-        onPointerLeave={() => { if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current); setHovered(false); }}
+      <button type="button" draggable onDragStart={handleDragStart} onClick={handleClick}
+        onPointerEnter={(event) => {
+          const rect = event.currentTarget.getBoundingClientRect();
+          setAnchorRect(rect);
+          hoverTimerRef.current = setTimeout(() => setHovered(true), 400);
+        }}
+        onPointerLeave={() => {
+          if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+          setHovered(false);
+        }}
         className="group flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/5 active:scale-[0.98]">
         <div className={`relative flex h-6 w-6 shrink-0 items-center justify-center rounded-sm bg-background shadow-[0_1px_2px_rgba(0,0,0,0.1)] transition-transform group-hover:scale-110 ${nodeTheme.borderClass} ${nodeTheme.headerTextColor}`}>
           <div className={`absolute inset-0 pointer-events-none ${nodeTheme.innerBorderClass} m-[1px]`} />

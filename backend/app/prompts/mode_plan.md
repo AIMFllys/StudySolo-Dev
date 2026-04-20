@@ -76,6 +76,24 @@
 - `<recommendations>` 建议用户切换到"创建模式"来搭建工作流
 - `<response>` 引导用户描述学习目标
 
+## Agent 节点补充规则
+
+以下类型也是合法节点类型，可在建议中直接使用：
+
+- `agent_code_review`
+- `agent_deep_research`
+- `agent_news`
+- `agent_study_tutor`
+- `agent_visual_site`
+
+选择 heuristics：
+
+- 遇到代码审查、补丁评估、错误定位：优先建议 `agent_code_review`
+- 遇到深度综述、长链研究、资料归纳：优先建议 `agent_deep_research`
+- 遇到最新资讯、时效分析、新闻追踪：优先建议 `agent_news`
+- 遇到辅导讲解、学习路径、个性化解释：优先建议 `agent_study_tutor`
+- 遇到网页结构、页面草案、HTML 起稿：优先建议 `agent_visual_site`
+
 ## 安全约束
 
 - 建议最多不超过 6 条

@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from app.api.admin_audit import router as admin_audit_router
 from app.api.admin_auth import router as admin_auth_router
 from app.api.admin_config import router as admin_config_router
+from app.api.admin_diagnostics import router as admin_diagnostics_router
 from app.api.admin_dashboard import router as admin_dashboard_router
 from app.api.admin_members import router as admin_members_router
 from app.api.admin_models import router as admin_models_router
@@ -50,3 +51,4 @@ router.include_router(admin_members_router, prefix="/admin", tags=["admin-member
 router.include_router(admin_ratings_router, prefix="/admin", tags=["admin-ratings"])
 router.include_router(admin_config_router, prefix="/admin", tags=["admin-config"])
 router.include_router(admin_audit_router, prefix="/admin", tags=["admin-audit"])
+router.include_router(admin_diagnostics_router, prefix="/admin", tags=["admin-diagnostics"])

@@ -10,3 +10,6 @@ class NodeCategory(str, Enum):
     generation = "generation"
     interaction = "interaction"
     output = "output"
+    structure = "structure"
+    community = "community"
+    agent = "agent"

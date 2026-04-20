@@ -177,3 +177,53 @@ async def check_workflow_access(
         )
 
     return {"workflow": wf, "access_role": access_role}
+
+
+# ---------------------------------------------------------------------------
+# Admin authentication dependency
+# ---------------------------------------------------------------------------
+
+async def get_current_admin(
+    request: Request,
+    db: AsyncClient = Depends(get_db),
+) -> dict:
+    """Validate admin authentication and return admin info.
+
+    Requires AdminJWTMiddleware to be active (which sets request.state.admin_id).
+    Returns dict with id, username.
+    Raises 401 if not authenticated.
+    """
+    admin_id: str | None = getattr(request.state, "admin_id", None)
+    if not admin_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="管理员未认证",
+        )
+
+    # Fetch admin details from database
+    result = (
+        await db.table("ss_admin_accounts")
+        .select("id, username, is_active")
+        .eq("id", admin_id)
+        .maybe_single()
+        .execute()
+    )
+    account = result.data if result else None
+
+    if not account:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="管理员账号不存在",
+        )
+
+    if not account.get("is_active", True):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="管理员账号已被禁用",
+        )
+
+    return {
+        "id": str(account["id"]),
+        "username": account["username"],
+        "is_active": account.get("is_active", True),
+    }

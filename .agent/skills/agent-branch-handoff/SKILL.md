@@ -21,9 +21,9 @@ triggers:
 ## 必读文档（按顺序）
 
 1. `docs/项目规范与框架流程/功能流程/团队协作/Agent分支提交SOP.md`
-2. `docs/team/commit-conventions.md`
-3. `docs/team/pr-workflow.md`
-4. `docs/team/interface-sync.md`
+2. `docs/项目规范与框架流程/项目规范/10-Git与协作规范.md`
+3. `docs/项目规范与框架流程/项目规范/10-Git与协作规范.md`
+4. `docs/项目规范与框架流程/项目规范/02-模块边界规范.md`
 5. `docs/issues/TeamRefactor/contracts/agent-gateway-contract.md`
 
 ## 核心执行规则

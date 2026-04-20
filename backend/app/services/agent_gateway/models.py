@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -17,6 +19,9 @@ class AgentMeta(BaseModel):
     enabled: bool = True
     description: str = ""
     owner: str = ""
+    capabilities: list[str] = Field(default_factory=list)
+    skills_ready: bool = False
+    mcp_ready: bool = False
 
 
 class AgentCallResult(BaseModel):
@@ -27,3 +32,12 @@ class AgentCallResult(BaseModel):
     error: str | None = None
     duration_ms: int = 0
     request_id: str = ""
+
+
+class AgentModelsResult(BaseModel):
+    """Agent 模型发现结果."""
+
+    agent: str
+    healthy: bool
+    source: Literal["runtime", "registry-fallback"]
+    models: list[str] = Field(default_factory=list)

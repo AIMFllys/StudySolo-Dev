@@ -4,6 +4,7 @@ import json
 import logging
 import re
 from collections import defaultdict, deque
+from pathlib import Path
 
 from fastapi import HTTPException, status
 from pydantic import ValidationError
@@ -25,6 +26,32 @@ from app.nodes._base import BaseNode
 from app.services.llm.router import AIRouterError, call_llm
 
 logger = logging.getLogger(__name__)
+DEBUG_LOG_PATH = Path("debug-f04052.log")
+
+
+def _debug_log(hypothesis_id: str, location: str, message: str, data: dict) -> None:
+    payload = {
+        "sessionId": "f04052",
+        "runId": "pre-fix",
+        "hypothesisId": hypothesis_id,
+        "location": location,
+        "message": message,
+        "data": data,
+        "timestamp": int(__import__("time").time() * 1000),
+    }
+    try:
+        with DEBUG_LOG_PATH.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+    except Exception:
+        logger.debug("debug log write failed", exc_info=True)
+
+AGENT_NODE_TYPES = {
+    NodeType.agent_code_review,
+    NodeType.agent_deep_research,
+    NodeType.agent_news,
+    NodeType.agent_study_tutor,
+    NodeType.agent_visual_site,
+}
 
 
 # ── JSON extraction ──────────────────────────────────────────────────────────
@@ -198,10 +225,21 @@ async def generate_workflow_core(body: GenerateWorkflowRequest, safe_input: str)
             data=NodeData(
                 label=node.data.label, type=node.type,
                 system_prompt=BaseNode.get_system_prompt_for_type(nt.value),
-                model_route=node.data.model_route or f"{nt.value}/default",
+                model_route=node.data.model_route if nt in AGENT_NODE_TYPES else (node.data.model_route or f"{nt.value}/default"),
                 status="pending", output="",
             ),
         ))
+    # #region agent log
+    _debug_log(
+        "H1",
+        "workflow_generator.py:229",
+        "planner nodes before normalize/layout",
+        {
+            "count": len(enriched_nodes),
+            "positions": [{"id": n.id, "x": n.position.x, "y": n.position.y} for n in enriched_nodes[:12]],
+        },
+    )
+    # #endregion
 
     normalized_edges = normalize_edges(enriched_nodes, planner_output.edges)
 
@@ -242,4 +280,16 @@ async def generate_workflow_core(body: GenerateWorkflowRequest, safe_input: str)
                 normalized_edges.insert(0, WorkflowEdgeSchema(id=f"edge-{sid}-{rid}", source=sid, target=rid))
 
     final_nodes = auto_layout_nodes(enriched_nodes, normalized_edges)
+    # #region agent log
+    _debug_log(
+        "H2",
+        "workflow_generator.py:282",
+        "final nodes after auto layout",
+        {
+            "count": len(final_nodes),
+            "positions": [{"id": n.id, "x": n.position.x, "y": n.position.y} for n in final_nodes[:12]],
+            "edge_count": len(normalized_edges),
+        },
+    )
+    # #endregion
     return GenerateWorkflowResponse(nodes=final_nodes, edges=normalized_edges, implicit_context=implicit_context)

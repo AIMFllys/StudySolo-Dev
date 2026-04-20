@@ -146,7 +146,7 @@ export default function Features() {
                   background: active === i ? '#ffffff' : 'transparent',
                   border: `1px solid ${active === i ? 'var(--border-subtle)' : 'transparent'}`,
                   boxShadow: active === i ? '0 4px 6px -1px rgba(0,0,0,0.05)' : 'none',
-                  transition: 'all 0.2s ease',
+                  transition: 'all var(--dur-fast) var(--ease-standard)',
                   transform: active === i ? 'translateX(8px)' : 'none',
                 }}
               >
@@ -174,7 +174,7 @@ export default function Features() {
           </div>
 
           {/* Right: Detail Card */}
-          <div style={{
+          <div key={current.id} style={{
             background: '#ffffff',
             borderRadius: 24,
             border: '1px solid var(--border-subtle)',
@@ -185,6 +185,7 @@ export default function Features() {
             gap: 40,
             position: 'relative',
             overflow: 'hidden',
+            animation: panelInView ? 'fadeInCard var(--dur-slow) var(--ease-standard)' : 'none',
           }}>
             {/* Soft background glow based on active item color */}
             <div style={{
@@ -197,7 +198,7 @@ export default function Features() {
               opacity: 0.05,
               filter: 'blur(60px)',
               pointerEvents: 'none',
-              transition: 'background 0.5s ease',
+              transition: 'background var(--dur-slow) var(--ease-standard)',
             }} />
 
             {/* Title Area */}
@@ -222,13 +223,16 @@ export default function Features() {
 
             {/* Metrics Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, position: 'relative', zIndex: 10 }}>
-              {current.metrics.map(m => (
+              {current.metrics.map((m, i) => (
                 <div key={m.label} style={{
                   background: 'var(--bg-surface)',
                   borderRadius: 16,
                   border: '1px solid var(--border-subtle)',
                   padding: '20px',
                   textAlign: 'center',
+                  opacity: panelInView ? 1 : 0,
+                  transform: panelInView ? 'translateY(0)' : 'translateY(12px)',
+                  transition: `opacity 0.35s ease ${i * 0.08}s, transform 0.35s ease ${i * 0.08}s`,
                 }}>
                   <div style={{
                     fontFamily: 'var(--font-display)',
@@ -297,6 +301,10 @@ export default function Features() {
 
         {/* Responsive Adjustments */}
         <style>{`
+          @keyframes fadeInCard {
+            from { opacity: 0.4; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
           @media (max-width: 900px) {
             #features > div > div:nth-child(2) {
               grid-template-columns: 1fr !important;

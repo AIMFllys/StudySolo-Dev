@@ -34,6 +34,11 @@
 | 📤 输出 | write_db | 写入数据 | 持久化结果 |
 | 🔀 结构 | logic_switch | 逻辑分支 | 条件路由 |
 | 🔀 结构 | loop_map | 循环映射 | 列表循环处理 |
+| 🤖 Agent | agent_code_review | 代码审查 Agent | 调用代码审查子后端 |
+| 🤖 Agent | agent_deep_research | 深度研究 Agent | 调用深度研究子后端 |
+| 🤖 Agent | agent_news | 新闻追踪 Agent | 调用新闻子后端 |
+| 🤖 Agent | agent_study_tutor | 学习辅导 Agent | 调用学习辅导子后端 |
+| 🤖 Agent | agent_visual_site | 可视化站点 Agent | 调用页面/HTML 起稿子后端 |
 
 ## 安全规则 (不可违反)
 

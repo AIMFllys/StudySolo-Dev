@@ -10,6 +10,7 @@
 @import "../styles/tokens.css";
 @import "../styles/base.css";
 @import "../styles/glass.css";
+@import "../styles/wiki.css";
 /* Workflow canvas styles (modular) */
 @import "../styles/workflow/canvas-core.css";
 @import "../styles/workflow/edge-styles.css";
