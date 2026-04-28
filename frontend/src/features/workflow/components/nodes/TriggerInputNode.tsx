@@ -190,7 +190,7 @@ function TriggerInputNode({ data, selected, id }: NodeProps) {
                 onKeyDown={stopPropagation}
                 placeholder={PLACEHOLDER}
                 rows={3}
-                className={`nodrag w-full resize-none bg-transparent px-3 py-2.5 text-[13px] leading-relaxed text-black dark:text-white placeholder:text-black/30 dark:placeholder:text-white/30 focus:outline-none ${
+                className={`nodrag nowheel w-full resize-none bg-transparent px-3 py-2.5 text-[13px] leading-relaxed text-black dark:text-white placeholder:text-black/30 dark:placeholder:text-white/30 focus:outline-none ${
                   isOverLimit ? 'text-red-500 dark:text-red-400' : ''
                 }`}
                 style={{ minHeight: '80px', maxHeight: '240px' }}

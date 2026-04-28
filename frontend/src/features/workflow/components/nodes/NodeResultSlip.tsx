@@ -88,17 +88,10 @@ export const NodeResultSlip: React.FC<NodeResultSlipProps> = ({
   }, [status]);
 
   // Listen for global expand/collapse-all events (used by Memory View).
-  // The `allSlipsExpandedRef` tracks the latest broadcasted value so the
-  // context-menu trigger can flip it without reading React state (which would
-  // force us to use a functional updater — and calling `eventBus.emit` inside
-  // a state updater violates React's "no side effects in updater" contract
-  // and produced a "setState during render" warning in dev).
   const [allSlipsExpanded, setAllSlipsExpanded] = useState(false);
-  const allSlipsExpandedRef = useRef(false);
 
   useEffect(() => {
     const unsubscribe = eventBus.on('workflow:toggle-all-slips', ({ expanded }) => {
-      allSlipsExpandedRef.current = expanded;
       setAllSlipsExpanded(expanded);
       setIsExpanded(expanded);
     });
@@ -108,10 +101,9 @@ export const NodeResultSlip: React.FC<NodeResultSlipProps> = ({
   }, []);
 
   const handleToggleAllSlipsExpand = useCallback(() => {
-    const next = !allSlipsExpandedRef.current;
-    allSlipsExpandedRef.current = next;
+    const next = !allSlipsExpanded;
     eventBus.emit('workflow:toggle-all-slips', { expanded: next });
-  }, []);
+  }, [allSlipsExpanded]);
 
   // Native capture-phase right-click: beats ReactFlow's node wrapper handler
   const captureContextMenu = useCallback((e: MouseEvent) => {
@@ -161,7 +153,7 @@ export const NodeResultSlip: React.FC<NodeResultSlipProps> = ({
       <>
         <div 
           ref={slipRef}
-          className={`node-result-slip mt-4 w-full bg-stone-50/40 dark:bg-stone-900/40 border border-dashed border-stone-200/60 dark:border-stone-800/60 rounded-md shadow-sm backdrop-blur-sm ${shadowClass}`}
+          className={`node-result-slip nowheel mt-4 w-full bg-stone-50/40 dark:bg-stone-900/40 border border-dashed border-stone-200/60 dark:border-stone-800/60 rounded-md shadow-sm backdrop-blur-sm ${shadowClass}`}
           onPointerDownCapture={(e) => {
             e.stopPropagation();
             onFocusSlip?.();
@@ -215,7 +207,7 @@ export const NodeResultSlip: React.FC<NodeResultSlipProps> = ({
   return (
     <div 
       ref={slipRef}
-      className={`node-result-slip mt-4 w-full rounded-md overflow-hidden bg-white/80 dark:bg-black/50 backdrop-blur-md shadow-sm border border-black/10 dark:border-white/10 relative z-50 transition-colors ${shadowClass}`}
+      className={`node-result-slip nowheel mt-4 w-full rounded-md overflow-hidden bg-white/80 dark:bg-black/50 backdrop-blur-md shadow-sm border border-black/10 dark:border-white/10 relative z-50 transition-colors ${shadowClass}`}
       onPointerDownCapture={(e) => {
         e.stopPropagation();
         onFocusSlip?.();
