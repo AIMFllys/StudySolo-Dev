@@ -27,6 +27,7 @@ async def collect_events(gen: AsyncIterator[str]) -> list[tuple[str, dict]]:
 
 
 class EchoNode(BaseNode):
+    _abstract = True  # prevent auto-registration into BaseNode._registry
     node_type = "summary"
     category = "generation"
     description = "echo"
@@ -40,6 +41,7 @@ class EchoNode(BaseNode):
 
 
 class BranchingNode(BaseNode):
+    _abstract = True  # prevent auto-registration into BaseNode._registry
     node_type = "logic_switch"
     category = "analysis"
     description = "branch"
@@ -57,6 +59,7 @@ class BranchingNode(BaseNode):
 
 
 class StreamingNode(BaseNode):
+    _abstract = True  # prevent auto-registration into BaseNode._registry
     node_type = "summary"
     category = "generation"
     description = "stream"
@@ -72,6 +75,7 @@ class StreamingNode(BaseNode):
 
 
 class FailingNode(BaseNode):
+    _abstract = True  # prevent auto-registration into BaseNode._registry
     node_type = "summary"
     category = "generation"
     description = "fail"
