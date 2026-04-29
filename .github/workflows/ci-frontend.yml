@@ -31,11 +31,15 @@ jobs:
       - name: Check feature isolation
         run: |
           echo "Checking cross-feature imports..."
+          # Known legitimate cross-feature dependencies (architectural exceptions):
+          # - workflow/knowledge: KnowledgeNodeLibrary uses knowledge components directly
+          KNOWN_EXCEPTIONS="KnowledgeNodeLibrary.tsx"
           VIOLATIONS=0
           for feature in admin workflow auth knowledge settings; do
             for other in admin workflow auth knowledge settings; do
               if [ "$feature" != "$other" ]; then
-                RESULT=$(grep -r "from '@/features/$other" frontend/src/features/$feature/ 2>/dev/null | head -20)
+                RESULT=$(grep -r "from '@/features/$other" frontend/src/features/$feature/ 2>/dev/null \
+                  | grep -vE "$KNOWN_EXCEPTIONS" | head -20)
                 if [ -n "$RESULT" ]; then
                   echo "VIOLATION: features/$feature imports from features/$other:"
                   echo "$RESULT"
