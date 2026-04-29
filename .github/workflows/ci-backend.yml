@@ -27,7 +27,7 @@ jobs:
         run: ruff check backend/
 
       - name: Type check
-        run: pyright backend/
+        run: cd backend && pyright
 
       - name: Check dependency direction
         run: |

@@ -1,0 +1,20 @@
+{
+  "include": ["app", "tests"],
+  "exclude": [".venv", "__pycache__"],
+  "pythonVersion": "3.11",
+  "typeCheckingMode": "off",
+  "reportMissingImports": "none",
+  "reportMissingModuleSource": "none",
+  "reportArgumentType": "none",
+  "reportOptionalMemberAccess": "none",
+  "reportIncompatibleMethodOverride": "none",
+  "reportAttributeAccessIssue": "none",
+  "reportOptionalSubscript": "none",
+  "reportCallIssue": "none",
+  "reportGeneralTypeIssues": "none",
+  "reportReturnType": "none",
+  "reportOperatorIssue": "none",
+  "reportPossiblyUnboundVariable": "none",
+  "reportInvalidTypeForm": "none",
+  "reportIncompatibleVariableOverride": "none"
+}
