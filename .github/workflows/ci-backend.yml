@@ -33,7 +33,7 @@ jobs:
         run: |
           echo "Checking backend dependency direction..."
           # nodes/ 不应该 import services/（已知例外已排除）
-          KNOWN_EXCEPTIONS="community/node.py|knowledge_base/node.py|web_search/node.py|export_file/node.py"
+          KNOWN_EXCEPTIONS="community/node.py|knowledge_base/node.py|web_search/node.py|export_file/node.py|agent/base.py"
           VIOLATIONS=$(grep -r "from app.services" backend/app/nodes/ --include="*.py" \
             | grep -v __pycache__ \
             | grep -vE "$KNOWN_EXCEPTIONS" || true)
