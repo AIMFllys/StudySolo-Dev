@@ -36,7 +36,6 @@ def _install_supabase_stub():
 _install_supabase_stub()
 
 import os
-import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient

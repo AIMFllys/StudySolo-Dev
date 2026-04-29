@@ -29,7 +29,6 @@ def _install_supabase_stub():
 _install_supabase_stub()
 
 import os
-import pytest
 from fastapi.testclient import TestClient
 from hypothesis import given, settings as hyp_settings
 from hypothesis import strategies as st

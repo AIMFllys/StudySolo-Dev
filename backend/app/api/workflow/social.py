@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from supabase import AsyncClient
 
 from app.core.database import get_db
-from app.core.deps import get_current_user, get_optional_user, get_supabase_client
+from app.core.deps import get_current_user, get_optional_user
 from app.models.workflow import (
     InteractionToggleResponse,
     WorkflowMeta,

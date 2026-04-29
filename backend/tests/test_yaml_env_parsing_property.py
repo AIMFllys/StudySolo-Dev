@@ -10,9 +10,7 @@ Validates: Requirements 4.2
 """
 
 import os
-import re
 
-import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 

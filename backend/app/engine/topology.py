@@ -2,7 +2,7 @@
 
 from collections import defaultdict, deque
 
-from app.engine.context import build_downstream_map, get_all_downstream
+from app.engine.context import build_downstream_map, get_all_downstream  # noqa: F401 — build_downstream_map re-exported for tests
 
 # Maximum allowed wait between nodes (safety cap)
 MAX_WAIT_SECONDS = 300

@@ -7,7 +7,7 @@ from collections.abc import AsyncIterator
 from app.engine.context import get_all_downstream
 from app.engine.events import sse_event
 from app.engine.loop_runner import execute_loop_group
-from app.nodes import NODE_REGISTRY  # re-exported for test monkeypatching
+from app.nodes import NODE_REGISTRY  # noqa: F401 — re-exported for test monkeypatching
 from app.engine.node_runner import (
     DEFAULT_NODE_STARTUP_TIMEOUT,
     DEFAULT_NODE_TIMEOUT,

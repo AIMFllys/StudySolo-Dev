@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any, AsyncIterator
 
-from app.nodes._base import BaseNode, NodeInput, NodeOutput
+from app.nodes._base import BaseNode, NodeInput
 
 
 class _ConcreteNode(BaseNode):

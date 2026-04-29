@@ -1,0 +1,23 @@
+# Ruff configuration for StudySolo backend
+# https://docs.astral.sh/ruff/configuration/
+
+line-length = 200  # Not enforced — formatting is handled separately
+target-version = "py311"
+
+[lint]
+# E (pycodestyle errors), F (pyflakes), W (pycodestyle warnings)
+select = ["E", "F", "W"]
+ignore = [
+    "E501",   # Line too long — formatting handled separately
+    "E702",   # Multiple statements on one line — pre-existing style
+    "E741",   # Ambiguous variable name — pre-existing in tests
+    "F821",   # Undefined name — pre-existing (dynamic attributes)
+    "F841",   # Local variable assigned but never used — pre-existing
+    "W293",   # Blank line contains whitespace — pre-existing
+]
+
+# E402: Module level import not at top of file
+# Many test files must call _install_supabase_stub() before importing app modules
+# to prevent supabase from being imported without a stub. This is intentional.
+[lint.per-file-ignores]
+"tests/**/*.py" = ["E402"]

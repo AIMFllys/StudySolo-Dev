@@ -5,7 +5,6 @@ produces valid output and handles errors gracefully.
 """
 
 import json
-from unittest.mock import AsyncMock
 
 import pytest
 

@@ -22,7 +22,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_user, get_supabase_client
 from app.engine.events import event_message, parse_sse_frame
 from app.engine.executor import execute_workflow
-from app.engine.run_worker import run_to_db
+from app.engine.run_worker import run_to_db  # noqa: F401 — re-exported for test monkeypatching
 from app.models.workflow import WorkflowExecuteRequest
 from app.services.ai_catalog_service import get_sku_by_id, is_tier_allowed
 from app.services.quota_service import check_daily_execution_quota

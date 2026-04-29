@@ -1,6 +1,5 @@
 """Property tests for app.services.ai_chat.xml_stream_parser."""
 
-import json
 
 from app.services.ai_chat.xml_stream_parser import XmlStreamParser, TOP_LEVEL_TAGS
 

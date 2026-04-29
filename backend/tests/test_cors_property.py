@@ -11,9 +11,8 @@ Validates: Requirements 9.1
 import importlib
 import os
 
-import pytest
 from fastapi.testclient import TestClient
-from hypothesis import given, settings, assume
+from hypothesis import given, settings
 from hypothesis import strategies as st
 
 # Set required env vars before importing app

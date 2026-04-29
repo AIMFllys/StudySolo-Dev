@@ -5,7 +5,7 @@ Handles POST /api/ai/generate-workflow.
 
 import re
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 
 from app.core.deps import get_current_user
 from app.models.ai import GenerateWorkflowRequest, GenerateWorkflowResponse

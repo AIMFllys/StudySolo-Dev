@@ -8,7 +8,6 @@ Unified prompt assembly is validated via BaseNode.get_system_prompt_for_type().
 Validates: Requirements 7.1, 7.2
 """
 
-import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 

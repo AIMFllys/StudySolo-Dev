@@ -13,7 +13,6 @@ import os
 import uuid
 import tempfile
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -120,7 +119,6 @@ async def export_docx(content: str, filename: str = "export") -> ConvertedFile:
     try:
         from docx import Document
         from docx.shared import Pt, Inches
-        from docx.enum.text import WD_ALIGN_PARAGRAPH
     except ImportError:
         return ConvertedFile(
             filename="", format="docx", filepath="", size_bytes=0,
@@ -171,7 +169,7 @@ async def export_docx(content: str, filename: str = "export") -> ConvertedFile:
             continue
         # Normal text
         else:
-            # Handle bold **text** 
+            # Handle bold **text**
             if "**" in stripped:
                 p = doc.add_paragraph()
                 parts = stripped.split("**")

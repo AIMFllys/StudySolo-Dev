@@ -10,14 +10,11 @@ Validates: Requirements 5.3, 5.4, 5.7, 9.4
 import json
 import re
 
-import pytest
-from hypothesis import given, settings, assume
+from hypothesis import given, settings
 from hypothesis import strategies as st
-from pydantic import ValidationError
 
 from app.models.ai import (
     AnalyzerOutput,
-    PlannerOutput,
     WorkflowNodeSchema,
     WorkflowEdgeSchema,
     NodePosition,

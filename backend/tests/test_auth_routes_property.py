@@ -6,7 +6,6 @@ Uses FastAPI TestClient with mocked Supabase dependencies.
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 

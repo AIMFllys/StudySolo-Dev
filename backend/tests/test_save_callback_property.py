@@ -5,11 +5,10 @@ Feature: studysolo-integration-fixes, Properties 8 & 9
 Validates: Requirements 10.1, 10.2, 10.3
 """
 
-import asyncio
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 from app.engine.executor import execute_workflow, _merge_outputs
 

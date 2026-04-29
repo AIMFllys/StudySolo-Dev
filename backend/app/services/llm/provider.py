@@ -8,7 +8,7 @@ from openai import AsyncOpenAI
 from app.core.config_loader import get_config
 from app.models.ai_catalog import CatalogSku
 from app.services.ai_catalog_service import normalize_provider_key
-from app.services.usage_ledger import UsageNumbers, UsagePricing, record_usage_event, utcnow
+from app.services.usage_ledger import UsageNumbers, UsagePricing, record_usage_event, utcnow  # noqa: F401 — utcnow re-exported for test monkeypatching
 
 logger = logging.getLogger(__name__)
 

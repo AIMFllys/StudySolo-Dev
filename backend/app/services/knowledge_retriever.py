@@ -8,7 +8,6 @@ This service is called by the knowledge_base node during workflow execution
 and by the knowledge API for direct querying.
 """
 
-import json
 import logging
 from dataclasses import dataclass, field
 

@@ -13,7 +13,8 @@ from app.models.usage import (
     UsageOverviewResponse, UsageTimeseriesPoint, UsageTimeseriesResponse,
 )
 from app.services.usage_analytics_helpers import (
-    UTC, bucket_key, bucket_sequence, compute_metrics,
+    UTC,  # noqa: F401 — re-exported for test monkeypatching
+    bucket_key, bucket_sequence, compute_metrics,
     fetch_event_rows, fetch_family_map, fetch_request_rows,
     parse_range, parse_window, safe_float, safe_int, utcnow, window_sequence,
 )

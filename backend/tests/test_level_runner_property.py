@@ -1,6 +1,5 @@
 """Property tests for app.engine.level_runner — _finalize_node_result logic."""
 
-from unittest.mock import MagicMock
 
 from app.engine.level_runner import _finalize_node_result
 from app.engine.node_runner import NodeExecutionResult

@@ -10,7 +10,7 @@ from supabase import AsyncClient
 from app.models.community_nodes import CommunityNodeCreate, CommunityNodeMine
 from app.services.community_node_queries import (
     MINE_COLS,
-    load_liked_ids,
+    load_liked_ids,  # noqa: F401 — re-exported for test compatibility
     serialize_mine,
     # Re-export query functions so existing imports from this module still work
     list_public_nodes as list_public_nodes,
@@ -19,8 +19,8 @@ from app.services.community_node_queries import (
     get_public_node as get_public_node,
     get_node_with_prompt as get_node_with_prompt,
     # Re-export serializers for test compatibility
-    serialize_public as _serialize_public,
-    serialize_mine as _serialize_mine,
+    serialize_public as _serialize_public,  # noqa: F401
+    serialize_mine as _serialize_mine,  # noqa: F401
 )
 
 logger = logging.getLogger(__name__)
