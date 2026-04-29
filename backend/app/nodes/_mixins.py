@@ -106,3 +106,53 @@ class JsonOutputMixin:
         # All strategies failed
         logger.warning("JSON validation failed for output: %s...", text[:200])
         raise ValueError(f"无法解析为 JSON: {text[:200]}...")
+
+    def try_parse_json(self, raw_output: str) -> dict | list | None:
+        """Synchronous JSON parse with fallback — returns None on failure.
+
+        Unlike validate_json (async, raises on failure), this method is
+        synchronous and returns None when parsing fails.  Used by nodes
+        like LogicSwitchNode and LoopMapNode whose post_process needs a
+        lenient, non-throwing parser.
+        """
+        text = raw_output.strip()
+
+        # Strategy 1: direct parse
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            pass
+
+        # Strategy 2: strip markdown fences
+        for fence in ("```json", "```JSON", "```"):
+            if text.startswith(fence):
+                text = text[len(fence):]
+                break
+        if text.endswith("```"):
+            text = text[:-3]
+        text = text.strip()
+
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            pass
+
+        # Strategy 3: find first { or [ and last } or ]
+        start = -1
+        end = -1
+        for i, ch in enumerate(text):
+            if ch in ("{", "["):
+                start = i
+                break
+        for i in range(len(text) - 1, -1, -1):
+            if text[i] in ("}", "]"):
+                end = i + 1
+                break
+
+        if start >= 0 and end > start:
+            try:
+                return json.loads(text[start:end])
+            except json.JSONDecodeError:
+                pass
+
+        return None
