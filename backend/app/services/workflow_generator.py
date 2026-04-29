@@ -106,7 +106,7 @@ def _edge_schemas(edges: list[WorkflowEdgeSchema], nodes: list[WorkflowNodeSchem
 
 def extract_json(text: str) -> str:
     """Extract JSON from a response that may contain markdown code fences."""
-    m = re.search(r"```(?:json)?\s*([\s\S]+?)```", text)
+    m = re.search(r"```(?:json)?\s*\n([\s\S]+?)\n\s*```", text)
     if m:
         return m.group(1).strip()
     m = re.search(r"(\{[\s\S]*\}|\[[\s\S]*\])", text)

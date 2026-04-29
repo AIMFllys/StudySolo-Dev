@@ -43,7 +43,7 @@ async def lifespan(application: FastAPI):
     cleanup_task.cancel()
 
 
-from app.core.config import get_settings
+from app.core.config import get_settings  # noqa: E402
 
 _settings = get_settings()
 _is_dev = _settings.environment != "production"

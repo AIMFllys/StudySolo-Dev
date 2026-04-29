@@ -5,7 +5,6 @@ produces valid output and handles errors gracefully.
 """
 
 import json
-from unittest.mock import AsyncMock
 
 import pytest
 
@@ -108,8 +107,6 @@ class TestLLMNodeExecute:
     @pytest.mark.parametrize("node_type", LLM_NODES)
     async def test_post_process_returns_node_output(self, node_type):
         cls = NODE_REGISTRY[node_type]
-        if node_type in ("logic_switch", "loop_map"):
-            pytest.skip("BUG-001: try_parse_json missing")
         node = cls()
 
         # For JSON nodes, provide valid JSON; for markdown nodes, plain text
@@ -163,13 +160,11 @@ class TestJSONNodePostProcess:
         and not name.startswith("agent_")
     ]
 
-    # logic_switch and loop_map have a known bug: try_parse_json missing (BUG-001)
-    _KNOWN_BROKEN = {"logic_switch", "loop_map"}
+    # logic_switch and loop_map use try_parse_json (sync fallback parser)
+    _KNOWN_BROKEN: set[str] = set()
 
     @pytest.mark.parametrize("node_type", JSON_NODES)
     async def test_malformed_json_does_not_crash(self, node_type):
-        if node_type in self._KNOWN_BROKEN:
-            pytest.skip(f"BUG-001: {node_type} uses missing try_parse_json")
         cls = NODE_REGISTRY[node_type]
         node = cls()
         result = await node.post_process("this is not json at all")
@@ -179,8 +174,6 @@ class TestJSONNodePostProcess:
 
     @pytest.mark.parametrize("node_type", JSON_NODES)
     async def test_fenced_json_parsed(self, node_type):
-        if node_type in self._KNOWN_BROKEN:
-            pytest.skip(f"BUG-001: {node_type} uses missing try_parse_json")
         cls = NODE_REGISTRY[node_type]
         node = cls()
         raw = '```json\n{"branch": "A", "reason": "test"}\n```'
@@ -189,34 +182,27 @@ class TestJSONNodePostProcess:
 
 
 class TestLogicSwitchPostProcess:
-    """Specific tests for logic_switch branch extraction.
-
-    NOTE: Currently skipped due to BUG-001 (try_parse_json missing).
-    """
+    """Specific tests for logic_switch branch extraction."""
 
     def _node(self):
         return NODE_REGISTRY["logic_switch"]()
 
-    @pytest.mark.skip(reason="BUG-001: LogicSwitchNode.try_parse_json missing")
     async def test_valid_json_branch(self):
         node = self._node()
         raw = json.dumps({"branch": "A", "reason": "条件满足"})
         result = await node.post_process(raw)
         assert result.metadata["branch"] == "A"
 
-    @pytest.mark.skip(reason="BUG-001: LogicSwitchNode.try_parse_json missing")
     async def test_fallback_branch_a(self):
         node = self._node()
         result = await node.post_process("A: 满足条件")
         assert result.metadata["branch"] == "A"
 
-    @pytest.mark.skip(reason="BUG-001: LogicSwitchNode.try_parse_json missing")
     async def test_fallback_branch_b(self):
         node = self._node()
         result = await node.post_process("分支B 更合适")
         assert result.metadata["branch"] == "B"
 
-    @pytest.mark.skip(reason="BUG-001: LogicSwitchNode.try_parse_json missing")
     async def test_fallback_default(self):
         node = self._node()
         result = await node.post_process("无法判断")

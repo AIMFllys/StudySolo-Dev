@@ -17,15 +17,14 @@ from datetime import datetime, timezone
 from typing import Literal
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from app.core.database import get_db
 from app.core.deps import get_admin_or_local_dev
-from app.services.agent_gateway import AgentGateway, AgentRegistry
+from app.services.agent_gateway import AgentRegistry
 from app.services.ai_catalog_service import _load_catalog_rows
 from app.services.llm.provider import get_client, is_provider_configured
-from app.core.config import get_settings
 from app.core.config_loader import get_config
 
 router = APIRouter(tags=["admin-diagnostics"])
@@ -381,7 +380,7 @@ class DiagnosticsRunner:
                 category="agent",
                 healthy=False,
                 latency_ms=latency_ms,
-                error=f"Connection timeout after 5000ms - Agent may be down or unreachable",
+                error="Connection timeout after 5000ms - Agent may be down or unreachable",
                 details={"url": agent.url, "timeout_seconds": 5},
             )
 
@@ -418,7 +417,7 @@ class DiagnosticsRunner:
 
             # Try to import and check the service
             try:
-                from app.services.embedding_service import get_embedding
+                from app.services.embedding_service import get_embedding  # noqa: F401 — import is the availability check
 
                 latency_ms = int((time.monotonic() - start) * 1000)
                 return CheckResult(

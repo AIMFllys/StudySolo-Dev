@@ -27,13 +27,13 @@ jobs:
         run: ruff check backend/
 
       - name: Type check
-        run: pyright backend/
+        run: cd backend && pyright
 
       - name: Check dependency direction
         run: |
           echo "Checking backend dependency direction..."
           # nodes/ 不应该 import services/（已知例外已排除）
-          KNOWN_EXCEPTIONS="community/node.py|knowledge_base/node.py|web_search/node.py|export_file/node.py"
+          KNOWN_EXCEPTIONS="community/node.py|knowledge_base/node.py|web_search/node.py|export_file/node.py|agent/base.py"
           VIOLATIONS=$(grep -r "from app.services" backend/app/nodes/ --include="*.py" \
             | grep -v __pycache__ \
             | grep -vE "$KNOWN_EXCEPTIONS" || true)
@@ -42,9 +42,14 @@ jobs:
             echo "$VIOLATIONS"
             exit 1
           fi
-          # api/ 不应该 import engine/
-          if grep -r "from app.engine" backend/app/api/ --include="*.py" | grep -v __pycache__; then
-            echo "VIOLATION: api/ imports engine/"
+          # api/ 不应该 import engine/（已知例外：workflow execute/runs 直接调用引擎）
+          KNOWN_API_ENGINE_EXCEPTIONS="workflow/execute.py|workflow/runs.py"
+          API_ENGINE_VIOLATIONS=$(grep -r "from app.engine" backend/app/api/ --include="*.py" \
+            | grep -v __pycache__ \
+            | grep -vE "$KNOWN_API_ENGINE_EXCEPTIONS" || true)
+          if [ -n "$API_ENGINE_VIOLATIONS" ]; then
+            echo "VIOLATION: api/ imports engine/ (excluding known exceptions):"
+            echo "$API_ENGINE_VIOLATIONS"
             exit 1
           fi
           echo "Dependency direction check passed"

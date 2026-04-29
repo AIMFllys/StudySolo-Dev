@@ -16,7 +16,6 @@ Business rules (server-authoritative):
 
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field

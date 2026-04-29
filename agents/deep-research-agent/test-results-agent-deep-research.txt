@@ -1,0 +1,28 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-8.4.2, pluggy-1.6.0 -- C:\Users\AIMFl\AppData\Local\Programs\Python\Python312\python.exe
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: D:\project\1037Solo\StudySolo-Dev\agents\deep-research-agent
+configfile: pyproject.toml
+plugins: anyio-4.12.1, hypothesis-6.151.12, asyncio-0.26.0
+asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 16 items
+
+tests/test_contract.py::test_health_endpoint PASSED                      [  6%]
+tests/test_contract.py::test_health_ready_endpoint PASSED                [ 12%]
+tests/test_contract.py::test_models_endpoint PASSED                      [ 18%]
+tests/test_contract.py::test_rejects_invalid_api_key PASSED              [ 25%]
+tests/test_contract.py::test_rejects_missing_model PASSED                [ 31%]
+tests/test_contract.py::test_rejects_empty_messages PASSED               [ 37%]
+tests/test_contract.py::test_non_stream_response_format PASSED           [ 43%]
+tests/test_contract.py::test_stream_response_sse_format PASSED           [ 50%]
+tests/test_schemas_property.py::TestResearchConfig::test_defaults PASSED [ 56%]
+tests/test_schemas_property.py::TestChatCompletionRequest::test_defaults PASSED [ 62%]
+tests/test_schemas_property.py::TestChatCompletionRequest::test_with_messages PASSED [ 68%]
+tests/test_schemas_property.py::TestChatCompletionRequest::test_with_research_config PASSED [ 75%]
+tests/test_schemas_property.py::TestChatCompletionResponse::test_build PASSED [ 81%]
+tests/test_schemas_property.py::TestAgentHTTPError::test_attributes PASSED [ 87%]
+tests/test_schemas_property.py::TestHealthResponse::test_defaults PASSED [ 93%]
+tests/test_schemas_property.py::TestNewChatCompletionId::test_format PASSED [100%]
+
+============================= 16 passed in 0.62s ==============================

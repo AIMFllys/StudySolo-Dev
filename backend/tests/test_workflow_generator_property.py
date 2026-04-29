@@ -1,6 +1,5 @@
 """Property tests for workflow_generator — extract_json, normalize_edges, auto_layout, should_auto_layout."""
 
-import pytest
 
 from app.models.ai import NodePosition, WorkflowEdgeSchema, WorkflowNodeSchema
 from app.services.workflow_generator import (

@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 from starlette.responses import StreamingResponse
 
 from app.core.deps import get_current_user
-from app.services.agent_gateway import AgentCallResult, AgentGateway, AgentModelsResult
+from app.services.agent_gateway import AgentCallResult, AgentGateway
 
 logger = logging.getLogger(__name__)
 

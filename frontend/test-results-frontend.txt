@@ -1,0 +1,335 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mD:/project/1037Solo/StudySolo-Dev/frontend[39m
+
+ [32m✓[39m src/__tests__/execution-state.property.test.ts[2m > [22mbuildExecutionRequestBody[2m > [22mwraps nodes and edges[32m 4[2mms[22m[39m
+ [32m✓[39m src/__tests__/execution-state.property.test.ts[2m > [22mgetExecutionFailureMessage[2m > [22mreturns HTTP message for HTTP errors[32m 2[2mms[22m[39m
+ [32m✓[39m src/__tests__/execution-state.property.test.ts[2m > [22mgetExecutionFailureMessage[2m > [22mreturns generic message for non-HTTP errors[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/execution-state.property.test.ts[2m > [22mgetExecutionFailureMessage[2m > [22mhandles non-Error values[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/execution-state.property.test.ts[2m > [22mgetExecutionFailureMessage[2m > [22mhandles null[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/execution-state.property.test.ts[2m > [22mshouldFinalizeExecutionAsInterrupted[2m > [22mreturns false when completed[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/execution-state.property.test.ts[2m > [22mshouldFinalizeExecutionAsInterrupted[2m > [22mreturns false when aborted[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/execution-state.property.test.ts[2m > [22mshouldFinalizeExecutionAsInterrupted[2m > [22mreturns true when stale beyond grace[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/execution-state.property.test.ts[2m > [22mshouldFinalizeExecutionAsInterrupted[2m > [22mreturns false when within grace period[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/execution-state.property.test.ts[2m > [22mshouldFinalizeExecutionAsInterrupted[2m > [22mrespects custom grace ms[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/sse-proxy.route.property.test.ts[2m > [22msse proxy helper[2m > [22mpasses through SSE responses with streaming headers[32m 46[2mms[22m[39m
+ [32m✓[39m src/__tests__/sse-proxy.route.property.test.ts[2m > [22msse proxy helper[2m > [22mforwards non-streaming backend errors without masquerading as SSE[32m 3[2mms[22m[39m
+ [32m✓[39m src/__tests__/sse-proxy.route.property.test.ts[2m > [22msse proxy helper[2m > [22mmaps aborted upstream fetches to 499[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/parse-sse.property.test.ts[2m > [22mextractSseEvents[2m > [22mparses a single complete event[32m 4[2mms[22m[39m
+ [32m✓[39m src/__tests__/parse-sse.property.test.ts[2m > [22mextractSseEvents[2m > [22mreturns remainder for incomplete event[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/parse-sse.property.test.ts[2m > [22mextractSseEvents[2m > [22mparses multiple events[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/parse-sse.property.test.ts[2m > [22mextractSseEvents[2m > [22mhandles \r\n line endings[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/parse-sse.property.test.ts[2m > [22mextractSseEvents[2m > [22mdefaults event to message when no event field[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/parse-sse.property.test.ts[2m > [22mextractSseEvents[2m > [22mignores comment lines[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/parse-sse.property.test.ts[2m > [22mextractSseEvents[2m > [22mjoins multi-line data[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/parse-sse.property.test.ts[2m > [22mextractSseEvents[2m > [22mskips segments with no data[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/parse-sse.property.test.ts[2m > [22mextractSseEvents[2m > [22mhandles empty buffer[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/parse-sse.property.test.ts[2m > [22mextractSseEvents[2m > [22mhandles mixed complete and incomplete[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/agent.service.property.test.ts[2m > [22magent service[2m > [22mloads and caches the enabled agent directory[32m 81[2mms[22m[39m
+ [32m✓[39m src/__tests__/agent.service.property.test.ts[2m > [22magent service[2m > [22mloads agent models from the dedicated endpoint and reuses the cache per agent[32m 4[2mms[22m[39m
+ [32m✓[39m src/__tests__/collaboration-service.property.test.ts[2m > [22mcollaboration service[2m > [22mroutes collaborator mutations through authedFetch[32m 72[2mms[22m[39m
+ [32m✓[39m src/__tests__/collaboration-service.property.test.ts[2m > [22mcollaboration service[2m > [22mreturns empty lists when collaboration reads fail[32m 6[2mms[22m[39m
+ [32m✓[39m src/__tests__/collaboration-service.property.test.ts[2m > [22mcollaboration service[2m > [22mreturns collaboration read payloads unchanged on success[32m 16[2mms[22m[39m
+ [32m✓[39m src/__tests__/community-nodes.service.property.test.ts[2m > [22mcommunity nodes service[2m > [22mroutes community node publishing through authedFetch with FormData[32m 81[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-manifest.service.property.test.ts[2m > [22mnode manifest service[2m > [22mpreserves manifest contract fields in the cached payload[32m 81[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-manifest.service.property.test.ts[2m > [22mnode manifest service[2m > [22mreuses the in-memory cache for repeated reads[32m 2[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-manifest.service.property.test.ts[2m > [22mnode manifest service[2m > [22msurfaces API errors through parseApiError[32m 6[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-right-panel.property.test.ts[2m > [22mworkflow right panel execution helpers[2m > [22mcounts execution statuses from renderable traces only[32m 7[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-right-panel.property.test.ts[2m > [22mworkflow right panel execution helpers[2m > [22muses the earliest running trace as current execution focus[32m 2[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-right-panel.property.test.ts[2m > [22mworkflow right panel execution helpers[2m > [22mfalls back to the most recently finished or errored trace when nothing is running[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-right-panel.property.test.ts[2m > [22mworkflow right panel execution helpers[2m > [22mreturns null when the session only contains non-renderable traces[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/stream-chat-sse.property.test.ts[2m > [22magent stream SSE parser[2m > [22mbuilds answer segments incrementally and preserves Chinese text[32m 14[2mms[22m[39m
+ [32m✓[39m src/__tests__/stream-chat-sse.property.test.ts[2m > [22magent stream SSE parser[2m > [22mupdates tool call status from running to ok and error[32m 3[2mms[22m[39m
+ [32m✓[39m src/__tests__/stream-chat-sse.property.test.ts[2m > [22magent stream SSE parser[2m > [22mextracts summary changes and forwards canvas mutation events[32m 2[2mms[22m[39m
+ [32m✓[39m src/__tests__/admin-markdown-preview.validation.property.test.ts[2m > [22madmin markdown preview: validation properties[2m > [22maccepts any non-empty content <= 10000 chars with valid title[32m 14[2mms[22m[39m
+ [32m✓[39m src/__tests__/admin-markdown-preview.validation.property.test.ts[2m > [22madmin markdown preview: validation properties[2m > [22mrejects whitespace content and disables preview[32m 7[2mms[22m[39m
+ [32m✓[39m src/__tests__/admin-markdown-preview.validation.property.test.ts[2m > [22madmin markdown preview: validation properties[2m > [22mrejects content longer than 10000 chars[32m 6[2mms[22m[39m
+ [32m✓[39m src/__tests__/admin-markdown-preview.validation.property.test.ts[2m > [22madmin markdown preview: validation properties[2m > [22maccepts markdown-rich content and keeps preview enabled[32m 5[2mms[22m[39m
+ [32m✓[39m src/__tests__/memory-server-service.property.test.ts[2m > [22mmemory server service[2m > [22mprefers the authenticated owner endpoint when an access token exists[32m 59[2mms[22m[39m
+ [32m✓[39m src/__tests__/memory-server-service.property.test.ts[2m > [22mmemory server service[2m > [22mfalls back to the public endpoint when the owner endpoint is unavailable[32m 2[2mms[22m[39m
+ [32m✓[39m src/__tests__/admin-route-guard.property.test.ts[2m > [22mFeature: admin-panel, Property 6: Admin 路由守卫重定向逻辑[2m > [22mP6a: admin path (non-login) without token → redirect to /admin-analysis/login[32m 31[2mms[22m[39m
+ [32m✓[39m src/__tests__/admin-route-guard.property.test.ts[2m > [22mFeature: admin-panel, Property 6: Admin 路由守卫重定向逻辑[2m > [22mP6b: /admin-analysis/login with token → redirect to /admin-analysis[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/admin-route-guard.property.test.ts[2m > [22mFeature: admin-panel, Property 6: Admin 路由守卫重定向逻辑[2m > [22mP6c: /admin-analysis/login without token → next (no redirect)[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/admin-route-guard.property.test.ts[2m > [22mFeature: admin-panel, Property 6: Admin 路由守卫重定向逻辑[2m > [22mP6d: admin path (non-login) with token → next (no redirect)[32m 31[2mms[22m[39m
+ [32m✓[39m src/__tests__/admin-route-guard.property.test.ts[2m > [22mFeature: admin-panel, Property 6: Admin 路由守卫重定向逻辑[2m > [22mP6e: non-admin paths → always next regardless of token[32m 11[2mms[22m[39m
+ [32m✓[39m src/__tests__/admin-route-guard.property.test.ts[2m > [22mFeature: admin-panel, Property 6: Admin 路由守卫重定向逻辑[2m > [22mP6f: token presence determines redirect for any non-login admin path[32m 15[2mms[22m[39m
+ [32m✓[39m src/__tests__/crash-recovery.property.test.ts[2m > [22mProperty 8: 崩溃恢复冲突检测[2m > [22mdetects conflict when dirty=true and local_updated_at > cloud_updated_at[32m 34[2mms[22m[39m
+ [32m✓[39m src/__tests__/crash-recovery.property.test.ts[2m > [22mProperty 8: 崩溃恢复冲突检测[2m > [22mdoes NOT detect conflict when dirty=false even if local > cloud[32m 21[2mms[22m[39m
+ [32m✓[39m src/__tests__/crash-recovery.property.test.ts[2m > [22mProperty 8: 崩溃恢复冲突检测[2m > [22mdoes NOT detect conflict when local_updated_at <= cloud_updated_at[32m 23[2mms[22m[39m
+ [32m✓[39m src/__tests__/crash-recovery.property.test.ts[2m > [22mProperty 8: 崩溃恢复冲突检测[2m > [22mconflict detection is consistent: same inputs always produce same output[32m 19[2mms[22m[39m
+ [32m✓[39m src/__tests__/integration-fixes.drawer-rightpanel.property.test.ts[2m > [22mintegration-fixes: bottom drawer display completeness[2m > [22malways resolves label, status badge and output[32m 70[2mms[22m[39m
+ [32m✓[39m src/__tests__/integration-fixes.drawer-rightpanel.property.test.ts[2m > [22mintegration-fixes: bottom drawer display completeness[2m > [22muses fallback label for empty label[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/integration-fixes.drawer-rightpanel.property.test.ts[2m > [22mintegration-fixes: bottom drawer display completeness[2m > [22msets hasOutput based on output length[32m 16[2mms[22m[39m
+ [32m✓[39m src/__tests__/integration-fixes.drawer-rightpanel.property.test.ts[2m > [22mintegration-fixes: right panel status counting[2m > [22msum of status counts equals total nodes[32m 16[2mms[22m[39m
+ [32m✓[39m src/__tests__/middleware.property.test.ts[2m > [22mFeature: studysolo-mvp, Property 3: 路由守卫重定向未认证用户[2m > [22misProtected returns true for all protected root paths[32m 3[2mms[22m[39m
+ [32m✓[39m src/__tests__/middleware.property.test.ts[2m > [22mFeature: studysolo-mvp, Property 3: 路由守卫重定向未认证用户[2m > [22misProtected returns true for any sub-path under protected roots[32m 65[2mms[22m[39m
+ [32m✓[39m src/__tests__/middleware.property.test.ts[2m > [22mFeature: studysolo-mvp, Property 3: 路由守卫重定向未认证用户[2m > [22misProtected returns false for unprotected paths[32m 5[2mms[22m[39m
+ [32m✓[39m src/__tests__/middleware.property.test.ts[2m > [22mFeature: studysolo-mvp, Property 3: 路由守卫重定向未认证用户[2m > [22mredirect URL for any protected path points to /login with correct next param[32m 34[2mms[22m[39m
+ [32m✓[39m src/__tests__/integration-fixes.workflow-runbutton.property.test.ts[2m > [22mintegration-fixes: workflow generation result store injection[2m > [22minjects nodes/edges exactly as provided[32m 119[2mms[22m[39m
+ [32m✓[39m src/__tests__/integration-fixes.drawer-rightpanel.property.test.ts[2m > [22mintegration-fixes: right panel status counting[2m > [22mper-status counts match source list[32m 28[2mms[22m[39m
+ [32m✓[39m src/__tests__/middleware.property.test.ts[2m > [22mFeature: studysolo-mvp, Property 3: 路由守卫重定向未认证用户[2m > [22mredirect URL encodes special characters in the path[32m 21[2mms[22m[39m
+ [32m✓[39m src/__tests__/middleware.property.test.ts[2m > [22mFeature: studysolo-mvp, Property 3: 路由守卫重定向未认证用户[2m > [22munauthenticated request to any protected path should be redirected (integration of both functions)[32m 19[2mms[22m[39m
+ [32m✓[39m src/__tests__/middleware.property.test.ts[2m > [22mFeature: studysolo-mvp, Property 3: 路由守卫重定向未认证用户[2m > [22mauthenticated request to protected path should NOT be redirected[32m 4[2mms[22m[39m
+ [32m✓[39m src/__tests__/integration-fixes.sidebar-nginx.property.test.ts[2m > [22mintegration-fixes: sidebar nav mapping[2m > [22mmaps workflow list length to nav items length[32m 97[2mms[22m[39m
+ [32m✓[39m src/__tests__/integration-fixes.sidebar-nginx.property.test.ts[2m > [22mintegration-fixes: sidebar nav mapping[2m > [22mkeeps name/id/link aligned with source workflow[32m 76[2mms[22m[39m
+ [32m✓[39m src/__tests__/integration-fixes.sidebar-nginx.property.test.ts[2m > [22mintegration-fixes: nginx domain consistency[2m > [22mdoes not contain placeholder domain[32m 2[2mms[22m[39m
+ [32m✓[39m src/__tests__/integration-fixes.sidebar-nginx.property.test.ts[2m > [22mintegration-fixes: nginx domain consistency[2m > [22mserver_name and certificate directives use production domain[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/integration-fixes.workflow-runbutton.property.test.ts[2m > [22mintegration-fixes: workflow generation result store injection[2m > [22moverwrites previous state on repeated injections[32m 68[2mms[22m[39m
+ [32m✓[39m src/__tests__/integration-fixes.workflow-runbutton.property.test.ts[2m > [22mintegration-fixes: workflow generation result store injection[2m > [22mpreserves deep equality of node/edge contents[32m 40[2mms[22m[39m
+ [32m✓[39m src/__tests__/integration-fixes.workflow-runbutton.property.test.ts[2m > [22mintegration-fixes: run button state mapping[2m > [22mrunning always maps to stop[32m 3[2mms[22m[39m
+ [32m✓[39m src/__tests__/integration-fixes.workflow-runbutton.property.test.ts[2m > [22mintegration-fixes: run button state mapping[2m > [22mnon-running with nodes maps to enabled run button[32m 3[2mms[22m[39m
+ [32m✓[39m src/__tests__/integration-fixes.workflow-runbutton.property.test.ts[2m > [22mintegration-fixes: run button state mapping[2m > [22mnon-running with zero nodes maps to disabled run button[32m 2[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-execution-utils.property.test.ts[2m > [22mworkflow execution utils[2m > [22mextracts complete SSE events and preserves incomplete remainder[32m 4[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-execution-utils.property.test.ts[2m > [22mworkflow execution utils[2m > [22mreconstructs UTF-8 SSE payloads when Chinese characters are split across chunks[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-execution-utils.property.test.ts[2m > [22mworkflow execution utils[2m > [22mcomputes root-to-leaf chains and keeps merged nodes in multiple chains[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-execution-utils.property.test.ts[2m > [22mworkflow execution utils[2m > [22mignores annotation, generating and loop_group child nodes when computing chains[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-execution-utils.property.test.ts[2m > [22mworkflow execution utils[2m > [22mkeeps popover inside viewport and flips to the left when needed[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-server-service.property.test.ts[2m > [22mworkflow server service wrappers[2m > [22mforwards the access token to fetchWorkflowListForServer[32m 9[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-server-service.property.test.ts[2m > [22mworkflow server service wrappers[2m > [22mretries fetchWorkflowContentForServer once after a successful server-side token refresh[32m 39[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-server-service.property.test.ts[2m > [22mworkflow server service wrappers[2m > [22mforwards the access token to fetchPublicWorkflowForServer[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-server-service.property.test.ts[2m > [22mworkflow server service wrappers[2m > [22mfetches quota with server auth headers and no-store semantics[32m 3[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-service.property.test.ts[2m > [22mworkflow service mutation helpers[2m > [22mroutes updateWorkflow through credentialsFetch with a JSON body[32m 94[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-service.property.test.ts[2m > [22mworkflow service mutation helpers[2m > [22mroutes deleteWorkflow through credentialsFetch without adding bespoke auth headers[32m 9[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-service.property.test.ts[2m > [22mworkflow service mutation helpers[2m > [22mroutes social mutations through credentialsFetch and preserves 401 status in ApiError[32m 9[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-service.property.test.ts[2m > [22mworkflow service mutation helpers[2m > [22mroutes workflow list reads through fetch with auth headers and revalidate hints[32m 3[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-service.property.test.ts[2m > [22mworkflow service mutation helpers[2m > [22mpreserves 401 responses from fetchWorkflowContent as ApiError for server-side retry handling[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-service.property.test.ts[2m > [22mworkflow service mutation helpers[2m > [22msuppresses 404 logging for public workflow fetches and returns null[32m 2[2mms[22m[39m
+ [32m✓[39m src/__tests__/admin-service.property.test.ts[2m > [22madmin service helpers[2m > [22mforwards user list query params without rewriting keys or values[32m 134[2mms[22m[39m
+ [32m✓[39m src/__tests__/api-client.property.test.ts[2m > [22mapi client request header defaults[2m > [22madds a default JSON content type for plain JSON requests[32m 60[2mms[22m[39m
+ [32m✓[39m src/__tests__/api-client.property.test.ts[2m > [22mapi client request header defaults[2m > [22mdoes not inject JSON content type when the body is FormData[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/api-client.property.test.ts[2m > [22mapi client request header defaults[2m > [22mpreserves explicitly provided content type headers[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/integration-fixes.shiki-streaming.property.test.ts[2m > [22mintegration-fixes: shiki output validity[2m > [22mrenders non-empty code into html with pre/code tags[33m 814[2mms[22m[39m
+ [32m✓[39m src/__tests__/admin-service.property.test.ts[2m > [22madmin service helpers[2m > [22mforwards audit log query params without changing the serialized query[32m 48[2mms[22m[39m
+ [32m✓[39m src/__tests__/admin-service.property.test.ts[2m > [22madmin service helpers[2m > [22msends the exact status toggle payload required by the backend contract[32m 42[2mms[22m[39m
+ [32m✓[39m src/__tests__/trace-helpers.property.test.ts[2m > [22mparseInputSummary[2m > [22mreturns empty for undefined[32m 6[2mms[22m[39m
+ [32m✓[39m src/__tests__/trace-helpers.property.test.ts[2m > [22mparseInputSummary[2m > [22mreturns empty for invalid JSON[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/trace-helpers.property.test.ts[2m > [22mparseInputSummary[2m > [22mextracts user_content[32m 2[2mms[22m[39m
+ [32m✓[39m src/__tests__/trace-helpers.property.test.ts[2m > [22mparseInputSummary[2m > [22mtruncates long content[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/trace-helpers.property.test.ts[2m > [22mparseInputSummary[2m > [22mshows upstream count[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/trace-helpers.property.test.ts[2m > [22mparseInputSummary[2m > [22mcombines both[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/trace-helpers.property.test.ts[2m > [22mbuildParallelGroupId[2m > [22msorts and joins[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/trace-helpers.property.test.ts[2m > [22mbuildParallelGroupId[2m > [22msingle id[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/trace-helpers.property.test.ts[2m > [22mbuildParallelGroupId[2m > [22mstable regardless of order[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/trace-helpers.property.test.ts[2m > [22mformatDuration[2m > [22m0ms for undefined[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/trace-helpers.property.test.ts[2m > [22mformatDuration[2m > [22m0ms for zero[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/trace-helpers.property.test.ts[2m > [22mformatDuration[2m > [22mms for small values[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/trace-helpers.property.test.ts[2m > [22mformatDuration[2m > [22mseconds for >= 1000[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/trace-helpers.property.test.ts[2m > [22mformatDuration[2m > [22mnegative treated as 0[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/trace-helpers.property.test.ts[2m > [22misTraceFinished[2m > [22mdone is finished[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/trace-helpers.property.test.ts[2m > [22misTraceFinished[2m > [22merror is finished[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/trace-helpers.property.test.ts[2m > [22misTraceFinished[2m > [22mskipped is finished[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/trace-helpers.property.test.ts[2m > [22misTraceFinished[2m > [22mrunning is not finished[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/trace-helpers.property.test.ts[2m > [22misTraceFinished[2m > [22mpending is not finished[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-execution-events.test.ts[2m > [22mworkflow execution event application[2m > [22mapplies node_input events with parallel metadata and input summary[32m 10[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-execution-events.test.ts[2m > [22mworkflow execution event application[2m > [22mapplies token, status, node_done and workflow_done events through one execution flow[32m 6[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-execution-events.test.ts[2m > [22mworkflow execution event application[2m > [22mupdates session phase and trace progress for workflow_status, node_progress and heartbeat[32m 4[2mms[22m[39m
+ [32m✓[39m src/__tests__/integration-fixes.shiki-streaming.property.test.ts[2m > [22mintegration-fixes: shiki output validity[2m > [22moutput html is larger than source code[32m 236[2mms[22m[39m
+ [32m✓[39m src/__tests__/integration-fixes.shiki-streaming.property.test.ts[2m > [22mintegration-fixes: streaming final content identity[2m > [22mfinal content equals source content when streaming ends[32m 8[2mms[22m[39m
+ [32m✓[39m src/__tests__/integration-fixes.shiki-streaming.property.test.ts[2m > [22mintegration-fixes: streaming final content identity[2m > [22mstreaming state does not mutate content[32m 4[2mms[22m[39m
+ [32m✓[39m src/__tests__/edge-connection-system.smoke.test.ts[2m > [22mTask 5.1: Branch labels auto-assignment[2m > [22massigns sequential branch letters A, B, C for logic_switch edges[32m 3[2mms[22m[39m
+ [32m✓[39m src/__tests__/edge-connection-system.smoke.test.ts[2m > [22mTask 5.1: Branch labels auto-assignment[2m > [22mdoes not assign branch labels for non-logic_switch nodes[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/edge-connection-system.smoke.test.ts[2m > [22mTask 5.1: Loop group parameter validation[2m > [22mclamps iteration count to valid range [1, 100][32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/edge-connection-system.smoke.test.ts[2m > [22mTask 5.1: Loop group parameter validation[2m > [22mclamps interval to valid range [0, 300][32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/edge-connection-system.smoke.test.ts[2m > [22mTask 5.1: Loop group parameter validation[2m > [22mdefaults to 3 iterations and 0 interval when data is undefined[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/edge-connection-system.smoke.test.ts[2m > [22mTask 5.1: Sequential edge with waitSeconds[2m > [22medge data stores waitSeconds correctly[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/edge-connection-system.smoke.test.ts[2m > [22mTask 5.1: Sequential edge with waitSeconds[2m > [22mmax wait clamps at 300s[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/edge-connection-system.smoke.test.ts[2m > [22mTask 5.1: Sequential edge with waitSeconds[2m > [22mincoming edges max aggregation picks largest wait[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/edge-connection-system.smoke.test.ts[2m > [22mTask 5.1: Edge note and branch display priority[2m > [22mbranch label takes priority over note for logic_switch edges[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/edge-connection-system.smoke.test.ts[2m > [22mTask 5.1: Edge note and branch display priority[2m > [22mnote displays for non-branch edges[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/auth-security.property.test.tsx[2m > [22mauth security hardening[2m > [22mremember me only persists email and remember flag[32m 5[2mms[22m[39m
+ [32m✓[39m src/__tests__/auth-security.property.test.tsx[2m > [22mauth security hardening[2m > [22mlegacy remembered password payload is cleared instead of reused[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/auth-security.property.test.tsx[2m > [22mauth security hardening[2m > [22mmarkdown rendering escapes raw html while preserving markdown and math[32m 74[2mms[22m[39m
+ [32m✓[39m src/__tests__/auth-security.property.test.tsx[2m > [22mauth security hardening[2m > [22mclearRememberedCredentials removes saved data completely[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-store-groups.property.test.ts[2m > [22mnode store groups resolver[2m > [22mreturns the current six static groups with the existing order and node ordering[32m 3[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-store-groups.property.test.ts[2m > [22mnode store groups resolver[2m > [22mprojects a full manifest sample into the current six groups regardless of manifest order[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-store-groups.property.test.ts[2m > [22mnode store groups resolver[2m > [22mprojects backend manifest categories into the current UI semantics instead of reusing category ids[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-store-groups.property.test.ts[2m > [22mnode store groups resolver[2m > [22mkeeps future unmapped manifest types out of the default groups and reports them separately[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-store-groups.property.test.ts[2m > [22mnode store groups resolver[2m > [22mreturns empty dynamic groups for an empty manifest while preserving the static skeleton helper[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-store-groups.property.test.ts[2m > [22mnode store groups resolver[2m > [22mfalls back to the static skeleton while loading, on error, or when the manifest is empty[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-store-groups.property.test.ts[2m > [22mnode store groups resolver[2m > [22mreturns only non-empty groups in dynamic mode and keeps unmapped semantics intact[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-store-groups.property.test.ts[2m > [22mnode store groups resolver[2m > [22mfalls back to all when the selected category is missing from the resolved groups[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/tokens-service.property.test.ts[2m > [22mlistApiTokens[2m > [22mreturns token list on success[32m 4[2mms[22m[39m
+ [32m✓[39m src/__tests__/tokens-service.property.test.ts[2m > [22mlistApiTokens[2m > [22mthrows on error[32m 2[2mms[22m[39m
+ [32m✓[39m src/__tests__/tokens-service.property.test.ts[2m > [22mcreateApiToken[2m > [22msends name and returns created token[32m 2[2mms[22m[39m
+ [32m✓[39m src/__tests__/tokens-service.property.test.ts[2m > [22mcreateApiToken[2m > [22msends expires_in_days[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/tokens-service.property.test.ts[2m > [22mcreateApiToken[2m > [22mdefaults expires_in_days to null[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/tokens-service.property.test.ts[2m > [22mdeleteApiToken[2m > [22mcalls DELETE endpoint[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/tokens-service.property.test.ts[2m > [22mdeleteApiToken[2m > [22mthrows on error[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/knowledge-utils.property.test.ts[2m > [22mknowledge utils[2m > [22mformatFileSize always returns a non-empty human-readable string[32m 19[2mms[22m[39m
+ [32m✓[39m src/__tests__/knowledge-utils.property.test.ts[2m > [22mknowledge utils[2m > [22mgetErrorMessage prefers Error.message and falls back safely[32m 19[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-event-bus.property.test.ts[2m > [22mworkflow event bus[2m > [22mdelivers typed workflow payloads and unsubscribes cleanly[32m 9[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-event-bus.property.test.ts[2m > [22mworkflow event bus[2m > [22mfans out slip toggle events to every workflow listener[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-event-bus.property.test.ts[2m > [22mworkflow event bus[2m > [22msupports the node-store add-node event without window CustomEvent glue[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-event-bus.property.test.ts[2m > [22mworkflow event bus[2m > [22msupports tier refresh broadcasts for sidebar listeners[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-event-bus.property.test.ts[2m > [22mworkflow event bus[2m > [22msupports open and close node-config events without changing payload shape[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-grouping.property.test.ts[2m > [22mworkflow display grouping[2m > [22mshows a workflow in both favorites and public when both flags are true[32m 4[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-grouping.property.test.ts[2m > [22mworkflow display grouping[2m > [22mkeeps uncategorized limited to workflows that are neither favorited nor public[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/loop-group-drop.property.test.ts[2m > [22mloop-group drop behavior[2m > [22mreparents a node dropped inside a loop group[32m 4[2mms[22m[39m
+ [32m✓[39m src/__tests__/loop-group-drop.property.test.ts[2m > [22mloop-group drop behavior[2m > [22mdetaches a node dragged out of its loop group[32m 2[2mms[22m[39m
+ [32m✓[39m src/__tests__/chat-message-adapter.property.test.ts[2m > [22mchat message adapter[2m > [22mconverts legacy content into thinking and answer segments[32m 7[2mms[22m[39m
+ [32m✓[39m src/__tests__/chat-message-adapter.property.test.ts[2m > [22mchat message adapter[2m > [22mextracts suggest mode from structured answer segments[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/chat-message-adapter.property.test.ts[2m > [22mchat message adapter[2m > [22mdetects plan content and preserves raw plan xml for PlanCard[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/chat-message-adapter.property.test.ts[2m > [22mchat message adapter[2m > [22mkeeps Chinese workflow text unchanged while removing markers[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/admin-sidebar-navigation.property.test.ts[2m > [22madmin sidebar navigation helpers[2m > [22mcloses sidebar iff mobile width and sidebar is open[32m 19[2mms[22m[39m
+ [32m✓[39m src/__tests__/admin-sidebar-navigation.property.test.ts[2m > [22madmin sidebar navigation helpers[2m > [22mroot admin nav is active only on exact admin dashboard path[32m 14[2mms[22m[39m
+ [32m✓[39m src/__tests__/admin-sidebar-navigation.property.test.ts[2m > [22madmin sidebar navigation helpers[2m > [22mnon-root admin nav uses prefix matching[32m 40[2mms[22m[39m
+ [32m✓[39m src/__tests__/trace-list-closure.test.ts[2m > [22mtrace list closure helpers[2m > [22mfilters traces by chain and hides tabs when only one chain exists[32m 7[2mms[22m[39m
+ [32m✓[39m src/__tests__/trace-list-closure.test.ts[2m > [22mtrace list closure helpers[2m > [22mgroups filtered traces without duplicating parallel entries[32m 2[2mms[22m[39m
+ [32m✓[39m src/__tests__/compute-chains.property.test.ts[2m > [22mcomputeWorkflowChains[2m > [22mreturns empty for no nodes[32m 6[2mms[22m[39m
+ [32m✓[39m src/__tests__/compute-chains.property.test.ts[2m > [22mcomputeWorkflowChains[2m > [22msingle node = single chain[32m 4[2mms[22m[39m
+ [32m✓[39m src/__tests__/compute-chains.property.test.ts[2m > [22mcomputeWorkflowChains[2m > [22mlinear chain a→b→c[32m 2[2mms[22m[39m
+ [32m✓[39m src/__tests__/compute-chains.property.test.ts[2m > [22mcomputeWorkflowChains[2m > [22mdiamond produces two chains[32m 4[2mms[22m[39m
+ [32m✓[39m src/__tests__/compute-chains.property.test.ts[2m > [22mcomputeWorkflowChains[2m > [22mexcludes annotation nodes[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/compute-chains.property.test.ts[2m > [22mcomputeWorkflowChains[2m > [22mexcludes child nodes (parentId)[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/compute-chains.property.test.ts[2m > [22mcomputeWorkflowChains[2m > [22mparallel roots produce separate chains[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/compute-chains.property.test.ts[2m > [22mcomputeWorkflowChains[2m > [22mchains have sequential labels[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/admin-markdown-preview.boundary.property.test.ts[2m > [22madmin markdown preview: boundary checks[2m > [22mtitle exactly 200 chars is valid[32m 3[2mms[22m[39m
+ [32m✓[39m src/__tests__/admin-markdown-preview.boundary.property.test.ts[2m > [22madmin markdown preview: boundary checks[2m > [22mtitle 201 chars is invalid[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/admin-markdown-preview.boundary.property.test.ts[2m > [22madmin markdown preview: boundary checks[2m > [22mcontent exactly 10000 chars is valid[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/admin-markdown-preview.boundary.property.test.ts[2m > [22madmin markdown preview: boundary checks[2m > [22mcontent 10001 chars is invalid[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/chat-conversation-sync.property.test.ts[2m > [22mchat conversation sync bridge[2m > [22mcreates a conversation before appending when no active conversation exists[32m 6[2mms[22m[39m
+ [32m✓[39m src/__tests__/chat-conversation-sync.property.test.ts[2m > [22mchat conversation sync bridge[2m > [22mreuses the active conversation for subsequent appended messages[32m 3[2mms[22m[39m
+ [32m✓[39m src/__tests__/ai-chat-store.property.test.ts[2m > [22mai chat store side-effect boundary[2m > [22mdefaults to fast thinking depth for lightweight chat[32m 4[2mms[22m[39m
+ [32m✓[39m src/__tests__/ai-chat-store.property.test.ts[2m > [22mai chat store side-effect boundary[2m > [22mpushMessage only updates ai chat history and does not touch conversation persistence[32m 13[2mms[22m[39m
+ [32m✓[39m src/__tests__/usage-service.property.test.ts[2m > [22musage service helpers[2m > [22mserializes overview range directly into the API path[32m 95[2mms[22m[39m
+ [32m✓[39m src/__tests__/usage-service.property.test.ts[2m > [22musage service helpers[2m > [22mserializes live window directly into the API path[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/usage-service.property.test.ts[2m > [22musage service helpers[2m > [22mserializes timeseries range and source without rewriting values[32m 14[2mms[22m[39m
+ [32m✓[39m src/__tests__/execution-state-closure.test.ts[2m > [22mexecution state closure helpers[2m > [22mbuilds POST execution payload from in-memory graph[32m 4[2mms[22m[39m
+ [32m✓[39m src/__tests__/execution-state-closure.test.ts[2m > [22mexecution state closure helpers[2m > [22mmaps execution errors to stable user-facing messages[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/execution-state-closure.test.ts[2m > [22mexecution state closure helpers[2m > [22mmarks interrupted execution only when stream did not complete and was not aborted[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/execution-state-closure.test.ts[2m > [22mexecution state closure helpers[2m > [22mbuilds config patches for generic nodes and loop groups[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/usage-service.property.test.ts[2m > [22musage service helpers[2m > [22msurfaces parsed API errors from the shared client helper[32m 6[2mms[22m[39m
+ [32m✓[39m src/__tests__/ai-catalog.service.property.test.ts[2m > [22mchat model default selection[2m > [22mprefers the first accessible non-thinking model by sort order[32m 4[2mms[22m[39m
+ [32m✓[39m src/__tests__/ai-catalog.service.property.test.ts[2m > [22mchat model default selection[2m > [22mfalls back to accessible thinking models, then any model[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/ai-catalog.service.property.test.ts[2m > [22mchat model default selection[2m > [22mkeeps the existing selection when one is already set[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/ai-catalog.service.property.test.ts[2m > [22mchat model default selection[2m > [22msends fast depth for selected non-thinking models[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/ai-catalog.service.property.test.ts[2m > [22mchat model default selection[2m > [22mpreserves requested depth for thinking models and no explicit model[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/ai-catalog.service.property.test.ts[2m > [22mchat model default selection[2m > [22mkeeps Chinese labels outside the depth helper untouched by model choice[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/sidebar-navigation.property.test.ts[2m > [22msidebar navigation helpers[2m > [22mworkflow route is active only when pathname exactly matches workspace id route[32m 41[2mms[22m[39m
+ [32m✓[39m src/__tests__/sidebar-navigation.property.test.ts[2m > [22msidebar navigation helpers[2m > [22msettings route is active only for exact /settings path[32m 18[2mms[22m[39m
+ [32m✓[39m src/__tests__/sidebar-navigation.property.test.ts[2m > [22msidebar navigation helpers[2m > [22mformatMonthDay falls back to raw input for invalid date strings[32m 22[2mms[22m[39m
+ [32m✓[39m src/__tests__/edge-display.property.test.ts[2m > [22medge display state[2m > [22mprefers branch labels for logic_switch edges and keeps wait badge[32m 3[2mms[22m[39m
+ [32m✓[39m src/__tests__/edge-display.property.test.ts[2m > [22medge display state[2m > [22mshows note for sequential edges and hides zero wait badges[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/responsive-utils.property.test.ts[2m > [22mBREAKPOINTS[2m > [22mhas standard Tailwind breakpoints[32m 4[2mms[22m[39m
+ [32m✓[39m src/__tests__/responsive-utils.property.test.ts[2m > [22mBREAKPOINTS[2m > [22mbreakpoints are in ascending order[32m 2[2mms[22m[39m
+ [32m✓[39m src/__tests__/responsive-utils.property.test.ts[2m > [22mTOUCH_TARGET[2m > [22mmin meets iOS HIG (44px)[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/responsive-utils.property.test.ts[2m > [22mTOUCH_TARGET[2m > [22mrecommended meets Material Design (48px)[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/responsive-utils.property.test.ts[2m > [22mTOUCH_TARGET[2m > [22mcomfortable is largest[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/responsive-utils.property.test.ts[2m > [22mSAFE_AREA[2m > [22mhas all four insets[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-config-utils.property.test.ts[2m > [22mbuildDefaultConfig[2m > [22mreturns empty for empty schema[32m 4[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-config-utils.property.test.ts[2m > [22mbuildDefaultConfig[2m > [22mextracts defaults[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-config-utils.property.test.ts[2m > [22mbuildDefaultConfig[2m > [22mskips fields without default[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-config-utils.property.test.ts[2m > [22mbuildDefaultConfig[2m > [22mhandles false/0 defaults[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/execution-node-copy.property.test.ts[2m > [22mexecution node copy helpers[2m > [22mkeeps trace nodeName as the highest-priority title[32m 2[2mms[22m[39m
+ [32m✓[39m src/__tests__/execution-node-copy.property.test.ts[2m > [22mexecution node copy helpers[2m > [22mprefers node label over manifest when trace nodeName is missing[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/execution-node-copy.property.test.ts[2m > [22mexecution node copy helpers[2m > [22muses manifest title when node label is missing[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/execution-node-copy.property.test.ts[2m > [22mexecution node copy helpers[2m > [22mfalls back to workflow meta title when manifest title is blank[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/execution-node-copy.property.test.ts[2m > [22mexecution node copy helpers[2m > [22mprefers manifest description over workflow meta description[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/execution-node-copy.property.test.ts[2m > [22mexecution node copy helpers[2m > [22mfalls back to workflow meta description when manifest description is blank[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/execution-node-copy.property.test.ts[2m > [22mexecution node copy helpers[2m > [22mbuilds nodeNameMap from node label, then manifest title, then workflow meta[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/execution-node-copy.property.test.ts[2m > [22mexecution node copy helpers[2m > [22mfalls back to node id only when node label, manifest, and meta title are all unavailable[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/execution-node-copy.property.test.ts[2m > [22mexecution node copy helpers[2m > [22mbuilds mixed nodeNameMap entries from label, manifest, workflow meta, and node id fallbacks[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-config-copy.property.test.ts[2m > [22mnode config copy resolver[2m > [22mkeeps the node label as the highest-priority title[32m 4[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-config-copy.property.test.ts[2m > [22mnode config copy resolver[2m > [22muses manifest display_name when the node label is missing[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-config-copy.property.test.ts[2m > [22mnode config copy resolver[2m > [22mfalls back to workflow meta when manifest title is blank[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-config-copy.property.test.ts[2m > [22mnode config copy resolver[2m > [22mprefers manifest description over workflow meta[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-config-copy.property.test.ts[2m > [22mnode config copy resolver[2m > [22mfalls back to workflow meta description when manifest description is blank[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-meta.property.test.ts[2m > [22mSTATUS_META[2m > [22mpending has required fields[32m 2[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-meta.property.test.ts[2m > [22mSTATUS_META[2m > [22mrunning has required fields[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-meta.property.test.ts[2m > [22mSTATUS_META[2m > [22mwaiting has required fields[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-meta.property.test.ts[2m > [22mSTATUS_META[2m > [22mdone has required fields[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-meta.property.test.ts[2m > [22mSTATUS_META[2m > [22merror has required fields[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-meta.property.test.ts[2m > [22mSTATUS_META[2m > [22mpaused has required fields[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-meta.property.test.ts[2m > [22mSTATUS_META[2m > [22mskipped has required fields[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-meta.property.test.ts[2m > [22mgetStatusMeta[2m > [22mreturns meta for known status[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-meta.property.test.ts[2m > [22mgetStatusMeta[2m > [22mfalls back to pending for unknown[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-meta.property.test.ts[2m > [22mgetStatusMeta[2m > [22mfalls back for undefined[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-meta.property.test.ts[2m > [22mgetNodePreview[2m > [22mreturns fallback for empty[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-meta.property.test.ts[2m > [22mgetNodePreview[2m > [22mreturns fallback for undefined[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-meta.property.test.ts[2m > [22mgetNodePreview[2m > [22mstrips markdown[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-meta.property.test.ts[2m > [22mgetNodePreview[2m > [22mreplaces code blocks[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-meta.property.test.ts[2m > [22mgetNodePreview[2m > [22mtruncates long text[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-meta.property.test.ts[2m > [22mgetNodePreview[2m > [22mcustom fallback[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-meta.property.test.ts[2m > [22mgetNodeTitle[2m > [22muses label from data[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-meta.property.test.ts[2m > [22mgetNodeTitle[2m > [22mfalls back to type meta label[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-meta.property.test.ts[2m > [22mgetNodeTitle[2m > [22mtrims whitespace[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22mhas entries for all expected node types[32m 6[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22mtrigger_input has required fields[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22mai_analyzer has required fields[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22mai_planner has required fields[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22moutline_gen has required fields[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22mcontent_extract has required fields[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22msummary has required fields[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22mflashcard has required fields[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22mchat_response has required fields[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22mwrite_db has required fields[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22mcompare has required fields[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22mmind_map has required fields[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22mquiz_gen has required fields[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22mmerge_polish has required fields[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22mknowledge_base has required fields[32m 2[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22mweb_search has required fields[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22mexport_file has required fields[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22mlogic_switch has required fields[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22mloop_map has required fields[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22mloop_group has required fields[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22mcommunity_node has required fields[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22magent_code_review has required fields[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22magent_deep_research has required fields[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22magent_news has required fields[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22magent_study_tutor has required fields[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22magent_visual_site has required fields[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22mnon-LLM nodes have requiresModel=false[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mNODE_TYPE_META[2m > [22mLLM nodes have requiresModel=true[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mgetNodeTypeMeta[2m > [22mreturns meta for known type[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mgetNodeTypeMeta[2m > [22mfalls back to chat_response for unknown type[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-type-meta.property.test.ts[2m > [22mgetNodeTypeMeta[2m > [22mfalls back for undefined[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-store-copy.property.test.ts[2m > [22mnode store copy resolver[2m > [22mprefers manifest display_name for the node store title[32m 3[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-store-copy.property.test.ts[2m > [22mnode store copy resolver[2m > [22mfalls back to workflow meta title when manifest display_name is blank[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-store-copy.property.test.ts[2m > [22mnode store copy resolver[2m > [22mprefers manifest description for the node store subtitle[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-store-copy.property.test.ts[2m > [22mnode store copy resolver[2m > [22mfalls back to workflow meta description when manifest description is blank[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-store-copy.property.test.ts[2m > [22mnode store copy resolver[2m > [22mmatches queries against manifest display_name[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-store-copy.property.test.ts[2m > [22mnode store copy resolver[2m > [22mmatches queries against manifest description[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-store-copy.property.test.ts[2m > [22mnode store copy resolver[2m > [22mstill matches workflow meta and raw node type without manifest copy[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-store-copy.property.test.ts[2m > [22mnode store copy resolver[2m > [22mtreats empty queries as a match[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/canvas-node-copy.property.test.ts[2m > [22mcanvas node description resolver[2m > [22mprefers manifest description for regular nodes[32m 3[2mms[22m[39m
+ [32m✓[39m src/__tests__/canvas-node-copy.property.test.ts[2m > [22mcanvas node description resolver[2m > [22mfalls back to workflow meta description when regular node manifest description is blank[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/canvas-node-copy.property.test.ts[2m > [22mcanvas node description resolver[2m > [22mkeeps community input_hint as the highest-priority description[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/canvas-node-copy.property.test.ts[2m > [22mcanvas node description resolver[2m > [22mfalls back to manifest description when community input_hint is blank[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/canvas-node-copy.property.test.ts[2m > [22mcanvas node description resolver[2m > [22mfalls back to the default community description when input_hint and manifest description are missing[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/canvas-node-copy.property.test.ts[2m > [22mcanvas node description resolver[2m > [22mtreats blank manifest descriptions as missing[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/admin-ui-copy.property.test.ts[2m > [22madmin ui copy[2m > [22muses Chinese labels for every sidebar item and excludes billing from Wave 1 navigation[32m 5[2mms[22m[39m
+ [32m✓[39m src/__tests__/admin-ui-copy.property.test.ts[2m > [22madmin ui copy[2m > [22muses Chinese labels for tier and notice badges[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/use-action-executor.property.test.ts[2m > [22maction executor[2m > [22madds Agent nodes as regular canvas nodes when the type is registered[32m 7[2mms[22m[39m
+ [32m✓[39m src/__tests__/use-action-executor.property.test.ts[2m > [22maction executor[2m > [22madds complete sequential edges with handles[32m 3[2mms[22m[39m
+ [32m✓[39m src/__tests__/sse-store-update.property.test.ts[2m > [22mProperty 17: SSE 事件驱动 Store 更新[2m > [22mnode_status event updates node status correctly[32m 15[2mms[22m[39m
+ [32m✓[39m src/__tests__/sse-store-update.property.test.ts[2m > [22mProperty 17: SSE 事件驱动 Store 更新[2m > [22mnode_token event appends token to output[32m 17[2mms[22m[39m
+ [32m✓[39m src/__tests__/sse-store-update.property.test.ts[2m > [22mProperty 17: SSE 事件驱动 Store 更新[2m > [22mnode_done event sets final output and status=done[32m 9[2mms[22m[39m
+ [32m✓[39m src/__tests__/sse-store-update.property.test.ts[2m > [22mProperty 17: SSE 事件驱动 Store 更新[2m > [22mmultiple token events accumulate output correctly[32m 13[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-sync.property.test.ts[2m > [22mProperty 7: 三层同步脏标记管理[2m > [22misDirty becomes true after setNodes[32m 54[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-sync.property.test.ts[2m > [22mProperty 7: 三层同步脏标记管理[2m > [22misDirty becomes true after setEdges[32m 12[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-sync.property.test.ts[2m > [22mProperty 7: 三层同步脏标记管理[2m > [22misDirty becomes false after markClean (simulating successful cloud sync)[32m 15[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-sync.property.test.ts[2m > [22mProperty 7: 三层同步脏标记管理[2m > [22misDirty remains true after multiple modifications until markClean[32m 17[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-sync.property.test.ts[2m > [22mworkflow sync cloud failure helpers[2m > [22mclassifies cloud sync failures without throwing Chinese state away[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-sync.property.test.ts[2m > [22mworkflow sync cloud failure helpers[2m > [22monly treats cloud hash as synced after successful save[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-sync.property.test.ts[2m > [22mworkflow sync cloud failure helpers[2m > [22mswallows keepalive failures to avoid unhandled Failed to fetch noise[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/store-path-compat.property.test.ts[2m > [22mstore path compatibility[2m > [22mkeeps ai chat store exports compatible across old and new paths[32m 2[2mms[22m[39m
+ [32m✓[39m src/__tests__/store-path-compat.property.test.ts[2m > [22mstore path compatibility[2m > [22mkeeps conversation and workflow stores compatible across old and new paths[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/store-path-compat.property.test.ts[2m > [22mstore path compatibility[2m > [22mkeeps ui and admin store exports compatible across old and new paths[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/store-path-compat.property.test.ts[2m > [22mstore path compatibility[2m > [22mkeeps panel constants compatible across old and new paths[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-store.property.test.ts[2m > [22mProperty 6: Zustand Store 状态一致性[2m > [22msetCurrentWorkflow normalizes edges and sets currentWorkflowId[32m 148[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-store.property.test.ts[2m > [22mProperty 6: Zustand Store 状态一致性[2m > [22msetCurrentWorkflow filters legacy loop_region nodes[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-store.property.test.ts[2m > [22mProperty 6: Zustand Store 状态一致性[2m > [22monConnect assigns branch labels for logic_switch edges[32m 1[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-store.property.test.ts[2m > [22mProperty 6: Zustand Store 状态一致性[2m > [22mstartExecutionSession stores workflowName and chainIds[32m 4[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-store.property.test.ts[2m > [22mProperty 6: Zustand Store 状态一致性[2m > [22msetNodes marks isDirty and stores nodes correctly[32m 17[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-store.property.test.ts[2m > [22mProperty 6: Zustand Store 状态一致性[2m > [22msetEdges marks isDirty and stores edges correctly[32m 10[2mms[22m[39m
+ [32m✓[39m src/__tests__/workflow-store.property.test.ts[2m > [22mProperty 6: Zustand Store 状态一致性[2m > [22mmarkClean resets isDirty to false regardless of prior state[32m 13[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-renderer-registry.property.test.ts[2m > [22mnode renderer registry[2m > [22mkeeps the existing node-type fallback behavior intact[32m 2[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-renderer-registry.property.test.ts[2m > [22mnode renderer registry[2m > [22mresolves known renderer names directly for future manifest-first wiring[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/node-renderer-registry.property.test.ts[2m > [22mnode renderer registry[2m > [22mprefers a known renderer name before falling back to the node-type registry[32m 0[2mms[22m[39m
+ [32m✓[39m src/__tests__/use-stream-chat.request.test.ts[2m > [22muse-stream-chat request body[2m > [22mkeeps current workflow context even when the canvas is empty[32m 4[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m61 passed[39m[22m[90m (61)[39m
+[2m      Tests [22m [1m[32m326 passed[39m[22m[90m (326)[39m
+[2m   Start at [22m 23:45:42
+[2m   Duration [22m 7.07s[2m (transform 38.24s, setup 0ms, import 72.57s, tests 4.16s, environment 18ms)[22m
+

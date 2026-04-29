@@ -7,13 +7,12 @@ Feature: studysolo-mvp, Properties 14, 15, 18
 Validates: Requirements 5.9, 6.3, 6.4, 6.11
 """
 
-import json
 from collections import defaultdict
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-from hypothesis import given, settings, assume
+from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from app.engine.executor import (
@@ -23,7 +22,6 @@ from app.engine.executor import (
 )
 from app.engine.events import parse_sse_frame
 from app.engine.node_runner import NodeExecutionResult, stream_single_node_events
-from app.nodes._base import NodeInput
 from app.services.agent_gateway.models import AgentCallResult, AgentMeta
 
 

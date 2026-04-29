@@ -1,6 +1,5 @@
 """Usage analytics helpers — time parsing, bucketing, metrics computation, data fetching."""
 
-from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from statistics import quantiles
 

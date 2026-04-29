@@ -50,6 +50,10 @@ def _make_admin_token() -> str:
 
 
 def test_admin_middleware_returns_503_when_db_check_errors(monkeypatch):
+    from app.core.config import get_settings
+    monkeypatch.setenv("JWT_SECRET", "test-secret-for-auth-security-hardening")
+    get_settings.cache_clear()
+
     class _BrokenAdminChain:
         def select(self, *_args, **_kwargs):
             return self

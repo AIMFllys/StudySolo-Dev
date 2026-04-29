@@ -4,7 +4,6 @@ Covers: AgentRegistry, AgentMeta, HealthChecker, AgentGateway (non-stream + stre
         and /api/agents/* route-level integration.
 """
 
-import json
 import os
 import textwrap
 import time
@@ -14,7 +13,6 @@ from unittest.mock import AsyncMock, patch
 
 import httpx
 import pytest
-import pytest_asyncio
 from fastapi.testclient import TestClient
 
 from app.main import app

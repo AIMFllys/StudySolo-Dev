@@ -44,7 +44,7 @@ os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
 
 from app.main import app  # noqa: E402
 from app.models.workflow import WorkflowCreate, WorkflowUpdate  # noqa: E402
-from app.models.user import UserRegister, UserLogin  # noqa: E402
+from app.models.user import UserRegister  # noqa: E402
 
 client = TestClient(app, raise_server_exceptions=False)
 

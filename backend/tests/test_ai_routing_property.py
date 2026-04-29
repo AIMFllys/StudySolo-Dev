@@ -14,7 +14,7 @@ Validates: Requirements 4.3, 4.5, 4.6
 
 import pytest
 from httpx import Request
-from hypothesis import given, settings, assume
+from hypothesis import given, settings
 from hypothesis import strategies as st
 from unittest.mock import AsyncMock, patch, MagicMock
 from openai import APIConnectionError

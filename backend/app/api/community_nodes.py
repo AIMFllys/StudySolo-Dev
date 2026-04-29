@@ -4,9 +4,7 @@ from __future__ import annotations
 
 import json
 import re
-import time
 import uuid
-from collections import defaultdict
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from supabase import AsyncClient

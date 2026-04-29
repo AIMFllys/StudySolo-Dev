@@ -1,10 +1,6 @@
 """Property tests for text_chunker — chunking logic and token estimation."""
 
 from app.services.text_chunker import (
-    APPROX_CHARS_PER_TOKEN,
-    DEFAULT_CHUNK_OVERLAP,
-    DEFAULT_CHUNK_SIZE,
-    TextChunk,
     _chunk_text,
     _estimate_tokens,
     chunk_document,

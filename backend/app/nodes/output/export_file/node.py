@@ -107,7 +107,7 @@ class ExportFileNode(BaseNode):
         # ── TXT mode: strip markdown formatting ──
         if export_format == "txt":
             from app.services.file_converter import export_txt
-            yield f"📥 正在导出 TXT 文件...\n\n"
+            yield "📥 正在导出 TXT 文件...\n\n"
             try:
                 result = await export_txt(content=content, filename=filename)
                 if result.error:
@@ -115,9 +115,9 @@ class ExportFileNode(BaseNode):
                 if result.filepath and os.path.exists(result.filepath):
                     size_kb = result.size_bytes / 1024
                     download_url = f"/api/exports/download/{result.filename}"
-                    yield f"✅ 文件已生成\n\n"
+                    yield "✅ 文件已生成\n\n"
                     yield f"- **文件名**: {result.filename}\n"
-                    yield f"- **格式**: TXT\n"
+                    yield "- **格式**: TXT\n"
                     yield f"- **大小**: {size_kb:.1f} KB\n"
                     yield f"- **下载**: [📥 点击下载]({download_url})\n\n"
                 else:
@@ -145,7 +145,7 @@ class ExportFileNode(BaseNode):
             if result.filepath and os.path.exists(result.filepath):
                 size_kb = result.size_bytes / 1024
                 download_url = f"/api/exports/download/{result.filename}"
-                yield f"✅ 文件已生成\n\n"
+                yield "✅ 文件已生成\n\n"
                 yield f"- **文件名**: {result.filename}\n"
                 yield f"- **格式**: {result.format.upper()}\n"
                 yield f"- **大小**: {size_kb:.1f} KB\n"

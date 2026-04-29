@@ -27,7 +27,6 @@ _install_supabase_stub()
 
 import os
 import uuid
-from datetime import datetime, timezone
 
 import jwt
 from hypothesis import given, settings as hyp_settings

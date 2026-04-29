@@ -7,7 +7,7 @@ at section boundaries rather than in the middle of paragraphs.
 import logging
 from dataclasses import dataclass, field
 
-from app.services.file_parser import ParsedDocument, ParsedSection
+from app.services.file_parser import ParsedDocument, ParsedSection  # noqa: F401 — ParsedSection re-exported for test compatibility
 
 logger = logging.getLogger(__name__)
 
