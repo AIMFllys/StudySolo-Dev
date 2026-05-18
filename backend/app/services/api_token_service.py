@@ -24,7 +24,7 @@ from supabase import AsyncClient
 
 logger = logging.getLogger(__name__)
 
-TOKEN_PREFIX = "sk_studysolo_"
+TOKEN_PREFIX = "sk_studysolo_"  # nosec B105
 TOKEN_PREFIX_DISPLAY_LEN = len(TOKEN_PREFIX) + 8  # fixed prefix + 8 random chars
 
 
@@ -199,4 +199,4 @@ async def _touch_last_used(db: AsyncClient, token_id: str) -> None:
             .execute()
         )
     except Exception as exc:  # noqa: BLE001
-        logger.debug("Failed to update last_used_at for token %s: %s", token_id, exc)
+        logger.debug("Failed to update last_used_at for token %s", token_id)

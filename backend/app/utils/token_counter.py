@@ -21,7 +21,7 @@ def _get_encoding():
         logger.warning("tiktoken not installed — using character-based estimate")
         return None
     except Exception as e:
-        logger.warning("tiktoken encoding failed: %s — using fallback", e)
+        logger.warning("tiktoken encoding failed — using fallback")
         return None
 
 

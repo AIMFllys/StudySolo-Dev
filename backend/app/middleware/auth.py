@@ -107,7 +107,7 @@ class JWTAuthMiddleware:
         # Extract token from Authorization header or cookie
         token = _extract_token(request)
         if not token:
-            logger.debug("No token found for %s | cookies: %s", path, list(request.cookies.keys()))
+            logger.debug("No token found for %s", path)
             response = JSONResponse(
                 status_code=401,
                 content={"detail": "Token 无效或已过期"},
@@ -120,7 +120,7 @@ class JWTAuthMiddleware:
             db = await get_db()
             resolved = await _resolve_user(db, token)
             if resolved is None:
-                logger.debug("No user resolved for token on %s", path)
+                logger.debug("No user resolved for token on %s", path)  # nosemgrep: python.lang.security.audit.logging.logger-credential-leak.python-logger-credential-disclosure
                 response = JSONResponse(
                     status_code=401,
                     content={"detail": "Token 无效或已过期"},

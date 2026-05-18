@@ -228,9 +228,8 @@ class AgentGateway:
                 headers["Authorization"] = f"Bearer {api_key}"
             else:
                 logger.warning(
-                    "Agent '%s' api_key_env '%s' is not set in environment",
+                    "Agent '%s' api key is not set in environment",
                     agent.name,
-                    agent.api_key_env,
                 )
 
         return headers

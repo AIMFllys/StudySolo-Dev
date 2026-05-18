@@ -58,7 +58,7 @@ async def create_api_token(
             expires_in_days=body.expires_in_days,
         )
     except Exception as exc:  # noqa: BLE001
-        logger.exception("Failed to create API token: %s", exc)
+        logger.exception("Failed to create API token")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="创建 API Token 失败，请稍后重试",

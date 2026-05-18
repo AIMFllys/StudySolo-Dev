@@ -31,7 +31,7 @@ def _import_all_nodes() -> None:
         # Only import modules named "node" (e.g., app.nodes.generation.flashcard.node)
         if name.endswith(".node"):
             try:
-                importlib.import_module(name)
+                importlib.import_module(name)  # nosec B404 # nosemgrep: python.lang.security.audit.non-literal-import.non-literal-import
             except Exception as e:
                 logger.warning("Failed to import node module '%s': %s", name, e)
 

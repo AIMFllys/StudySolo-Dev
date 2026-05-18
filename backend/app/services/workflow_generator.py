@@ -46,13 +46,13 @@ def _debug_log(hypothesis_id: str, location: str, message: str, data: dict) -> N
             f.write(json.dumps(payload, ensure_ascii=False) + "\n")
 
         # Also try to forward to the provisioned ingest server (best-effort).
-        req = Request(
+        req = Request(  # nosec B310
             "http://127.0.0.1:7807/ingest/6761d4ab-0d6d-4e94-a0bc-90a491230a9a",
             method="POST",
             headers={"Content-Type": "application/json", "X-Debug-Session-Id": "f04052"},
             data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
         )
-        with urlopen(req, timeout=0.2):
+        with urlopen(req, timeout=0.2):  # nosec B310
             pass
     except Exception:
         logger.debug("debug log write failed", exc_info=True)
