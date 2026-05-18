@@ -80,9 +80,9 @@ async function fetchWorkflowRead<T>(
 
       if (!options.suppressStatuses?.includes(response.status)) {
         if (options.logContext) {
-          console.error(`[${options.logLabel}] HTTP`, response.status, 'for', options.logContext);
+          console.error(`[${options.logLabel}] HTTP ${response.status} for ${options.logContext}`);
         } else {
-          console.error(`[${options.logLabel}] HTTP`, response.status);
+          console.error(`[${options.logLabel}] HTTP ${response.status}`);
         }
       }
       return options.fallback;

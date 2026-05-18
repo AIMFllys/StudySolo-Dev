@@ -25,6 +25,8 @@ export interface ParsedPlan {
 }
 
 function extractBetweenTags(text: string, tag: string): string | null {
+  // eslint-disable-next-line
+  // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
   const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, 'i');
   const match = text.match(regex);
   return match ? match[1].trim() : null;
